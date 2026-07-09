@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function StartScreen() {
@@ -12,32 +12,44 @@ export default function StartScreen() {
   style={{ flex: 1 }}
 >
 <SafeAreaView style={styles.container}>
-      {/* Título */}
-      <Text style={styles.hello}>👊 ¡Hola!</Text>
-      <Text style={styles.title}>Soy GUÍA</Text>
 
-      {/* Bloque central */}
-      <View style={styles.centerBlock}>
-        <Text style={styles.subtitle}>
-  Tu guía para descubrir lugares
-  como si caminaras con un local.
-</Text>
+  <View style={styles.topBlock}>
 
-        
+    <Image
+      source={require("../../assets/images/guia.png")}
+      style={styles.logo}
+    />
 
-        
-      </View>
+    <Text style={styles.title}>
+      Hola, soy
+    </Text>
 
-      {/* Botón */}
-      <Pressable
-        style={styles.button}
-        onPress={() => router.push("/intent")}
-      >
-        <Text style={styles.buttonText}>Empezar</Text>
-      </Pressable>
+   <View>
+  {/* sombra/base */}
+  <Text style={styles.mainTitleShadow}>
+    GUÍA
+  </Text>
 
+  {/* texto principal */}
+  <Text style={styles.mainTitle}>
+    GUÍA
+  </Text>
+</View>
 
-    </SafeAreaView>
+    <Text style={styles.subtitle}>
+      Tu guía para descubrir lugares como si caminaras con un local.
+    </Text>
+
+  </View>
+
+  <Pressable
+    style={styles.button}
+    onPress={() => router.push("/recomendations")}
+  >
+    <Text style={styles.buttonText}>Empezar</Text>
+  </Pressable>
+
+</SafeAreaView>
 </LinearGradient>
   );
 }
@@ -46,58 +58,68 @@ const styles = StyleSheet.create({
  container: {
   flex: 1,
   paddingHorizontal: 24,
+  alignItems: "center",
   justifyContent: "center",
-  alignItems: "center",
-},
-
-  hello: {
-    fontSize: 28,
-    marginBottom: 6,
-  },
-
-  title: {
-    fontSize: 38,
-    fontWeight: "700",
-    marginBottom: 12,
-    color: "#111827",
-  },
-
- centerBlock: {
-  alignItems: "center",
-  marginTop: 20,
-},
-
-  subtitle: {
-    fontSize: 16,
-    color: "#4B5563",
-    marginBottom: 4,
-    textAlign: "center",
-  },
-
-  question: {
-    fontSize: 16,
-    color: "#6B7280",
-    marginBottom: 28,
-  },
-
   
-
-  
-
+},
 
 
   button: {
   width: "100%",
-  backgroundColor: "rgba(255,255,255,0.6)",
+  backgroundColor: "#7C3AED",
+  shadowColor: "#7C3AED",
+  shadowOpacity: 0.4,
+  shadowRadius: 20,
+  shadowOffset: { width: 0, height: 10 },
   paddingVertical: 16,
   borderRadius: 20,
-  marginTop: 30,
+  marginTop: 30, // 👈 ESTE ES CLAVE
 },
 
   buttonText: {
     textAlign: "center",
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: "#FFF",
   },
+topBlock: {
+  alignItems: "center",
+  marginTop: 20,
+},
+
+logo: {
+  width: 160,
+  height: 160,
+  resizeMode: "contain",
+  marginBottom: 10,
+},
+
+title: {
+  fontSize: 22,
+  color: "#374151",
+  marginTop: 10,
+},
+
+subtitle: {
+  fontSize: 16,
+  color: "#4B5563",
+  textAlign: "center",
+  maxWidth: 280,
+  lineHeight: 22,
+},
+
+
+mainTitle: {
+  position: "absolute",
+  fontSize: 42,
+  fontWeight: "900",
+  color: "#9333EA", // más vivo
+},
+
+mainTitleShadow: {
+  fontSize: 42,
+  fontWeight: "900",
+  color: "#C084FC", // más claro (simula luz)
+},
+
 });

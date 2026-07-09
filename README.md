@@ -1,50 +1,47 @@
-# Welcome to your Expo app 👋
+﻿# GUÍA
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+GUÍA es una app turística con IA pensada para acompañar al usuario durante un recorrido, usando la voz como canal principal y la pantalla como apoyo visual.
 
-## Get started
+## Flujo actual
 
-1. Install dependencies
+- Pantalla inicial
+- Recomendaciones
+- Descubre lugares
+- Tour guiado
 
-   ```bash
-   npm install
-   ```
+## Tours activos
 
-2. Start the app
+- Miraflores
+- Huaca Pucllana
 
-   ```bash
-   npx expo start
-   ```
+## Tecnologías principales
 
-In the output, you'll find options to open the app in a
+- Expo
+- React Native
+- Expo Router
+- React Native Maps
+- Backend local para voz y chat
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Comandos útiles
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Instalar dependencias:
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Iniciar la app:
 
-## Learn more
+```bash
+npx expo start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Revisar errores de TypeScript:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npx tsc --noEmit
+```
 
-## Join the community
+## Nota
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+La ruta `recomendations` se mantiene con ese nombre por compatibilidad interna del proyecto.
