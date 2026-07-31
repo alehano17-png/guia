@@ -2,7 +2,7 @@
 
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TourChatSheet from "../components/tour/TourChatSheet";
 import TourDecisionModal from "../components/tour/TourDecisionModal";
 import TourHeader from "../components/tour/TourHeader";
@@ -17,9 +17,11 @@ import {
   getTourNextAction,
 } from "../data/tours/navigation";
 import { getTourPreviewData } from "../data/tours/preview";
+import { useGuiaVoiceMode } from "../hooks/useGuiaVoiceMode";
 import { useTourAudio } from "../hooks/useTourAudio";
 import { useTourLocation } from "../hooks/useTourLocation";
 import { useTourRouteActions } from "../hooks/useTourRouteActions";
+import { useWakeWord } from "../hooks/useWakeWord";
 import { sendTourChatMessage } from "../lib/sendTourChatMessage";
 
 
@@ -102,7 +104,14 @@ const {
   playCachedAudio,
   preloadStepsAudio,
   stopCurrentAudio,
+  speakChatReply,
 } = useTourAudio();
+
+// Modo de voz de GUÍA: se activa al escuchar la palabra clave.
+const { status: guiaVoiceStatus, askGuia } = useGuiaVoiceMode({
+  stopCurrentAudio,
+  speakChatReply,
+});
 
 const { userLocation, locationPermissionGranted } = useTourLocation()
 
@@ -162,6 +171,22 @@ const [currentStepId, setCurrentStepId] = useState("")
 const step: TourStep | undefined = useMemo(() => {
   return tour?.steps.find((s) => s.id === currentStepId)
 }, [tour, currentStepId])
+
+const handleWakeWordDetected = useCallback(() => {
+  askGuia({
+    context: step?.title,
+    summary: step?.summary,
+    highlights: step?.highlights,
+    tourTitle: tour?.title,
+  })
+}, [askGuia, step, tour])
+
+// Escucha "GUÍA" solo mientras hay un tour cargado y no se está ya
+// procesando una pregunta anterior.
+useWakeWord({
+  onDetected: handleWakeWordDetected,
+  enabled: !loadingTour && !!step && guiaVoiceStatus === "idle",
+})
 
 const stepIndex = tour?.steps.findIndex((s) => s.id === step?.id) ?? 0
 const totalSteps = tour?.steps.length ?? 0

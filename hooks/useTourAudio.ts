@@ -54,7 +54,7 @@ export function useTourAudio() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text, mode: "narration" }),
         });
 
         const arrayBuffer = await res.arrayBuffer();
@@ -123,6 +123,60 @@ export function useTourAudio() {
     [ensureAudioForStep]
   );
 
+  // Reproduce una respuesta puntual del chat de voz (no narración de un paso).
+  // No se cachea por stepId porque cada pregunta/respuesta es distinta.
+  // Devuelve una promesa que se resuelve cuando termina de sonar, para que
+  // quien la llame pueda retomar la narración justo después.
+  const speakChatReply = useCallback(
+    async (text: string) => {
+      try {
+        if (currentAudioRef.current) {
+          try {
+            await currentAudioRef.current.stopAsync();
+          } catch {}
+          try {
+            await currentAudioRef.current.unloadAsync();
+          } catch {}
+          currentAudioRef.current = null;
+        }
+
+        const res = await fetch(`${TOUR_API_BASE_URL}/voice`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, mode: "chat" }),
+        });
+
+        const arrayBuffer = await res.arrayBuffer();
+        const fileUri =
+          FileSystem.cacheDirectory + `chat-${getHash(text)}.mp3`;
+
+        await FileSystem.writeAsStringAsync(
+          fileUri,
+          Buffer.from(arrayBuffer).toString("base64"),
+          { encoding: "base64" }
+        );
+
+        await new Promise<void>(async (resolve) => {
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: fileUri },
+            { shouldPlay: true }
+          );
+
+          currentAudioRef.current = sound;
+
+          sound.setOnPlaybackStatusUpdate((status) => {
+            if (status.isLoaded && status.didJustFinish) {
+              resolve();
+            }
+          });
+        });
+      } catch (e) {
+        console.log("Error reproduciendo respuesta de chat", e);
+      }
+    },
+    [getHash]
+  );
+
   const stopCurrentAudio = useCallback(async () => {
     if (currentAudioRef.current) {
       try {
@@ -142,5 +196,6 @@ export function useTourAudio() {
     playCachedAudio,
     preloadStepsAudio,
     stopCurrentAudio,
+    speakChatReply,
   };
 }
