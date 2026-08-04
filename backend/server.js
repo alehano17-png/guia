@@ -14,38 +14,95 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Misma voz para narración y conversación: GUÍA debe sonar como una sola
-// persona, no como un narrador y luego un asistente distinto.
-const GUIA_VOICE = "marin";
+// ElevenLabs: especialista en voz, mucho más natural que la TTS de OpenAI.
+// El ID de voz lo eliges tú en https://elevenlabs.io/app/voice-library
+// (filtra por español, escucha las muestras, y copia su Voice ID).
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
+const ELEVENLABS_MODEL = "eleven_multilingual_v2";
 
-const VOICE_INSTRUCTIONS = {
-  // Narración de un punto del tour: pausada, cálida, como contando una historia.
-  narration:
-    "Habla como un guía turístico cercano y cálido, caminando junto al oyente. " +
-    "Ritmo pausado y natural, con pequeñas pausas como al conversar, no como " +
-    "alguien leyendo un texto en voz alta.",
-  // Respuesta a una pregunta puntual del usuario: más viva, conversacional.
-  chat:
-    "Responde como si estuvieras charlando cara a cara con alguien que te " +
-    "acaba de hacer una pregunta mientras caminan juntos. Tono cercano, " +
-    "espontáneo y natural, con la energía de una conversación real, breve " +
-    "y directo, sin sonar como una narración leída.",
+// Ajustes de expresividad por modo. "stability" más bajo = más variación en
+// el tono (menos plano); "style" más alto = más carácter/emoción en la
+// entonación. Son valores de partida razonables, no son mágicos — una vez
+// que lo escuches, se pueden afinar.
+const VOICE_SETTINGS = {
+  narration: {
+    stability: 0.5,
+    similarity_boost: 0.75,
+    style: 0.35,
+    use_speaker_boost: true,
+  },
+  chat: {
+    stability: 0.4,
+    similarity_boost: 0.75,
+    style: 0.5,
+    use_speaker_boost: true,
+  },
 };
+
+// "Fila" para ElevenLabs: tu plan permite máximo 3 peticiones a la vez.
+// Esto asegura que tu backend nunca le mande más de 2 en paralelo, sin
+// importar cuántas pida la app de golpe — las demás esperan su turno
+// en vez de fallar con error 429.
+let activeElevenLabsRequests = 0;
+const MAX_CONCURRENT_ELEVENLABS = 2;
+const elevenLabsQueue = [];
+
+function runWithConcurrencyLimit(taskFn) {
+  return new Promise((resolve, reject) => {
+    const run = async () => {
+      activeElevenLabsRequests++;
+      try {
+        const result = await taskFn();
+        resolve(result);
+      } catch (e) {
+        reject(e);
+      } finally {
+        activeElevenLabsRequests--;
+        if (elevenLabsQueue.length > 0) {
+          const next = elevenLabsQueue.shift();
+          next();
+        }
+      }
+    };
+
+    if (activeElevenLabsRequests < MAX_CONCURRENT_ELEVENLABS) {
+      run();
+    } else {
+      elevenLabsQueue.push(run);
+    }
+  });
+}
 
 app.post("/voice", async (req, res) => {
   try {
     const { text, mode } = req.body;
-    const instructions = VOICE_INSTRUCTIONS[mode] ?? VOICE_INSTRUCTIONS.narration;
+    const voice_settings = VOICE_SETTINGS[mode] ?? VOICE_SETTINGS.narration;
 
-    const response = await openai.audio.speech.create({
-      model: "gpt-4o-mini-tts",
-      voice: GUIA_VOICE,
-      instructions,
-      format: "mp3",
-      input: text,
-    });
+    const elevenRes = await runWithConcurrencyLimit(() =>
+      fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`, {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          model_id: ELEVENLABS_MODEL,
+          voice_settings,
+        }),
+      })
+    );
 
-    const buffer = Buffer.from(await response.arrayBuffer());
+    const contentType = elevenRes.headers.get("content-type") || "";
+
+    if (!elevenRes.ok || !contentType.includes("audio")) {
+      const errText = await elevenRes.text();
+      console.error("Respuesta inesperada de ElevenLabs:", elevenRes.status, contentType, errText);
+      throw new Error(`ElevenLabs ${elevenRes.status}: ${errText}`);
+    }
+
+    const buffer = Buffer.from(await elevenRes.arrayBuffer());
 
     res.setHeader("Content-Type", "audio/mpeg");
     res.send(buffer);

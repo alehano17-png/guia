@@ -134,15 +134,15 @@ useEffect(() => {
   if (!tour) return;
 
   const init = async () => {
-  const firstSteps = tour.steps.slice(0, 3).map((step) => ({
-    id: step.id,
-    text: step.voiceText,
-  }));
+    const allSteps = tour.steps.map((step) => ({
+      id: step.id,
+      text: step.voiceText,
+    }));
 
-  await preloadStepsAudio(firstSteps);
+    await preloadStepsAudio(allSteps);
 
-  setLoadingTour(false);
-};
+    setLoadingTour(false);
+  };
 
   init();
 }, [tour, preloadStepsAudio]);

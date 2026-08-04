@@ -16,20 +16,24 @@ export function useTourAudio() {
   const currentAudioRef = useRef<Audio.Sound | null>(null);
   const isGeneratingRef = useRef(false);
 
+const AUDIO_VERSION = "elevenlabs-v3";
+
   const getHash = useCallback((text: string) => {
     return CryptoJS.MD5(text).toString();
   }, []);
 
   const getCacheKey = useCallback(
-    (stepId: string, text: string) => `${stepId}-${getHash(text)}`,
-    [getHash]
-  );
+  (stepId: string, text: string) =>
+    `${AUDIO_VERSION}-${stepId}-${getHash(text)}`,
+  [getHash]
+);
 
-  const getFileUri = useCallback(
-    (stepId: string, text: string) =>
-      FileSystem.documentDirectory + `${stepId}-${getHash(text)}.mp3`,
-    [getHash]
-  );
+const getFileUri = useCallback(
+  (stepId: string, text: string) =>
+    FileSystem.documentDirectory +
+    `${AUDIO_VERSION}-${stepId}-${getHash(text)}.mp3`,
+  [getHash]
+);
 
   const ensureAudioForStep = useCallback(
     async (stepId: string, text: string) => {
@@ -56,6 +60,10 @@ export function useTourAudio() {
           },
           body: JSON.stringify({ text, mode: "narration" }),
         });
+
+        if (!res.ok) {
+          throw new Error(`Backend /voice respondió ${res.status}`);
+        }
 
         const arrayBuffer = await res.arrayBuffer();
 
@@ -146,9 +154,14 @@ export function useTourAudio() {
           body: JSON.stringify({ text, mode: "chat" }),
         });
 
+        if (!res.ok) {
+          throw new Error(`Backend /voice respondió ${res.status}`);
+        }
+
         const arrayBuffer = await res.arrayBuffer();
         const fileUri =
-          FileSystem.cacheDirectory + `chat-${getHash(text)}.mp3`;
+  FileSystem.cacheDirectory +
+  `${AUDIO_VERSION}-chat-${getHash(text)}.mp3`;
 
         await FileSystem.writeAsStringAsync(
           fileUri,
