@@ -359,7 +359,7 @@ useEffect(() => {
 
 
 useEffect(() => {
-  if (!step) return;
+  if (!step || loadingTour) return;
 
   let cancelled = false;
 
@@ -406,7 +406,7 @@ useEffect(() => {
     cancelled = true;
     pulseLoopRef.current?.stop();
   };
-}, [step, ensureAudioForStep, playCachedAudio, stopCurrentAudio, pulseAnim]);
+}, [step, loadingTour, ensureAudioForStep, playCachedAudio, stopCurrentAudio, pulseAnim]);
 
 useEffect(() => {
   if (!step || !tour) return;

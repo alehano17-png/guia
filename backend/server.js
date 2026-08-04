@@ -18,6 +18,7 @@ const openai = new OpenAI({
 // El ID de voz lo eliges tú en https://elevenlabs.io/app/voice-library
 // (filtra por español, escucha las muestras, y copia su Voice ID).
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+console.log("🔑 Llave de ElevenLabs detectada:", ELEVENLABS_API_KEY ? `sí, ${ELEVENLABS_API_KEY.length} caracteres` : "NO detectada (undefined)");
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
 const ELEVENLABS_MODEL = "eleven_multilingual_v2";
 
@@ -76,8 +77,16 @@ function runWithConcurrencyLimit(taskFn) {
 
 app.post("/voice", async (req, res) => {
   try {
-    const { text, mode } = req.body;
+    const { mode } = req.body;
     const voice_settings = VOICE_SETTINGS[mode] ?? VOICE_SETTINGS.narration;
+
+    // El texto de los tours trae marcas de dirección como "(pausa)" y
+    // "(micro pausa)" — no deben sonar en la narración, se convierten en
+    // una pausa natural con puntuación en vez de leerse literal.
+    const text = req.body.text
+      .replace(/\(\s*micro\s*pausa\s*\)/gi, "...")
+      .replace(/\(\s*pausa\s*\)/gi, "...")
+      .trim();
 
     const elevenRes = await runWithConcurrencyLimit(() =>
       fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`, {

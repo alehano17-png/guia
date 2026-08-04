@@ -16,8 +16,7 @@ export function useTourAudio() {
   const currentAudioRef = useRef<Audio.Sound | null>(null);
   const isGeneratingRef = useRef(false);
 
-const AUDIO_VERSION = "elevenlabs-v3";
-
+const AUDIO_VERSION = "elevenlabs-v5";
   const getHash = useCallback((text: string) => {
     return CryptoJS.MD5(text).toString();
   }, []);
