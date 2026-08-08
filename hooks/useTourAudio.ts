@@ -81,11 +81,11 @@ const getFileUri = useCallback(
   );
 
   const playCachedAudio = useCallback(
-    async (stepId: string, text: string) => {
+    async (stepId: string, text: string): Promise<number | null> => {
       const cacheKey = getCacheKey(stepId, text);
       const uri = audioCacheRef.current[cacheKey];
 
-      if (!uri) return;
+      if (!uri) return null;
 
       try {
         if (currentAudioRef.current) {
@@ -100,14 +100,20 @@ const getFileUri = useCallback(
           currentAudioRef.current = null;
         }
 
-        const { sound } = await Audio.Sound.createAsync(
+        const { sound, status } = await Audio.Sound.createAsync(
           { uri },
           { shouldPlay: true }
         );
 
         currentAudioRef.current = sound;
+
+        if (status.isLoaded && status.durationMillis) {
+          return status.durationMillis;
+        }
+        return null;
       } catch (e) {
         console.log("Error reproduciendo audio", e);
+        return null;
       }
     },
     [getCacheKey]
