@@ -3,6 +3,7 @@ import { BlurView } from "expo-blur";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
 
 type ActionCardData = {
   tag: string;
@@ -46,7 +47,7 @@ export default function TourMediaBlock({
       {showActionCard && actionCardData ? (
         <View style={styles.actionCard}>
           <View style={styles.actionTag}>
-            <Ionicons name="walk-outline" size={14} color="#7C8DF5" />
+            <Ionicons name="walk-outline" size={14} color={TOUR_ACCENT_COLOR} />
             <Text style={styles.actionTagText}>{actionCardData.tag}</Text>
           </View>
 
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#7C8DF5",
+    backgroundColor: TOUR_ACCENT_COLOR,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,

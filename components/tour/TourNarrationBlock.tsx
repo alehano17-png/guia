@@ -1,81 +1,49 @@
 import React from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
+import { SharedValue } from "react-native-reanimated";
+import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
+import VoiceBlob from "./VoiceBlob";
 
 type Props = {
   pulseAnim: Animated.Value;
+  voiceEnergy: SharedValue<number>;
   summary?: string;
 };
 
-export default function TourNarrationBlock({ pulseAnim, summary }: Props) {
+export default function TourNarrationBlock({
+  pulseAnim,
+  voiceEnergy,
+  summary,
+}: Props) {
   return (
     <View style={styles.centerBlock}>
       <View style={styles.voiceContainer}>
         <View style={styles.voiceOuter}>
-          <Animated.View
-            style={[
-              styles.voiceHaloFar,
-              {
-                transform: [
-                  {
-                    scale: pulseAnim.interpolate({
-                      inputRange: [1, 1.25],
-                      outputRange: [1, 1.28],
-                    }),
-                  },
-                ],
-                opacity: pulseAnim.interpolate({
-                  inputRange: [1, 1.25],
-                  outputRange: [0.08, 0.16],
-                }),
-              },
-            ]}
-          />
-
-          <Animated.View
-            style={[
-              styles.voiceHalo,
-              {
-                transform: [
-                  {
-                    scale: pulseAnim.interpolate({
-                      inputRange: [1, 1.25],
-                      outputRange: [1, 1.18],
-                    }),
-                  },
-                ],
-                opacity: pulseAnim.interpolate({
-                  inputRange: [1, 1.25],
-                  outputRange: [0.14, 0.24],
-                }),
-              },
-            ]}
-          />
-
           <View style={styles.voiceAmbientGlow} />
 
-          <Animated.View
-            style={[
-              styles.voiceInner,
-              {
-                transform: [
-                  {
-                    scale: pulseAnim.interpolate({
-                      inputRange: [1, 1.25],
-                      outputRange: [1, 1.07],
-                    }),
-                  },
-                ],
-              },
-            ]}
+          <VoiceBlob
+            energy={voiceEnergy}
+            color={TOUR_ACCENT_COLOR}
+            style={styles.voiceBlobWrap}
           />
 
           <Animated.View
             style={[
               styles.voiceInnerGlow,
               {
+                transform: [
+                  {
+                    scale: pulseAnim.interpolate({
+                      inputRange: [1, 1.3],
+                      outputRange: [1, 1.3],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                ],
                 opacity: pulseAnim.interpolate({
-                  inputRange: [1, 1.25],
-                  outputRange: [0.22, 0.34],
+                  inputRange: [1, 1.3],
+                  outputRange: [0.14, 0.22],
+                  extrapolate: "clamp",
                 }),
               },
             ]}
@@ -127,19 +95,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
   },
 
-  voiceInner: {
+  // El lienzo del VoiceBlob mide (radius + amplitude) * 2 = (55 + 14) * 2 =
+  // 138 con sus valores por defecto, así que se centra igual que el resto
+  // de las capas del globo.
+  voiceBlobWrap: {
     position: "absolute",
     top: "50%",
     left: "50%",
-    marginLeft: -59,
-    marginTop: -59,
-    width: 118,
-    height: 118,
-    borderRadius: 59,
-    backgroundColor: "#D9D0FF",
-    zIndex: 4,
+    marginLeft: -69,
+    marginTop: -69,
+    zIndex: 5,
   },
 
+  // Por debajo del blob (zIndex 4 < 5): actúa como halo de fondo, no como
+  // capa translúcida que lava el color sólido de la gota.
   voiceInnerGlow: {
     position: "absolute",
     top: "50%",
@@ -150,7 +119,7 @@ const styles = StyleSheet.create({
     height: 104,
     borderRadius: 52,
     backgroundColor: "rgba(255,255,255,0.24)",
-    zIndex: 5,
+    zIndex: 4,
   },
 
   voiceShine: {
@@ -179,32 +148,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.40)",
     zIndex: 7,
-  },
-
-  voiceHalo: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    marginLeft: -98,
-    marginTop: -98,
-    width: 196,
-    height: 196,
-    borderRadius: 98,
-    backgroundColor: "rgba(167,139,250,0.20)",
-    zIndex: 2,
-  },
-
-  voiceHaloFar: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    marginLeft: -118,
-    marginTop: -118,
-    width: 236,
-    height: 236,
-    borderRadius: 118,
-    backgroundColor: "rgba(167,139,250,0.14)",
-    zIndex: 1,
   },
 
   voiceAmbientGlow: {

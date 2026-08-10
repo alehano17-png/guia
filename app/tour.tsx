@@ -27,7 +27,6 @@ import { sendTourChatMessage } from "../lib/sendTourChatMessage";
 
 import {
   Animated,
-  Easing,
   Keyboard,
   StyleSheet,
   View
@@ -45,116 +44,6 @@ type ChatMessage = {
   text: string
 }
 
-type PulseSegment =
-  | { type: "speech"; words: number }
-  | { type: "pause"; ms: number };
-
-// Detecta las mismas marcas "(pausa)", "(micro pausa)", "(silencio 3s)" que
-// el backend le quita a la voz — acá se usan al revés: para saber DÓNDE
-// el globo debe quedarse quieto en vez de pulsar.
-function parsePulseSegments(rawText: string): PulseSegment[] {
-  const PAUSE_MARK = /\(\s*(micro\s*pausa|pausa|silencio\s*\d*s?)\s*\)/gi;
-
-  const marks: { index: number; length: number; ms: number }[] = [];
-  let match: RegExpExecArray | null;
-
-  while ((match = PAUSE_MARK.exec(rawText)) !== null) {
-    const label = match[1].toLowerCase();
-    let ms = 500;
-    if (label.includes("micro")) ms = 250;
-    const secMatch = label.match(/(\d+)\s*s/);
-    if (secMatch) ms = parseInt(secMatch[1], 10) * 1000;
-    marks.push({ index: match.index, length: match[0].length, ms });
-  }
-
-  const segments: PulseSegment[] = [];
-  let cursor = 0;
-
-  for (const mark of marks) {
-    const chunk = rawText.slice(cursor, mark.index).trim();
-    if (chunk) {
-      const words = chunk.split(/\s+/).filter(Boolean).length;
-      if (words > 0) segments.push({ type: "speech", words });
-    }
-    segments.push({ type: "pause", ms: mark.ms });
-    cursor = mark.index + mark.length;
-  }
-
-  const rest = rawText.slice(cursor).trim();
-  if (rest) {
-    const words = rest.split(/\s+/).filter(Boolean).length;
-    if (words > 0) segments.push({ type: "speech", words });
-  }
-
-  return segments;
-}
-
-const MS_PER_WORD = 380; // ritmo aproximado de habla natural en español
-const PULSE_CYCLE_MS = 700; // duración de un ciclo de "inhala-exhala"
-
-// Construye la secuencia de pulsos del globo a partir del texto: pulsa
-// mientras "habla", se queda quieto donde hay una pausa marcada.
-function buildPulseSequence(
-  pulseAnim: Animated.Value,
-  text: string,
-  actualDurationMs?: number | null
-): Animated.CompositeAnimation {
-  const segments = parsePulseSegments(text);
-
-  const rawDurations = segments.map((seg) =>
-    seg.type === "pause" ? seg.ms : Math.max(seg.words * MS_PER_WORD, 300)
-  );
-  const estimatedTotal = rawDurations.reduce((a, b) => a + b, 0);
-
-  // Si tenemos la duración real del audio, reescalamos todo para que el
-  // pulso termine exactamente cuando termina de sonar — sin importar si
-  // MS_PER_WORD estaba bien calculado o no.
-  const scale =
-    actualDurationMs && estimatedTotal > 0
-      ? actualDurationMs / estimatedTotal
-      : 1;
-
-  const steps: Animated.CompositeAnimation[] = [];
-
-  segments.forEach((seg, i) => {
-    const segMs = Math.max(
-      rawDurations[i] * scale,
-      seg.type === "pause" ? 100 : 200
-    );
-
-    if (seg.type === "pause") {
-      steps.push(
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: Math.min(segMs, 400),
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        })
-      );
-      if (segMs > 400) {
-        steps.push(Animated.delay(segMs - 400));
-      }
-    } else {
-      let remaining = segMs;
-      let up = true;
-      while (remaining > 0) {
-        const cycleMs = Math.min(PULSE_CYCLE_MS, remaining);
-        steps.push(
-          Animated.timing(pulseAnim, {
-            toValue: up ? 1.22 : 1.05,
-            duration: cycleMs,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          })
-        );
-        remaining -= cycleMs;
-        up = !up;
-      }
-    }
-  });
-
-  return Animated.sequence(steps);
-}
 
 export default function TourScreen() {
   const params = useLocalSearchParams<{ tourId?: string }>()
@@ -206,7 +95,7 @@ const [input, setInput] = useState("")
 
 
 const decisionAnim = useRef(new Animated.Value(0)).current
-const pulseLoopRef = useRef<Animated.CompositeAnimation | null>(null)
+
 
 const {
   ensureAudioForStep,
@@ -214,7 +103,8 @@ const {
   preloadStepsAudio,
   stopCurrentAudio,
   speakChatReply,
-} = useTourAudio();
+  voiceEnergy,
+} = useTourAudio(pulseAnim);
 
 // Modo de voz de GUÍA: se activa al escuchar la palabra clave.
 const { status: guiaVoiceStatus, askGuia } = useGuiaVoiceMode({
@@ -481,28 +371,25 @@ useEffect(() => {
 
     await ensureAudioForStep(step.id, textToSpeak);
 
-  
-
-   const durationMs = await playCachedAudio(step.id, textToSpeak);
-
     if (cancelled) return;
 
-    // Recién acá arranca el pulso — justo cuando el audio empieza a sonar,
-    // ajustado a la duración real para que termine exacto con la voz.
-    pulseLoopRef.current = buildPulseSequence(pulseAnim, textToSpeak, durationMs);
-    pulseLoopRef.current.start();
+    // El globo ya no se arma a mano acá — useTourAudio lo mueve solo,
+    // en tiempo real, con el volumen real del audio mientras suena.
+    await playCachedAudio(step.id, textToSpeak);
   };
 
- pulseLoopRef.current?.stop();
   pulseAnim.setValue(1);
 
   run();
 
   return () => {
     cancelled = true;
-    pulseLoopRef.current?.stop();
   };
 }, [step, loadingTour, ensureAudioForStep, playCachedAudio, stopCurrentAudio, pulseAnim]);
+
+// prueba
+// probando wakatime es una pruba ojalá esto me aca poder dejar de procasrtinart, la idea es que leo no me deje ir baojo ninguna condición, de veras, quiero ser una persona que logre sus objetivos, me estoy amarrando al mastil asi como odiseo, detyesto las sirenas y quiero ver a  mi familia muy muy feliz
+
 
 useEffect(() => {
   if (!step || !tour) return;
@@ -578,6 +465,7 @@ return(
 
 <TourNarrationBlock
   pulseAnim={pulseAnim}
+  voiceEnergy={voiceEnergy}
   summary={step.summary}
 />
 

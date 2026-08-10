@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
 
 type Props = {
   title: string;
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#7C8DF5",
+    backgroundColor: TOUR_ACCENT_COLOR,
   },
 
   stepTitle: {

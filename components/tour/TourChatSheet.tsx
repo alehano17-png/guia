@@ -11,6 +11,7 @@ import {
     TextInput,
     View,
 } from "react-native";
+import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -261,7 +262,7 @@ export default function TourChatSheet({
             />
 
             <Pressable onPress={onSend}>
-              <Ionicons name="send" size={18} color="#7C8DF5" />
+              <Ionicons name="send" size={18} color={TOUR_ACCENT_COLOR} />
             </Pressable>
           </View>
         </View>

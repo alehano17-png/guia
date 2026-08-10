@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
 
 type Props = {
   label: string;
@@ -22,7 +23,7 @@ const styles = StyleSheet.create({
   },
 
   primaryButton: {
-    backgroundColor: "#7C8DF5",
+    backgroundColor: TOUR_ACCENT_COLOR,
     paddingVertical: 20,
     borderRadius: 30,
     alignItems: "center",
