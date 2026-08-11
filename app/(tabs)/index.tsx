@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useEffect, useMemo } from "react";
@@ -168,7 +169,7 @@ export default function StartScreen() {
     <LinearGradient
   colors={["#F3E8FF", "#D8B4FE", "#A78BFA"]}
   start={{ x: 0, y: 0 }}
-  end={{ x: 0, y: 1 }}
+  end={{ x: 1, y: 1 }}
   style={{ flex: 1 }}
 >
 <SafeAreaView style={styles.container}>
@@ -222,7 +223,10 @@ export default function StartScreen() {
       pointerEvents="none"
     />
 
-    <Text style={styles.buttonText}>Empezar</Text>
+    <View style={styles.buttonContent}>
+      <Text style={styles.buttonText}>EMPEZAR</Text>
+      <Ionicons name="arrow-forward" size={18} color="#FFF" />
+    </View>
   </Pressable>
 
 </SafeAreaView>
@@ -243,15 +247,22 @@ const styles = StyleSheet.create({
 
 
   button: {
-  width: "100%",
+  alignSelf: "center",
   backgroundColor: TOUR_ACCENT_COLOR,
   shadowColor: TOUR_ACCENT_COLOR,
   shadowOpacity: 0.4,
   shadowRadius: 20,
   shadowOffset: { width: 0, height: 10 },
-  paddingVertical: 16,
-  borderRadius: 20,
+  paddingVertical: 14,
+  paddingHorizontal: 32,
+  borderRadius: 999,
   overflow: "hidden",
+},
+
+buttonContent: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
 },
 
 buttonShine: {
