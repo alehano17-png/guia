@@ -121,7 +121,7 @@ const zoneName =
     ? detectedZone.name
     : null;
 
-const { headerSubtitle } = getRecommendationsCopy({
+const { loadingSubtitle, headerSubtitle } = getRecommendationsCopy({
   cityName,
   zoneName,
   hasSupportedCity,
@@ -134,7 +134,10 @@ if (loading) {
     return (
       <>
         <StatusBar translucent backgroundColor="transparent" style="dark" />
-        <LoadingSearchScreen locationLabel={cityName} />
+        <LoadingSearchScreen
+          title={discoveryCopy.recommendations.loadingTitle}
+          subtitle={loadingSubtitle}
+        />
       </>
     );
   }

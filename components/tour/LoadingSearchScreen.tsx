@@ -83,13 +83,11 @@ function RouteLine({
 }
 
 type Props = {
-  // Ciudad a mostrar en la píldora inferior — "Tours disponibles en {locationLabel}".
-  locationLabel?: string;
+  title: string;
+  subtitle: string;
 };
 
-export default function LoadingSearchScreen({
-  locationLabel = "Lima",
-}: Props) {
+export default function LoadingSearchScreen({ title, subtitle }: Props) {
   return (
     <LinearGradient
       colors={["#F3E8FF", "#D8B4FE", "#A78BFA"]}
@@ -121,13 +119,11 @@ export default function LoadingSearchScreen({
         </View>
 
         <View style={styles.bottomBlock}>
-          <Text style={styles.title}>Buscando tours para ti</Text>
+          <Text style={styles.title}>{title}</Text>
 
           <View style={styles.pill}>
             <Ionicons name="location" size={16} color={TOUR_ACCENT_COLOR} />
-            <Text style={styles.pillText}>
-              Tours disponibles en {locationLabel}
-            </Text>
+            <Text style={styles.pillText}>{subtitle}</Text>
           </View>
         </View>
       </SafeAreaView>
