@@ -1,10 +1,169 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo } from "react";
+import {
+  Dimensions,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
 
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const PARTICLE_COUNT = 6;
+
+type ParticleConfig = {
+  id: number;
+  top: number;
+  left: number;
+  size: number;
+  duration: number;
+  delay: number;
+};
+
+function AmbientParticle({ config }: { config: ParticleConfig }) {
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    opacity.value = withDelay(
+      config.delay,
+      withRepeat(
+        withSequence(
+          withTiming(0.8, {
+            duration: config.duration * 0.25,
+            easing: Easing.linear,
+          }),
+          withTiming(0.8, {
+            duration: config.duration * 0.35,
+            easing: Easing.linear,
+          }),
+          withTiming(0, {
+            duration: config.duration * 0.4,
+            easing: Easing.linear,
+          })
+        ),
+        -1
+      )
+    );
+
+    translateY.value = withDelay(
+      config.delay,
+      withRepeat(
+        withTiming(-100, {
+          duration: config.duration,
+          easing: Easing.linear,
+        }),
+        -1
+      )
+    );
+
+    scale.value = withDelay(
+      config.delay,
+      withRepeat(
+        withTiming(0.5, {
+          duration: config.duration,
+          easing: Easing.linear,
+        }),
+        -1
+      )
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const particleStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }, { scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.particle,
+        {
+          top: `${config.top}%`,
+          left: `${config.left}%`,
+          width: config.size,
+          height: config.size,
+          borderRadius: config.size / 2,
+        },
+        particleStyle,
+      ]}
+    />
+  );
+}
+
+function AmbientParticles() {
+  const particles = useMemo<ParticleConfig[]>(
+    () =>
+      Array.from({ length: PARTICLE_COUNT }, (_, id) => ({
+        id,
+        top: Math.random() * 90,
+        left: Math.random() * 90,
+        size: 4 + Math.random() * 6, // 4-10px
+        duration: 4000 + Math.random() * 3000, // 4000-7000ms
+        delay: Math.random() * 2000, // hasta 2000ms
+      })),
+    []
+  );
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {particles.map((config) => (
+        <AmbientParticle key={config.id} config={config} />
+      ))}
+    </View>
+  );
+}
+
 export default function StartScreen() {
+  // 1. Logo flotando: sube 12px y baja, ciclo 4000ms, infinito, ease-in-out
+  const logoTranslateY = useSharedValue(0);
+
+  useEffect(() => {
+    logoTranslateY.value = withRepeat(
+      withSequence(
+        withTiming(-12, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1
+    );
+  }, []);
+
+  const logoAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: logoTranslateY.value }],
+  }));
+
+  // 3. Brillo del botón: una sola pasada, al montar la pantalla
+  const shineTranslateX = useSharedValue(-SCREEN_WIDTH);
+
+  useEffect(() => {
+    shineTranslateX.value = withTiming(SCREEN_WIDTH, {
+      duration: 1500,
+      easing: Easing.linear,
+    });
+  }, []);
+
+  const shineAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: shineTranslateX.value },
+      { rotate: "20deg" },
+    ],
+  }));
+
   return (
     <LinearGradient
   colors={["#F3E8FF", "#D8B4FE", "#A78BFA"]}
@@ -14,9 +173,11 @@ export default function StartScreen() {
 >
 <SafeAreaView style={styles.container}>
 
+  <AmbientParticles />
+
   <View style={styles.topBlock}>
 
-    <View style={styles.logoWrap}>
+    <Animated.View style={[styles.logoWrap, logoAnimatedStyle]}>
       {/* halo de luz detrás del logo */}
       <View style={styles.logoHalo} />
 
@@ -24,7 +185,7 @@ export default function StartScreen() {
         source={require("../../assets/images/guia.png")}
         style={styles.logo}
       />
-    </View>
+    </Animated.View>
 
     <Text style={styles.title}>
       Hola, soy
@@ -54,6 +215,12 @@ export default function StartScreen() {
   >
     {/* brillo/vidrio sutil en la mitad superior */}
     <View style={styles.buttonShine} />
+
+    {/* brillo animado que cruza el botón una sola vez al aparecer */}
+    <Animated.View
+      style={[styles.buttonSweep, shineAnimatedStyle]}
+      pointerEvents="none"
+    />
 
     <Text style={styles.buttonText}>Empezar</Text>
   </Pressable>
@@ -98,6 +265,14 @@ buttonShine: {
   borderTopRightRadius: 20,
   borderBottomLeftRadius: 4,
   borderBottomRightRadius: 4,
+},
+
+buttonSweep: {
+  position: "absolute",
+  top: -40,
+  bottom: -40,
+  width: 60,
+  backgroundColor: "rgba(255,255,255,0.45)",
 },
 
   buttonText: {
@@ -161,6 +336,11 @@ mainTitleShadow: {
   fontSize: 42,
   fontWeight: "900",
   color: TOUR_ACCENT_COLOR,
+},
+
+particle: {
+  position: "absolute",
+  backgroundColor: "rgba(255,255,255,0.4)",
 },
 
 });
