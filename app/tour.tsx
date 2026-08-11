@@ -22,7 +22,12 @@ import { useTourAudio } from "../hooks/useTourAudio";
 import { useTourLocation } from "../hooks/useTourLocation";
 import { useTourRouteActions } from "../hooks/useTourRouteActions";
 import { useWakeWord } from "../hooks/useWakeWord";
+import { getDistanceInMeters } from "../lib/geo";
 import { sendTourChatMessage } from "../lib/sendTourChatMessage";
+
+// Radio de "llegada" al punto del recorrido, en metros — a partir de acá
+// se dispara el avance automático (solo para pasos de tipo "advance").
+const ARRIVAL_RADIUS_METERS = 30;
 
 
 import {
@@ -107,10 +112,22 @@ const {
 } = useTourAudio(pulseAnim);
 
 // Modo de voz de GUÍA: se activa al escuchar la palabra clave.
-const { status: guiaVoiceStatus, askGuia } = useGuiaVoiceMode({
+const { status: guiaVoiceStatus, askGuia, transcribeSpokenText } = useGuiaVoiceMode({
   stopCurrentAudio,
   speakChatReply,
 });
+
+// El ícono de micrófono del chat: dicta y muestra el texto transcrito en
+// el campo, sin enviarlo solo — el usuario decide si lo manda o lo edita.
+const handleDictate = useCallback(async () => {
+  const text = await transcribeSpokenText();
+  if (text.trim()) {
+    setInput(text);
+  }
+}, [transcribeSpokenText]);
+
+const isDictating =
+  guiaVoiceStatus === "listening" || guiaVoiceStatus === "thinking";
 
 const { userLocation, locationPermissionGranted } = useTourLocation()
 
@@ -118,6 +135,7 @@ const { userLocation, locationPermissionGranted } = useTourLocation()
 const tour = useMemo(()=>getTourById(tourId),[tourId])
 
 const [loadingTour, setLoadingTour] = useState(true);
+const [readyStepIds, setReadyStepIds] = useState<string[]>([]);
 
 useEffect(() => {
   const firstStepId = tour?.steps?.[0]?.id
@@ -138,7 +156,9 @@ useEffect(() => {
       text: step.voiceText,
     }));
 
-    await preloadStepsAudio(allSteps);
+    await preloadStepsAudio(allSteps, (stepId) => {
+      setReadyStepIds((prev) => [...prev, stepId])
+    });
 
     setLoadingTour(false);
   };
@@ -290,6 +310,48 @@ const goNext = () => {
   }
 }
 
+// Evita disparar goNext() más de una vez para el mismo paso mientras el
+// usuario se queda dentro del radio de llegada.
+const hasAutoAdvancedRef = useRef(false)
+
+useEffect(() => {
+  hasAutoAdvancedRef.current = false
+}, [currentStepId])
+
+// Detección automática de llegada por GPS: solo mientras la app está en
+// primer plano (useTourLocation deja de actualizar userLocation si no).
+// Solo avanza sola cuando la acción correspondiente es "advance" — si
+// haría falta abrir una app externa (openStartRoute) o mostrar una
+// decisión (openDecision), se deja que el usuario toque el botón.
+useEffect(() => {
+  if (!userLocation || !previewDestination) return
+  if (hasAutoAdvancedRef.current) return
+
+  const distance = getDistanceInMeters(userLocation, previewDestination)
+  if (distance >= ARRIVAL_RADIUS_METERS) return
+
+  const action = getTourNextAction({
+    isGuidedStart,
+    startMapViewed,
+    startRouteNextStepId: startRoute?.nextStepId,
+    hasChoices,
+    stepNextId: step?.nextId,
+  })
+
+  if (action.type !== "advance") return
+
+  hasAutoAdvancedRef.current = true
+  goNext()
+}, [
+  userLocation,
+  previewDestination,
+  isGuidedStart,
+  startMapViewed,
+  startRoute,
+  hasChoices,
+  step,
+])
+
 const sendMessage = async () => {
   if (!input.trim()) return
 
@@ -424,7 +486,13 @@ bounciness:6
 
 
 if (loadingTour) {
-  return <TourLoadingScreen />;
+  return (
+    <TourLoadingScreen
+      tourTitle={tour?.title ?? ""}
+      steps={tour?.steps.map((s) => ({ id: s.id, title: s.title })) ?? []}
+      readyStepIds={readyStepIds}
+    />
+  );
 }
 
 if (!step) {
@@ -466,6 +534,8 @@ return(
 <TourNarrationBlock
   pulseAnim={pulseAnim}
   voiceEnergy={voiceEnergy}
+  guiaVoiceStatus={guiaVoiceStatus}
+  onAskGuia={handleWakeWordDetected}
   summary={step.summary}
 />
 
@@ -531,10 +601,12 @@ return(
   input={input}
   messages={messages}
   isThinking={isThinking}
+  isDictating={isDictating}
   onClose={handleCloseChat}
   onChangeInput={setInput}
   onSend={sendMessage}
   onSuggestionPress={setInput}
+  onMicPress={handleDictate}
 />
 
 

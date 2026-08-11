@@ -140,5 +140,42 @@ export function useGuiaVoiceMode({
     [stopCurrentAudio, speakChatReply]
   );
 
-  return { status, askGuia };
+  // Graba y transcribe, pero no envía nada a GUÍA ni reproduce ninguna
+  // respuesta — solo devuelve el texto, para que quien llama (ej. el
+  // ícono de dictado del chat) lo muestre en un campo editable antes de
+  // decidir si lo envía.
+  const transcribeSpokenText = useCallback(async (): Promise<string> => {
+    if (isActiveRef.current) return ""; // ya hay una grabación en curso
+    isActiveRef.current = true;
+
+    try {
+      await stopCurrentAudio();
+
+      setStatus("listening");
+      const uri = await recordUntilSilence();
+
+      if (!uri) {
+        setStatus("idle");
+        return "";
+      }
+
+      setStatus("thinking");
+      const audioBase64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: "base64",
+      });
+
+      const text = await transcribeAudio(audioBase64);
+
+      setStatus("idle");
+      return text;
+    } catch (e) {
+      console.log("Error al transcribir dictado", e);
+      setStatus("error");
+      return "";
+    } finally {
+      isActiveRef.current = false;
+    }
+  }, [stopCurrentAudio]);
+
+  return { status, askGuia, transcribeSpokenText };
 }

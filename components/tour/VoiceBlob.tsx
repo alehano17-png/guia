@@ -16,9 +16,20 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 // estrella.
 const POINT_COUNT = 8;
 
+// Respiración propia del modo "idle": una onda lenta y suave, sin ningún
+// audio real detrás — para pantallas donde el blob todavía no tiene
+// volumen que reflejar (ej. la de carga).
+const IDLE_PERIOD_SECONDS = 2.5;
+const IDLE_ENERGY_BASE = 0.16;
+const IDLE_ENERGY_SWING = 0.12;
+
 type Props = {
   // Volumen normalizado (0 a 1) que empuja la deformación del contorno.
-  energy: SharedValue<number>;
+  // Requerido cuando mode es "reactive" (el default); se ignora en "idle".
+  energy?: SharedValue<number>;
+  // "reactive" (default): se deforma según `energy`, el volumen real de
+  // la voz. "idle": ignora `energy` y respira sola con una onda propia.
+  mode?: "reactive" | "idle";
   color?: string;
   // Radio del blob en reposo (energy = 0), en píxeles.
   radius?: number;
@@ -32,6 +43,7 @@ type Props = {
 
 export default function VoiceBlob({
   energy,
+  mode = "reactive",
   color = "#D9D0FF",
   radius = 55,
   amplitude = 14,
@@ -58,7 +70,15 @@ export default function VoiceBlob({
 
   const animatedProps = useAnimatedProps(() => {
     const t = time.value;
-    const e = energy.value;
+    // En "idle" se ignora la energía recibida y se genera una onda propia,
+    // lenta y de amplitud baja, reutilizando el mismo acumulador de tiempo
+    // que ya avanza cada frame por el useFrameCallback de arriba.
+    const e =
+      mode === "idle"
+        ? IDLE_ENERGY_BASE +
+          IDLE_ENERGY_SWING *
+            Math.sin((t * 2 * Math.PI) / IDLE_PERIOD_SECONDS)
+        : energy?.value ?? 0;
 
     const points: { x: number; y: number }[] = [];
     for (let i = 0; i < POINT_COUNT; i++) {

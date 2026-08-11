@@ -165,7 +165,7 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
   );
 
   const preloadStepsAudio = useCallback(
-    async (steps: AudioStep[]) => {
+    async (steps: AudioStep[], onStepReady?: (stepId: string) => void) => {
       if (isGeneratingRef.current) return;
 
       isGeneratingRef.current = true;
@@ -173,6 +173,7 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
       try {
         for (const step of steps) {
           await ensureAudioForStep(step.id, step.text);
+          onStepReady?.(step.id);
         }
       } finally {
         isGeneratingRef.current = false;

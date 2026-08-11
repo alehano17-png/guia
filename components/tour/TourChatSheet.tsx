@@ -2,8 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useRef } from "react";
 import {
     Animated,
-    KeyboardAvoidingView,
-    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -11,6 +9,10 @@ import {
     TextInput,
     View,
 } from "react-native";
+import ReanimatedAnimated, {
+    useAnimatedKeyboard,
+    useAnimatedStyle,
+} from "react-native-reanimated";
 import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
 
 type ChatMessage = {
@@ -30,10 +32,12 @@ type Props = {
   input: string;
   messages: ChatMessage[];
   isThinking: boolean;
+  isDictating: boolean;
   onClose: () => void;
   onChangeInput: (text: string) => void;
   onSend: () => void;
   onSuggestionPress: (text: string) => void;
+  onMicPress: () => void;
 };
 
 export default function TourChatSheet({
@@ -48,21 +52,28 @@ export default function TourChatSheet({
   input,
   messages,
   isThinking,
+  isDictating,
   onClose,
   onChangeInput,
   onSend,
   onSuggestionPress,
+  onMicPress,
 }: Props) {
   const scrollRef = useRef<ScrollView>(null);
+
+  // El "padding" de KeyboardAvoidingView no era confiable con este layout
+  // (position: absolute + varios niveles de flex). useAnimatedKeyboard da
+  // la altura real del teclado, frame a frame, para empujar hacia arriba
+  // solo el bloque de mensajes + barra de entrada.
+  const keyboard = useAnimatedKeyboard();
+  const keyboardAvoidingStyle = useAnimatedStyle(() => ({
+    paddingBottom: keyboard.height.value,
+  }));
 
   if (!visible) return null;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.chatSheet}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={0}
-    >
+    <View style={styles.chatSheet}>
       <View style={[styles.chatOverlay, { paddingTop: insetsTop }]}>
         <View style={styles.chatHeader}>
           <Pressable onPress={onClose}>
@@ -130,6 +141,7 @@ export default function TourChatSheet({
           </View>
         </Animated.View>
 
+        <ReanimatedAnimated.View style={[styles.chatBody, keyboardAvoidingStyle]}>
         <Animated.ScrollView
           ref={scrollRef}
           style={[
@@ -251,7 +263,13 @@ export default function TourChatSheet({
           ]}
         >
           <View style={styles.chatInputBar}>
-            <Ionicons name="mic" size={18} color="#6B7280" />
+            <Pressable onPress={onMicPress}>
+              <Ionicons
+                name="mic"
+                size={18}
+                color={isDictating ? TOUR_ACCENT_COLOR : "#6B7280"}
+              />
+            </Pressable>
 
             <TextInput
               placeholder="Haz una pregunta..."
@@ -266,8 +284,9 @@ export default function TourChatSheet({
             </Pressable>
           </View>
         </View>
+        </ReanimatedAnimated.View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -379,6 +398,12 @@ const styles = StyleSheet.create({
   placeImagePlaceholder: {
     opacity: 0.5,
     fontSize: 14,
+  },
+
+  // Envuelve el scroll de mensajes + la barra de entrada; su paddingBottom
+  // se anima con la altura real del teclado (useAnimatedKeyboard).
+  chatBody: {
+    flex: 1,
   },
 
   chatMessages: {

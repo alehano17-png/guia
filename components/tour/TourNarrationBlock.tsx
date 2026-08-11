@@ -1,6 +1,8 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { SharedValue } from "react-native-reanimated";
+import { GuiaVoiceStatus } from "../../hooks/useGuiaVoiceMode";
 import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
 import VoiceBlob from "./VoiceBlob";
 
@@ -8,13 +10,30 @@ type Props = {
   pulseAnim: Animated.Value;
   voiceEnergy: SharedValue<number>;
   summary?: string;
+  guiaVoiceStatus: GuiaVoiceStatus;
+  onAskGuia: () => void;
+};
+
+// Texto de la píldora según el estado del modo de voz de GUÍA.
+const GUIA_STATUS_LABEL: Record<GuiaVoiceStatus, string> = {
+  idle: "Toca para hablar con GUÍA",
+  listening: "Escuchando...",
+  thinking: "Pensando...",
+  speaking: "Hablando...",
+  error: "No entendí, toca para intentar de nuevo",
 };
 
 export default function TourNarrationBlock({
   pulseAnim,
   voiceEnergy,
   summary,
+  guiaVoiceStatus,
+  onAskGuia,
 }: Props) {
+  // Solo se puede tocar en reposo o tras un error — mientras escucha,
+  // piensa o habla, ya hay una pregunta en curso y no debe dispararse otra.
+  const isGuiaBusy =
+    guiaVoiceStatus !== "idle" && guiaVoiceStatus !== "error";
   return (
     <View style={styles.centerBlock}>
       <View style={styles.voiceContainer}>
@@ -59,11 +78,14 @@ export default function TourNarrationBlock({
           {summary ?? " "}
         </Text>
 
-        <View style={styles.askPill}>
-          <Text style={styles.askTip}>
-  {"Di \"GUÍA\" para hacer una pregunta."}
-</Text>
-        </View>
+        <Pressable
+          style={[styles.askPill, isGuiaBusy && styles.askPillDisabled]}
+          onPress={onAskGuia}
+          disabled={isGuiaBusy}
+        >
+          <Ionicons name="mic" size={16} color={TOUR_ACCENT_COLOR} />
+          <Text style={styles.askTip}>{GUIA_STATUS_LABEL[guiaVoiceStatus]}</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -180,11 +202,18 @@ const styles = StyleSheet.create({
   },
 
   askPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     alignSelf: "center",
     backgroundColor: "rgba(255,255,255,0.50)",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
+  },
+
+  askPillDisabled: {
+    opacity: 0.6,
   },
 
   askTip: {

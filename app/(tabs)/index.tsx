@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
 
 export default function StartScreen() {
   return (
@@ -15,10 +16,15 @@ export default function StartScreen() {
 
   <View style={styles.topBlock}>
 
-    <Image
-      source={require("../../assets/images/guia.png")}
-      style={styles.logo}
-    />
+    <View style={styles.logoWrap}>
+      {/* halo de luz detrás del logo */}
+      <View style={styles.logoHalo} />
+
+      <Image
+        source={require("../../assets/images/guia.png")}
+        style={styles.logo}
+      />
+    </View>
 
     <Text style={styles.title}>
       Hola, soy
@@ -37,7 +43,7 @@ export default function StartScreen() {
 </View>
 
     <Text style={styles.subtitle}>
-      Tu guía para descubrir lugares como si caminaras con un local.
+      Compañía a tu modo
     </Text>
 
   </View>
@@ -46,6 +52,9 @@ export default function StartScreen() {
     style={styles.button}
     onPress={() => router.push("/recomendations")}
   >
+    {/* brillo/vidrio sutil en la mitad superior */}
+    <View style={styles.buttonShine} />
+
     <Text style={styles.buttonText}>Empezar</Text>
   </Pressable>
 
@@ -58,22 +67,37 @@ const styles = StyleSheet.create({
  container: {
   flex: 1,
   paddingHorizontal: 24,
+  paddingTop: 64,
+  paddingBottom: 28,
   alignItems: "center",
-  justifyContent: "center",
-  
+  justifyContent: "space-between",
+
 },
 
 
   button: {
   width: "100%",
-  backgroundColor: "#7C3AED",
-  shadowColor: "#7C3AED",
+  backgroundColor: TOUR_ACCENT_COLOR,
+  shadowColor: TOUR_ACCENT_COLOR,
   shadowOpacity: 0.4,
   shadowRadius: 20,
   shadowOffset: { width: 0, height: 10 },
   paddingVertical: 16,
   borderRadius: 20,
-  marginTop: 30, // 👈 ESTE ES CLAVE
+  overflow: "hidden",
+},
+
+buttonShine: {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  height: "50%",
+  backgroundColor: "rgba(255,255,255,0.14)",
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  borderBottomLeftRadius: 4,
+  borderBottomRightRadius: 4,
 },
 
   buttonText: {
@@ -84,14 +108,28 @@ const styles = StyleSheet.create({
   },
 topBlock: {
   alignItems: "center",
-  marginTop: 20,
+},
+
+logoWrap: {
+  width: 260,
+  height: 260,
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 10,
+},
+
+logoHalo: {
+  position: "absolute",
+  width: 260,
+  height: 260,
+  borderRadius: 130,
+  backgroundColor: "rgba(255,255,255,0.85)",
 },
 
 logo: {
   width: 160,
   height: 160,
   resizeMode: "contain",
-  marginBottom: 10,
 },
 
 title: {
@@ -113,13 +151,16 @@ mainTitle: {
   position: "absolute",
   fontSize: 42,
   fontWeight: "900",
-  color: "#9333EA", // más vivo
+  color: TOUR_ACCENT_COLOR,
 },
 
 mainTitleShadow: {
+  position: "relative",
+  top: 3,
+  left: 3,
   fontSize: 42,
   fontWeight: "900",
-  color: "#C084FC", // más claro (simula luz)
+  color: TOUR_ACCENT_COLOR,
 },
 
 });

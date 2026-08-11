@@ -1,4 +1,4 @@
-﻿import * as Location from "expo-location";
+import * as Location from "expo-location";
 import { useEffect, useState } from "react";
 
 type UserLocation = {
@@ -11,7 +11,10 @@ export function useTourLocation() {
   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
 
   useEffect(() => {
-    const loadLocation = async () => {
+    let subscription: Location.LocationSubscription | null = null;
+    let cancelled = false;
+
+    const startWatching = async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
 
@@ -20,20 +23,35 @@ export function useTourLocation() {
           return;
         }
 
+        if (cancelled) return;
         setLocationPermissionGranted(true);
 
-        const current = await Location.getCurrentPositionAsync({});
-
-        setUserLocation({
-          latitude: current.coords.latitude,
-          longitude: current.coords.longitude,
-        });
+        // Solo mientras la app está en primer plano: la detección de
+        // llegada por GPS en segundo plano queda para más adelante.
+        subscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.Balanced,
+            timeInterval: 5000,
+            distanceInterval: 10,
+          },
+          (position) => {
+            setUserLocation({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          }
+        );
       } catch (error) {
         console.log("Error ubicación:", error);
       }
     };
 
-    loadLocation();
+    startWatching();
+
+    return () => {
+      cancelled = true;
+      subscription?.remove();
+    };
   }, []);
 
   return {
