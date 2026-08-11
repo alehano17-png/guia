@@ -94,7 +94,7 @@ const showDiscoverPlacesEntry =
 
     const finishLoading = () => {
       const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, 1200 - elapsed);
+      const remaining = Math.max(0, 10000 - elapsed);
 
       setTimeout(() => {
         if (mounted) {

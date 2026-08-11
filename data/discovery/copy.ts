@@ -2,7 +2,7 @@
   recommendations: {
     title: "Genial, vamos a pasear.",
     detectedZone: "Te ubicamos cerca de {{zoneName}}.",
-    loadingTitle: "Buscando tours para ti...",
+    loadingTitle: "Buscando tours cerca de ti...",
     loadingDetected:
       "Encontramos opciones disponibles en {{cityName}}.",
     loadingDetecting:
