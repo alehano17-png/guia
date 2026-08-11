@@ -10,7 +10,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -20,6 +19,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -179,34 +179,33 @@ export default function StartScreen() {
   <View style={styles.topBlock}>
 
     <Animated.View style={[styles.logoWrap, logoAnimatedStyle]}>
-      {/* halo de luz detrás del logo */}
-      <View style={styles.logoHalo} />
-
       <Image
         source={require("../../assets/images/guia.png")}
         style={styles.logo}
       />
     </Animated.View>
 
-    <Text style={styles.title}>
-      Hola, soy
-    </Text>
+    <View style={styles.textBlock}>
+      <Text style={styles.title}>
+        Hola, soy
+      </Text>
 
-   <View>
-  {/* sombra/base */}
-  <Text style={styles.mainTitleShadow}>
-    GUÍA
-  </Text>
+      <View>
+        {/* sombra/base */}
+        <Text style={styles.mainTitleShadow}>
+          GUÍA
+        </Text>
 
-  {/* texto principal */}
-  <Text style={styles.mainTitle}>
-    GUÍA
-  </Text>
-</View>
+        {/* texto principal */}
+        <Text style={styles.mainTitle}>
+          GUÍA
+        </Text>
+      </View>
 
-    <Text style={styles.subtitle}>
-      Compañía a tu modo
-    </Text>
+      <Text style={styles.subtitle}>
+        Compañía a tu modo
+      </Text>
+    </View>
 
   </View>
 
@@ -238,16 +237,17 @@ const styles = StyleSheet.create({
  container: {
   flex: 1,
   paddingHorizontal: 24,
-  paddingTop: 64,
-  paddingBottom: 28,
+  paddingTop: 20,
+  paddingBottom: 110,
   alignItems: "center",
-  justifyContent: "space-between",
+  justifyContent: "center",
 
 },
 
 
   button: {
   alignSelf: "center",
+  marginTop: 20,
   backgroundColor: TOUR_ACCENT_COLOR,
   shadowColor: TOUR_ACCENT_COLOR,
   shadowOpacity: 0.4,
@@ -257,6 +257,7 @@ const styles = StyleSheet.create({
   paddingHorizontal: 32,
   borderRadius: 999,
   overflow: "hidden",
+  transform: [{ translateY: 60 }],
 },
 
 buttonContent: {
@@ -271,7 +272,7 @@ buttonShine: {
   left: 0,
   right: 0,
   height: "50%",
-  backgroundColor: "rgba(255,255,255,0.14)",
+  backgroundColor: "rgba(255,255,255,0)",
   borderTopLeftRadius: 20,
   borderTopRightRadius: 20,
   borderBottomLeftRadius: 4,
@@ -296,26 +297,24 @@ topBlock: {
   alignItems: "center",
 },
 
+textBlock: {
+  alignItems: "center",
+  transform: [{ translateY: 30 }],
+},
+
 logoWrap: {
   width: 260,
   height: 260,
   alignItems: "center",
   justifyContent: "center",
-  marginBottom: 10,
-},
-
-logoHalo: {
-  position: "absolute",
-  width: 260,
-  height: 260,
-  borderRadius: 130,
-  backgroundColor: "rgba(255,255,255,0.85)",
+  marginBottom: -30,
 },
 
 logo: {
-  width: 160,
-  height: 160,
+  width: 260,
+  height: 260,
   resizeMode: "contain",
+  transform: [{ translateY: -30 }],
 },
 
 title: {

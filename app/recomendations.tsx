@@ -3,7 +3,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Pressable,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import LoadingSearchScreen from "../components/tour/LoadingSearchScreen";
 import { discoveryCopy } from "../data/discovery/copy";
 import { getDiscoveryItemImage, hasDiscoveryItemImage } from "../data/discovery/mediaHelpers";
 import { getDiscoveryItemDurationLabel } from "../data/discovery/presentation";
@@ -121,7 +121,7 @@ const zoneName =
     ? detectedZone.name
     : null;
 
-const { loadingSubtitle, headerSubtitle } = getRecommendationsCopy({
+const { headerSubtitle } = getRecommendationsCopy({
   cityName,
   zoneName,
   hasSupportedCity,
@@ -132,27 +132,10 @@ const { loadingSubtitle, headerSubtitle } = getRecommendationsCopy({
 
 if (loading) {
     return (
-      <LinearGradient
-        colors={["#F3E8FF", "#D8B4FE", "#A78BFA"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={{ flex: 1 }}
-      >
+      <>
         <StatusBar translucent backgroundColor="transparent" style="dark" />
-
-        <SafeAreaView style={styles.safe}>
-          <View style={styles.loadingContent}>
-            <Text style={styles.loadingTitle}>{discoveryCopy.recommendations.loadingTitle}</Text>
-            <Text style={styles.loadingSubtitle}>{loadingSubtitle}</Text>
-
-            <ActivityIndicator
-              size="large"
-              color="#7C3AED"
-              style={{ marginTop: 28 }}
-            />
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
+        <LoadingSearchScreen locationLabel={cityName} />
+      </>
     );
   }
 
@@ -214,28 +197,6 @@ if (loading) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-  },
-
-  loadingContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 28,
-  },
-
-  loadingTitle: {
-    fontSize: 34,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "center",
-  },
-
-  loadingSubtitle: {
-    marginTop: 14,
-    fontSize: 18,
-    color: "#4B5563",
-    textAlign: "center",
-    lineHeight: 28,
   },
 
   header: {
