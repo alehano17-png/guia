@@ -1,9 +1,22 @@
 import cors from "cors";
+import crypto from "crypto";
 import dotenv from "dotenv";
 import express from "express";
+import fs from "fs";
 import OpenAI, { toFile } from "openai";
 
 dotenv.config(); // 🔥 primero cargas variables
+
+// Cacheo de audio del lado del servidor: el mismo texto nunca se le paga
+// dos veces a ElevenLabs, sin importar cuántos usuarios distintos lo
+// pidan (a diferencia del caché del celular, que es por-dispositivo).
+const AUDIO_CACHE_DIR = "./audio-cache";
+fs.mkdirSync(AUDIO_CACHE_DIR, { recursive: true });
+
+// Misma idea que AUDIO_VERSION del lado del cliente: si cambia la voz o
+// el modelo de ElevenLabs, subir este número invalida todo el caché
+// viejo de golpe, para no servir audio con la voz anterior por error.
+const SERVER_CACHE_VERSION = "v1";
 
 const app = express();
 app.use(cors());
@@ -84,9 +97,25 @@ app.post("/voice", async (req, res) => {
     // "(micro pausa)" — no deben sonar en la narración, se convierten en
     // una pausa natural con puntuación en vez de leerse literal.
     const text = req.body.text
-      .replace(/\(\s*micro\s*pausa\s*\)/gi, "...")
-      .replace(/\(\s*pausa\s*\)/gi, "...")
+      .replace(/\(\s*micro\s*pausa\s*\)/gi, "")
+      .replace(/\(\s*pausa\s*\)/gi, "")
+      .replace(/\n{3,}/g, "\n\n")
       .trim();
+
+    // Caché de servidor: mismo texto + mismo modo + misma versión → mismo
+    // archivo para cualquier usuario. Si ya está generado, se sirve
+    // directo del disco, sin tocar ElevenLabs ni la fila de concurrencia.
+    const cacheKey = crypto
+      .createHash("md5")
+      .update(`${SERVER_CACHE_VERSION}-${mode}-${text}`)
+      .digest("hex");
+    const cacheFilePath = `${AUDIO_CACHE_DIR}/${cacheKey}.mp3`;
+
+    if (fs.existsSync(cacheFilePath)) {
+      const cachedBuffer = fs.readFileSync(cacheFilePath);
+      res.setHeader("Content-Type", "audio/mpeg");
+      return res.send(cachedBuffer);
+    }
 
     const elevenRes = await runWithConcurrencyLimit(() =>
       fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`, {
@@ -112,6 +141,8 @@ app.post("/voice", async (req, res) => {
     }
 
     const buffer = Buffer.from(await elevenRes.arrayBuffer());
+
+    fs.writeFileSync(cacheFilePath, buffer);
 
     res.setHeader("Content-Type", "audio/mpeg");
     res.send(buffer);

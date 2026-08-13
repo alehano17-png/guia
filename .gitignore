@@ -43,3 +43,6 @@ app-example
 /android
 
 .env
+
+# audio cacheado por el backend — generado, no código fuente
+backend/audio-cache/

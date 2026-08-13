@@ -1,9 +1,6 @@
-import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Circle, Path } from "react-native-svg";
 import Animated, {
   Easing,
   interpolate,
@@ -12,8 +9,11 @@ import Animated, {
   useSharedValue,
   withDelay,
   withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, Path } from "react-native-svg";
 import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -183,24 +183,27 @@ function BreathingRoutes() {
   );
 }
 
-function AmbientGlow() {
-  // Brillo ambiente detrás del SVG, con su propia pulsación de opacidad,
-  // independiente de la respiración del conjunto y del dibujado de cada línea.
-  const glowOpacity = useSharedValue(0.15);
+function TypingDot({ delay }: { delay: number }) {
+  const opacity = useSharedValue(0.3);
 
   useEffect(() => {
-    glowOpacity.value = withRepeat(
-      withTiming(0.2, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
+    opacity.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 250, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.3, { duration: 250, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1
+      )
     );
   }, []);
 
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: glowOpacity.value,
+  const dotStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
   }));
 
-  return <Animated.View style={[styles.glow, glowStyle]} />;
+  return <Animated.Text style={[styles.title, dotStyle]}>.</Animated.Text>;
 }
 
 type Props = {
@@ -209,6 +212,10 @@ type Props = {
 };
 
 export default function LoadingSearchScreen({ title, subtitle }: Props) {
+  // Los "..." finales del copy se separan del texto base para animarse
+  // en secuencia, como el indicador de "escribiendo" de un chat.
+  const baseTitle = title.replace(/\.+$/, "");
+
   return (
     <LinearGradient
       colors={["#F3E8FF", "#D8B4FE", "#A78BFA"]}
@@ -217,17 +224,13 @@ export default function LoadingSearchScreen({ title, subtitle }: Props) {
       style={styles.fill}
     >
       <SafeAreaView style={styles.fill}>
-        <View style={styles.routesWrap}>
-          <AmbientGlow />
+        <View style={styles.content}>
           <BreathingRoutes />
-        </View>
-
-        <View style={styles.bottomBlock}>
-          <Text style={styles.title}>{title}</Text>
-
-          <View style={styles.pill}>
-            <Ionicons name="location" size={16} color={TOUR_ACCENT_COLOR} />
-            <Text style={styles.pillText}>{subtitle}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{baseTitle}</Text>
+            <TypingDot delay={0} />
+            <TypingDot delay={150} />
+            <TypingDot delay={300} />
           </View>
         </View>
       </SafeAreaView>
@@ -240,25 +243,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  routesWrap: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  glow: {
-    position: "absolute",
-    width: 256,
-    height: 256,
-    borderRadius: 128,
-    backgroundColor: "#FFFFFF",
-  },
-
-  bottomBlock: {
+  content: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 32,
+    transform: [{ translateY: -30 }],
+  },
+
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 18,
   },
 
   title: {
@@ -267,22 +263,5 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: "#221B35",
     textAlign: "center",
-  },
-
-  pill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 14,
-    backgroundColor: "rgba(255,255,255,0.55)",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-  },
-
-  pillText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#4B5563",
   },
 });
