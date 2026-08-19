@@ -1,7 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
+import {
+  TOUR_ACCENT_COLOR,
+  TOUR_TEXT_PRIMARY,
+  TOUR_TEXT_SECONDARY,
+} from "../../lib/tourTheme";
 
 type Props = {
   title: string;
@@ -22,7 +26,7 @@ export default function TourHeader({
     <View style={styles.headerBlock}>
       <View style={styles.topBar}>
         <Pressable style={styles.topAction} onPress={onBack}>
-          <Ionicons name="close" size={16} color="#4B5563" />
+          <Ionicons name="close" size={16} color={TOUR_TEXT_SECONDARY} />
           <Text style={styles.topActionText}>Salir</Text>
         </Pressable>
 
@@ -70,7 +74,7 @@ const styles = StyleSheet.create({
   topActionText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#5D5476",
+    color: TOUR_TEXT_SECONDARY,
   },
 
   chatButton: {
@@ -91,7 +95,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: 0,
     marginBottom: 12,
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
     height: 42,
   },
 
@@ -118,6 +122,6 @@ const styles = StyleSheet.create({
   liveText: {
     fontSize: 13,
     fontWeight: "400",
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
   },
 });

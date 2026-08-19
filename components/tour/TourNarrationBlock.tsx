@@ -3,7 +3,7 @@ import React from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { SharedValue } from "react-native-reanimated";
 import { GuiaVoiceStatus } from "../../hooks/useGuiaVoiceMode";
-import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
+import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
 import VoiceBlob from "./VoiceBlob";
 
 type Props = {
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 24,
     paddingHorizontal: 18,
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
     height: 72,
   },
 
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
 
   askTip: {
     fontSize: 13,
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
     fontWeight: "400",
   },
 });

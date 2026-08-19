@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
 
 type ChoiceOption = {
   label: string;
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
     marginBottom: 16,
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
   },
 
   option: {
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
   },
 
   cancel: {

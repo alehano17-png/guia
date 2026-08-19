@@ -19,6 +19,7 @@ import { useDiscoveryNavigation } from "../hooks/useDiscoveryNavigation";
 
 import { useDiscoveryContent } from "../hooks/useDiscoveryContent";
 import { useTourLocation } from "../hooks/useTourLocation";
+import { TOUR_GRADIENT_COLORS, TOUR_TEXT_PRIMARY, TOUR_TEXT_SECONDARY } from "../lib/tourTheme";
 
 type PlaceCardProps = {
   title: string;
@@ -46,7 +47,7 @@ function PlaceCard({ title, subtitle, meta, status, onPress }: PlaceCardProps) {
         <Text style={styles.cardMeta}>{meta}</Text>
       </View>
 
-      <Ionicons name="chevron-forward" size={20} color="#221B35" />
+      <Ionicons name="chevron-forward" size={20} color={TOUR_TEXT_PRIMARY} />
     </Pressable>
   );
 }
@@ -59,15 +60,15 @@ export default function DiscoverScreen() {
 
   return (
     <LinearGradient
-      colors={["#F3E8FF", "#D8B4FE", "#A78BFA"]}
+      colors={TOUR_GRADIENT_COLORS}
       start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
+      end={{ x: 1, y: 1 }}
       style={{ flex: 1 }}
     >
       <SafeAreaView style={styles.safe}>
         <View style={styles.topBar}>
           <Pressable style={styles.topAction} onPress={() => router.back()}>
-            <Ionicons name="close" size={16} color="#5D5476" />
+            <Ionicons name="close" size={16} color={TOUR_TEXT_SECONDARY} />
             <Text style={styles.topActionText}>{discoveryCopy.discover.backLabel}</Text>
           </Pressable>
         </View>
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
   topActionText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#5D5476",
+    color: TOUR_TEXT_SECONDARY,
   },
 
   content: {
@@ -143,14 +144,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "700",
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
     marginBottom: 10,
   },
 
   subtitle: {
     fontSize: 17,
     lineHeight: 24,
-    color: "#5D5476",
+    color: TOUR_TEXT_SECONDARY,
     marginBottom: 22,
   },
 
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
 
   sectionPillText: {
     fontSize: 13,
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
   },
 
   cards: {
@@ -199,18 +200,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "700",
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
   },
 
   cardSubtitle: {
     fontSize: 15,
-    color: "#5D5476",
+    color: TOUR_TEXT_SECONDARY,
     marginBottom: 6,
   },
 
   cardMeta: {
     fontSize: 13,
-    color: "#5D5476",
+    color: TOUR_TEXT_SECONDARY,
   },
 
   statusPill: {
@@ -223,6 +224,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
   },
 });

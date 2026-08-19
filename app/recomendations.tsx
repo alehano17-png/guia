@@ -18,6 +18,11 @@ import { getRecommendationsCopy } from "../data/discovery/recommendationsCopy";
 import { useDiscoveryContent } from "../hooks/useDiscoveryContent";
 import { useDiscoveryNavigation } from "../hooks/useDiscoveryNavigation";
 import { useTourLocation } from "../hooks/useTourLocation";
+import {
+  TOUR_GRADIENT_COLORS,
+  TOUR_TEXT_PRIMARY,
+  TOUR_TEXT_SECONDARY,
+} from "../lib/tourTheme";
 
 type TourCardProps = {
   image?: any;
@@ -144,9 +149,9 @@ if (loading) {
 
   return (
     <LinearGradient
-      colors={["#F3E8FF", "#D8B4FE", "#A78BFA"]}
+      colors={TOUR_GRADIENT_COLORS}
       start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
+      end={{ x: 1, y: 1 }}
       style={{ flex: 1 }}
     >
       <StatusBar translucent backgroundColor="transparent" style="dark" />
@@ -187,7 +192,7 @@ if (loading) {
     </View>
 
     <View style={styles.exploreArrow}>
-      <Ionicons name="chevron-forward" size={20} color="#111827" />
+      <Ionicons name="chevron-forward" size={20} color={TOUR_TEXT_PRIMARY} />
     </View>
   </Pressable>
 ) : null}
@@ -211,7 +216,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 34,
     fontWeight: "700",
-    color: "#1F2937",
+    color: TOUR_TEXT_PRIMARY,
     letterSpacing: -0.5,
     textAlign: "center",
   },
@@ -219,7 +224,7 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 12,
     fontSize: 17,
-    color: "#4B5563",
+    color: TOUR_TEXT_SECONDARY,
     textAlign: "center",
   },
 
@@ -256,13 +261,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: TOUR_TEXT_PRIMARY,
   },
 
   cardDesc: {
     marginTop: 4,
     fontSize: 15,
-    color: "#4B5563",
+    color: TOUR_TEXT_SECONDARY,
   },
 
   cardTime: {

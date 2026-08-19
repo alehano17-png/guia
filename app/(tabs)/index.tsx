@@ -20,7 +20,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
+import {
+  TOUR_ACCENT_COLOR,
+  TOUR_GRADIENT_COLORS,
+  TOUR_TEXT_PRIMARY,
+  TOUR_TEXT_SECONDARY,
+} from "../../lib/tourTheme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PARTICLE_COUNT = 6;
@@ -167,7 +172,7 @@ export default function StartScreen() {
 
   return (
     <LinearGradient
-  colors={["#F3E8FF", "#D8B4FE", "#A78BFA"]}
+  colors={TOUR_GRADIENT_COLORS}
   start={{ x: 0, y: 0 }}
   end={{ x: 1, y: 1 }}
   style={{ flex: 1 }}
@@ -319,13 +324,13 @@ logo: {
 
 title: {
   fontSize: 22,
-  color: "#374151",
+  color: TOUR_TEXT_PRIMARY,
   marginTop: 10,
 },
 
 subtitle: {
   fontSize: 16,
-  color: "#4B5563",
+  color: TOUR_TEXT_SECONDARY,
   textAlign: "center",
   maxWidth: 280,
   lineHeight: 22,

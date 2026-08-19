@@ -14,7 +14,11 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
-import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
+import {
+  TOUR_ACCENT_COLOR,
+  TOUR_GRADIENT_COLORS,
+  TOUR_TEXT_PRIMARY,
+} from "../../lib/tourTheme";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -218,7 +222,7 @@ export default function LoadingSearchScreen({ title, subtitle }: Props) {
 
   return (
     <LinearGradient
-      colors={["#F3E8FF", "#D8B4FE", "#A78BFA"]}
+      colors={TOUR_GRADIENT_COLORS}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.fill}
@@ -261,7 +265,7 @@ const styles = StyleSheet.create({
     fontFamily: "PlusJakartaSans_700Bold",
     fontWeight: "700",
     fontSize: 24,
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
     textAlign: "center",
   },
 });

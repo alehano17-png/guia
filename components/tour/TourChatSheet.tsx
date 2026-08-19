@@ -13,7 +13,7 @@ import ReanimatedAnimated, {
     useAnimatedKeyboard,
     useAnimatedStyle,
 } from "react-native-reanimated";
-import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
+import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -515,6 +515,6 @@ const styles = StyleSheet.create({
   chatInput: {
     flex: 1,
     fontSize: 15,
-    color: "#1F2937",
+    color: TOUR_TEXT_PRIMARY,
   },
 });

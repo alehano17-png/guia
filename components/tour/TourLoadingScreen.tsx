@@ -1,7 +1,6 @@
-import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 import Animated, {
@@ -12,9 +11,14 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
+import {
+  TOUR_ACCENT_COLOR,
+  TOUR_GRADIENT_COLORS,
+  TOUR_TEXT_PRIMARY,
+} from "../../lib/tourTheme";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -266,7 +270,7 @@ export default function TourLoadingScreen({ tourTitle, steps, readyStepIds }: Pr
 
   return (
     <LinearGradient
-      colors={["#F3E8FF", "#D8B4FE", "#A78BFA"]}
+      colors={TOUR_GRADIENT_COLORS}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={{ flex: 1 }}
@@ -372,7 +376,7 @@ const styles = StyleSheet.create({
   stepText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
   },
 
   stepTextActive: {

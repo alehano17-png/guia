@@ -3,7 +3,11 @@ import { BlurView } from "expo-blur";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
+import {
+  TOUR_ACCENT_COLOR,
+  TOUR_TEXT_PRIMARY,
+  TOUR_TEXT_SECONDARY,
+} from "../../lib/tourTheme";
 
 type ActionCardData = {
   tag: string;
@@ -167,7 +171,7 @@ const styles = StyleSheet.create({
   previewInfoText: {
   fontSize: 13,
   lineHeight: 18,
-  color: "#5D5476",
+  color: TOUR_TEXT_SECONDARY,
   textAlign: "center",
   marginTop: 16,
   minHeight: 18,
@@ -211,14 +215,14 @@ const styles = StyleSheet.create({
   actionTagText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#5D5476",
+    color: TOUR_TEXT_SECONDARY,
   },
 
   actionTitle: {
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
-    color: "#221B35",
+    color: TOUR_TEXT_PRIMARY,
     textAlign: "center",
     marginBottom: 8,
     height: 48,
@@ -227,7 +231,7 @@ const styles = StyleSheet.create({
   actionSubtitle: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#5D5476",
+    color: TOUR_TEXT_SECONDARY,
     textAlign: "center",
     height: 40,
   },

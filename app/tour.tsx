@@ -24,6 +24,7 @@ import { useTourRouteActions } from "../hooks/useTourRouteActions";
 import { useWakeWord } from "../hooks/useWakeWord";
 import { getDistanceInMeters } from "../lib/geo";
 import { sendTourChatMessage } from "../lib/sendTourChatMessage";
+import { TOUR_GRADIENT_COLORS } from "../lib/tourTheme";
 
 // Radio de "llegada" al punto del recorrido, en metros — a partir de acá
 // se dispara el avance automático (solo para pasos de tipo "advance").
@@ -150,6 +151,9 @@ useEffect(() => {
 useEffect(() => {
   if (!tour) return;
 
+  let mounted = true;
+  const startTime = Date.now();
+
   const init = async () => {
     const allSteps = tour.steps.map((step) => ({
       id: step.id,
@@ -160,10 +164,21 @@ useEffect(() => {
       setReadyStepIds((prev) => [...prev, stepId])
     });
 
-    setLoadingTour(false);
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, 2800 - elapsed);
+
+    setTimeout(() => {
+      if (mounted) {
+        setLoadingTour(false);
+      }
+    }, remaining);
   };
 
   init();
+
+  return () => {
+    mounted = false;
+  };
 }, [tour, preloadStepsAudio]);
 
 
@@ -504,9 +519,9 @@ if (!step) {
 return(
 
 <LinearGradient
-  colors={["#F3E8FF", "#D8B4FE", "#A78BFA"]}
+  colors={TOUR_GRADIENT_COLORS}
   start={{x:0,y:0}}
-  end={{x:0,y:1}}
+  end={{x:1,y:1}}
   style={styles.container}
 >
 
