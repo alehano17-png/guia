@@ -88,61 +88,69 @@ function runWithConcurrencyLimit(taskFn) {
   });
 }
 
+// Genera (o sirve desde caché) el audio de un texto + modo dado. Extraída
+// tal cual estaba dentro de /voice para que /chat pueda reutilizarla
+// oración por oración sin duplicar la lógica de caché — el comportamiento
+// de /voice no cambia, solo delega en esta función.
+async function generateVoiceAudio(rawText, mode) {
+  const voice_settings = VOICE_SETTINGS[mode] ?? VOICE_SETTINGS.narration;
+
+  // El texto de los tours trae marcas de dirección como "(pausa)" y
+  // "(micro pausa)" — no deben sonar en la narración, se convierten en
+  // una pausa natural con puntuación en vez de leerse literal.
+  const text = rawText
+    .replace(/\(\s*micro\s*pausa\s*\)/gi, "")
+    .replace(/\(\s*pausa\s*\)/gi, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  // Caché de servidor: mismo texto + mismo modo + misma versión → mismo
+  // archivo para cualquier usuario. Si ya está generado, se sirve
+  // directo del disco, sin tocar ElevenLabs ni la fila de concurrencia.
+  const cacheKey = crypto
+    .createHash("md5")
+    .update(`${SERVER_CACHE_VERSION}-${mode}-${text}`)
+    .digest("hex");
+  const cacheFilePath = `${AUDIO_CACHE_DIR}/${cacheKey}.mp3`;
+
+  if (fs.existsSync(cacheFilePath)) {
+    return fs.readFileSync(cacheFilePath);
+  }
+
+  const elevenRes = await runWithConcurrencyLimit(() =>
+    fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`, {
+      method: "POST",
+      headers: {
+        "xi-api-key": ELEVENLABS_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text,
+        model_id: ELEVENLABS_MODEL,
+        voice_settings,
+      }),
+    })
+  );
+
+  const contentType = elevenRes.headers.get("content-type") || "";
+
+  if (!elevenRes.ok || !contentType.includes("audio")) {
+    const errText = await elevenRes.text();
+    console.error("Respuesta inesperada de ElevenLabs:", elevenRes.status, contentType, errText);
+    throw new Error(`ElevenLabs ${elevenRes.status}: ${errText}`);
+  }
+
+  const buffer = Buffer.from(await elevenRes.arrayBuffer());
+
+  fs.writeFileSync(cacheFilePath, buffer);
+
+  return buffer;
+}
+
 app.post("/voice", async (req, res) => {
   try {
     const { mode } = req.body;
-    const voice_settings = VOICE_SETTINGS[mode] ?? VOICE_SETTINGS.narration;
-
-    // El texto de los tours trae marcas de dirección como "(pausa)" y
-    // "(micro pausa)" — no deben sonar en la narración, se convierten en
-    // una pausa natural con puntuación en vez de leerse literal.
-    const text = req.body.text
-      .replace(/\(\s*micro\s*pausa\s*\)/gi, "")
-      .replace(/\(\s*pausa\s*\)/gi, "")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-
-    // Caché de servidor: mismo texto + mismo modo + misma versión → mismo
-    // archivo para cualquier usuario. Si ya está generado, se sirve
-    // directo del disco, sin tocar ElevenLabs ni la fila de concurrencia.
-    const cacheKey = crypto
-      .createHash("md5")
-      .update(`${SERVER_CACHE_VERSION}-${mode}-${text}`)
-      .digest("hex");
-    const cacheFilePath = `${AUDIO_CACHE_DIR}/${cacheKey}.mp3`;
-
-    if (fs.existsSync(cacheFilePath)) {
-      const cachedBuffer = fs.readFileSync(cacheFilePath);
-      res.setHeader("Content-Type", "audio/mpeg");
-      return res.send(cachedBuffer);
-    }
-
-    const elevenRes = await runWithConcurrencyLimit(() =>
-      fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`, {
-        method: "POST",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text,
-          model_id: ELEVENLABS_MODEL,
-          voice_settings,
-        }),
-      })
-    );
-
-    const contentType = elevenRes.headers.get("content-type") || "";
-
-    if (!elevenRes.ok || !contentType.includes("audio")) {
-      const errText = await elevenRes.text();
-      console.error("Respuesta inesperada de ElevenLabs:", elevenRes.status, contentType, errText);
-      throw new Error(`ElevenLabs ${elevenRes.status}: ${errText}`);
-    }
-
-    const buffer = Buffer.from(await elevenRes.arrayBuffer());
-
-    fs.writeFileSync(cacheFilePath, buffer);
+    const buffer = await generateVoiceAudio(req.body.text, mode);
 
     res.setHeader("Content-Type", "audio/mpeg");
     res.send(buffer);
@@ -152,6 +160,32 @@ app.post("/voice", async (req, res) => {
     res.status(500).send("error voz");
   }
 });
+
+// Separa un buffer de texto en oraciones completas (terminan en ".", "!"
+// o "?") y lo que todavía queda sin cerrar. Cuidado especial con números
+// decimales ("2.5 km"): si el carácter que sigue al punto es un dígito,
+// no se considera fin de oración. Si el punto es lo último que llegó
+// hasta ahora, tampoco se corta ahí — se espera un carácter más para
+// poder decidir.
+function extractCompleteSentences(buffer) {
+  const sentences = [];
+  let start = 0;
+
+  for (let i = 0; i < buffer.length; i++) {
+    const char = buffer[i];
+    if (char !== "." && char !== "!" && char !== "?") continue;
+
+    const next = buffer[i + 1];
+    if (next === undefined) break;
+    if (/[0-9]/.test(next)) continue;
+
+    const sentence = buffer.slice(start, i + 1).trim();
+    if (sentence) sentences.push(sentence);
+    start = i + 1;
+  }
+
+  return { sentences, remainder: buffer.slice(start) };
+}
 
 app.post("/transcribe", async (req, res) => {
   try {
@@ -182,7 +216,18 @@ app.post("/chat", async (req, res) => {
   try {
     console.log("📩 Mensaje recibido:", req.body.message);
 
-    const { message, context, summary, highlights, tourTitle } = req.body;
+    const { message, context, summary, highlights, tourTitle, history } = req.body;
+
+    // Solo se aceptan turnos con la forma esperada — si algo raro llega en
+    // el body, se ignora en vez de mandárselo tal cual a OpenAI.
+    const conversationHistory = Array.isArray(history)
+      ? history.filter(
+          (m) =>
+            m &&
+            (m.role === "user" || m.role === "assistant") &&
+            typeof m.content === "string"
+        )
+      : [];
 
     const text = (message || "").toLowerCase().trim();
 
@@ -243,8 +288,9 @@ if (!isShortAllowed && isClearlyOffTopic) {
   });
 }
 
-    const response = await openai.chat.completions.create({
+    const stream = await openai.chat.completions.create({
       model: "gpt-4o-mini",
+      stream: true,
       messages: [
         {
           role: "system",
@@ -267,6 +313,7 @@ Resumen: ${summary ?? "Sin resumen"}
 Datos clave: ${Array.isArray(highlights) ? highlights.join(", ") : "Sin datos clave"}
 `.trim()
   },
+        ...conversationHistory,
         {
           role: "user",
           content: message
@@ -274,11 +321,72 @@ Datos clave: ${Array.isArray(highlights) ? highlights.join(", ") : "Sin datos cl
       ],
     });
 
-    const textResponse = response.choices[0].message.content;
+    // A partir de acá la respuesta es streaming: un objeto JSON por línea
+    // (NDJSON), cada uno con el audio de una oración apenas queda lista —
+    // así GUÍA puede empezar a hablar sin esperar el texto completo.
+    res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
 
-console.log("🤖 Respuesta IA:", text);
+    let sentenceBuffer = "";
+    let fullText = "";
 
-res.json({ text: textResponse });
+    const sendSentence = async (rawSentence) => {
+      const sentence = rawSentence.trim();
+      if (!sentence) return;
+
+      try {
+        const audioBuffer = await generateVoiceAudio(sentence, "chat");
+        res.write(
+          JSON.stringify({
+            type: "chunk",
+            text: sentence,
+            audioBase64: audioBuffer.toString("base64"),
+          }) + "\n"
+        );
+      } catch (audioError) {
+        console.error("Error generando audio de un fragmento del chat:", audioError);
+        res.write(
+          JSON.stringify({
+            type: "chunk",
+            text: sentence,
+            audioBase64: null,
+            error: "No se pudo generar audio para este fragmento",
+          }) + "\n"
+        );
+      }
+    };
+
+    try {
+      for await (const part of stream) {
+        const delta = part.choices?.[0]?.delta?.content || "";
+        if (!delta) continue;
+
+        fullText += delta;
+        sentenceBuffer += delta;
+
+        const { sentences, remainder } = extractCompleteSentences(sentenceBuffer);
+        sentenceBuffer = remainder;
+
+        for (const sentence of sentences) {
+          await sendSentence(sentence);
+        }
+      }
+
+      // El pedazo final puede no terminar en punto — igual se procesa,
+      // para no perder el cierre de la respuesta.
+      await sendSentence(sentenceBuffer);
+
+      console.log("🤖 Respuesta IA:", fullText);
+
+      res.write(JSON.stringify({ type: "done" }) + "\n");
+      res.end();
+    } catch (streamError) {
+      // Los headers (200, NDJSON) ya se mandaron, así que un error acá no
+      // puede convertirse en un status 500 nuevo — se avisa como una
+      // línea más y se cierra la conexión.
+      console.error("Error durante el streaming del chat:", streamError);
+      res.write(JSON.stringify({ type: "error", error: "Error en chat IA" }) + "\n");
+      res.end();
+    }
 
   } catch (error) {
     console.error(error);

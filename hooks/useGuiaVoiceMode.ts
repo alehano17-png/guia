@@ -1,6 +1,9 @@
 ﻿import { Audio } from "expo-av";
 import { useCallback, useRef, useState } from "react";
-import { sendTourChatMessage } from "../lib/sendTourChatMessage";
+import {
+  ConversationMessage,
+  sendTourChatMessage,
+} from "../lib/sendTourChatMessage";
 import { transcribeAudio } from "../lib/transcribeAudio";
 
 const FileSystem = require("expo-file-system/legacy");
@@ -12,6 +15,11 @@ const FileSystem = require("expo-file-system/legacy");
 const SILENCE_THRESHOLD_DB = -35;
 const SILENCE_DURATION_MS = 1200;
 const MAX_RECORDING_MS = 12000;
+
+// 5 preguntas + 5 respuestas — bastante para que la siguiente pregunta
+// tenga contexto ("¿y hasta qué hora?" después de "¿a qué hora abre?"),
+// sin encarecer ni alentar cada turno más a medida que la charla crece.
+const MAX_HISTORY_MESSAGES = 10;
 
 export type GuiaVoiceStatus = "idle" | "listening" | "thinking" | "speaking" | "error";
 
@@ -25,8 +33,12 @@ type TourContext = {
 type UseGuiaVoiceModeParams = {
   // Cortar la narración en curso apenas se detecta la palabra clave.
   stopCurrentAudio: () => Promise<void>;
-  // Reproducir la respuesta ya generada, con la voz conversacional.
-  speakChatReply: (text: string) => Promise<void>;
+  // Reproduce un pedazo de audio ya generado (base64) y resuelve cuando
+  // termina de sonar — la misma reproducción que ya usaba speakChatReply
+  // por debajo (en useTourAudio), solo que ahora se alimenta pedazo por
+  // pedazo a medida que llegan del streaming de /chat, en vez de esperar
+  // la respuesta completa.
+  playAudioChunk: (audioBase64: string, cacheKeyText: string) => Promise<void>;
 };
 
 async function recordUntilSilence(): Promise<string | null> {
@@ -87,10 +99,25 @@ async function recordUntilSilence(): Promise<string | null> {
 
 export function useGuiaVoiceMode({
   stopCurrentAudio,
-  speakChatReply,
+  playAudioChunk,
 }: UseGuiaVoiceModeParams) {
   const [status, setStatus] = useState<GuiaVoiceStatus>("idle");
   const isActiveRef = useRef(false);
+  // useRef (no useState): esto no necesita disparar un render propio, solo
+  // acompañar a askGuia() de una llamada a la siguiente dentro del mismo
+  // tour.
+  const historyRef = useRef<ConversationMessage[]>([]);
+
+  const pushToHistory = useCallback((entry: ConversationMessage) => {
+    historyRef.current = [...historyRef.current, entry].slice(
+      -MAX_HISTORY_MESSAGES
+    );
+  }, []);
+
+  // Lee el historial actual — para que otro flujo (ej. el chat escrito)
+  // pueda mandarlo en su propia llamada a sendTourChatMessage y compartir
+  // la misma memoria de conversación que askGuia, sin duplicar el array.
+  const getHistory = useCallback(() => historyRef.current, []);
 
   // Se llama cuando se detecta la palabra clave "GUÍA" mientras narra.
   const askGuia = useCallback(
@@ -121,13 +148,38 @@ export function useGuiaVoiceMode({
           return;
         }
 
+        // El historial que se manda es el de ANTES de esta pregunta — la
+        // pregunta en sí ya viaja aparte, en `message`.
+        const historyForRequest = historyRef.current;
+        pushToHistory({ role: "user", content: question });
+
+        // Reproduce cada oración apenas llega, en el mismo orden en que el
+        // backend las va generando — el `await` adentro de onChunk hace
+        // que la siguiente oración no empiece a sonar hasta que termine
+        // la anterior, aunque el streaming ya haya entregado varias.
+        let hasStartedSpeaking = false;
+
         const reply = await sendTourChatMessage({
           message: question,
           ...tourContext,
+          history: historyForRequest,
+          onChunk: async (chunkText, chunkAudioBase64) => {
+            if (!hasStartedSpeaking) {
+              hasStartedSpeaking = true;
+              setStatus("speaking");
+            }
+
+            if (!chunkAudioBase64) {
+              // Ese pedazo puntual falló al generar audio — se salta sin
+              // cortar la reproducción de los siguientes.
+              return;
+            }
+
+            await playAudioChunk(chunkAudioBase64, chunkText);
+          },
         });
 
-        setStatus("speaking");
-        await speakChatReply(reply);
+        pushToHistory({ role: "assistant", content: reply });
 
         setStatus("idle");
       } catch (e) {
@@ -137,8 +189,15 @@ export function useGuiaVoiceMode({
         isActiveRef.current = false;
       }
     },
-    [stopCurrentAudio, speakChatReply]
+    [stopCurrentAudio, playAudioChunk, pushToHistory]
   );
+
+  // Vacía el historial de conversación — se llama al arrancar un tour
+  // nuevo, para que la primera pregunta de un tour no arrastre contexto
+  // de una charla anterior (de otro tour, o de una sesión previa).
+  const resetConversation = useCallback(() => {
+    historyRef.current = [];
+  }, []);
 
   // Graba y transcribe, pero no envía nada a GUÍA ni reproduce ninguna
   // respuesta — solo devuelve el texto, para que quien llama (ej. el
@@ -177,5 +236,12 @@ export function useGuiaVoiceMode({
     }
   }, [stopCurrentAudio]);
 
-  return { status, askGuia, transcribeSpokenText };
+  return {
+    status,
+    askGuia,
+    transcribeSpokenText,
+    resetConversation,
+    getHistory,
+    pushToHistory,
+  };
 }

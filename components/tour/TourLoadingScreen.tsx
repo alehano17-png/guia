@@ -95,8 +95,6 @@ type Props = {
   readyStepIds: string[];
 };
 
-type StepStatus = "done" | "active" | "pending";
-
 const WAVE_POINT_RADIUS = 5;
 const WAVE_TRAVELER_RADIUS = 6;
 
@@ -220,53 +218,99 @@ function WaveVisual() {
   );
 }
 
-function Spinner() {
-  // Ícono "en proceso": un círculo parcial (ring con un hueco) que gira
-  // sin parar — un borde transparente en un lado alcanza para el efecto.
-  const rotation = useSharedValue(0);
+// Cuánto tarda cada carácter al escribir/borrar, cuánto se mantiene la
+// frase completa visible, y el período del parpadeo del cursor.
+const TYPE_INTERVAL_MS = 45;
+const DELETE_INTERVAL_MS = 25;
+const HOLD_MS = 1200;
+const CURSOR_BLINK_MS = 500;
+
+function TypewriterPhrase({ phrase }: { phrase: string }) {
+  const [displayedText, setDisplayedText] = useState("");
+  // Siempre tiene la frase más reciente — el ciclo de abajo la relee solo
+  // al empezar a escribir de nuevo (frase vacía), nunca corta un
+  // escribir/borrar en curso a mitad de camino.
+  const phraseRef = useRef(phrase);
 
   useEffect(() => {
-    rotation.value = withRepeat(
-      withTiming(360, { duration: 900, easing: Easing.linear }),
-      -1
+    phraseRef.current = phrase;
+  }, [phrase]);
+
+  // Ciclo escribir → mantener → borrar, encadenado a mano con setTimeout
+  // (no Reanimated: esto anima contenido de texto carácter a carácter, no
+  // un valor numérico). Se arma una sola vez al montar; en cada vuelta
+  // relee `phraseRef.current`, así que si la frase cambia a mitad de un
+  // ciclo, termina de borrar la actual y recién ahí empieza la nueva.
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const type = (target: string, count: number) => {
+      if (cancelled) return;
+
+      if (count > target.length) {
+        timer = setTimeout(() => erase(target), HOLD_MS);
+        return;
+      }
+
+      setDisplayedText(target.slice(0, count));
+      timer = setTimeout(() => type(target, count + 1), TYPE_INTERVAL_MS);
+    };
+
+    const erase = (current: string) => {
+      if (cancelled) return;
+
+      if (current.length === 0) {
+        timer = setTimeout(() => type(phraseRef.current, 0), 0);
+        return;
+      }
+
+      const next = current.slice(0, -1);
+      setDisplayedText(next);
+      timer = setTimeout(() => erase(next), DELETE_INTERVAL_MS);
+    };
+
+    type(phraseRef.current, 0);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, []);
+
+  const cursorOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    cursorOpacity.value = withRepeat(
+      withTiming(0, { duration: CURSOR_BLINK_MS }),
+      -1,
+      true
     );
   }, []);
 
-  const spinStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
+  const cursorStyle = useAnimatedStyle(() => ({
+    opacity: cursorOpacity.value,
   }));
 
-  return <Animated.View style={[styles.spinner, spinStyle]} />;
-}
-
-function ChecklistRow({ status, text }: { status: StepStatus; text: string }) {
   return (
-    <View style={styles.stepRow}>
-      {status === "done" && (
-        <Ionicons name="checkmark-circle" size={18} color={TOUR_ACCENT_COLOR} />
-      )}
-      {status === "active" && <Spinner />}
-      {status === "pending" && (
-        <Ionicons name="ellipse-outline" size={18} color="#C7C2D9" />
-      )}
-
-      <Text
-        style={[
-          styles.stepText,
-          status === "active" && styles.stepTextActive,
-          status === "pending" && styles.stepTextPending,
-        ]}
-        numberOfLines={1}
-      >
-        {text}
+    <View style={styles.typewriterWrap}>
+      <Text style={styles.typewriterText}>
+        {displayedText}
+        <Animated.Text style={[styles.typewriterCursor, cursorStyle]}>
+          |
+        </Animated.Text>
       </Text>
     </View>
   );
 }
 
-export default function TourLoadingScreen({ tourTitle, steps, readyStepIds }: Props) {
+export default function TourLoadingScreen({ tourTitle, readyStepIds }: Props) {
   const headline = `${tourTitle} tiene algo que contar`;
-  const readyCount = readyStepIds.length;
+  // Mismo cálculo cíclico que antes usaba el checklist por fila, ahora
+  // evaluado una sola vez para la frase "activa" (el paso que se está
+  // preparando ahora mismo).
+  const activePhrase =
+    CHECKLIST_PHRASES[readyStepIds.length % CHECKLIST_PHRASES.length];
 
   return (
     <LinearGradient
@@ -287,23 +331,7 @@ export default function TourLoadingScreen({ tourTitle, steps, readyStepIds }: Pr
             <Text style={styles.title}>{headline}</Text>
           </View>
 
-          <ScrollView
-            style={styles.stepsList}
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
-            {steps.map((step, index) => {
-              const status: StepStatus =
-                index < readyCount
-                  ? "done"
-                  : index === readyCount
-                    ? "active"
-                    : "pending";
-              const text = CHECKLIST_PHRASES[index % CHECKLIST_PHRASES.length];
-
-              return <ChecklistRow key={step.id} status={status} text={text} />;
-            })}
-          </ScrollView>
+          <TypewriterPhrase phrase={activePhrase} />
         </View>
       </SafeAreaView>
     </LinearGradient>
@@ -320,15 +348,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 28,
-  },
-
-  spinner: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: TOUR_ACCENT_COLOR,
-    borderTopColor: "transparent",
   },
 
   titleWrap: {
@@ -359,33 +378,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  stepsList: {
+  typewriterWrap: {
     marginTop: 28,
-    width: "100%",
-    maxWidth: 320,
-    maxHeight: 220,
-  },
-
-  stepRow: {
-    flexDirection: "row",
+    maxWidth: 300,
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 6,
   },
 
-  stepText: {
-    fontSize: 15,
-    fontWeight: "600",
+  typewriterText: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 17,
     color: TOUR_TEXT_PRIMARY,
+    textAlign: "center",
   },
 
-  stepTextActive: {
-    fontStyle: "italic",
-    opacity: 0.75,
-  },
-
-  stepTextPending: {
-    color: "#C7C2D9",
-    fontWeight: "400",
+  typewriterCursor: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 17,
+    color: TOUR_TEXT_PRIMARY,
   },
 });

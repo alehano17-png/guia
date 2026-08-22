@@ -182,6 +182,39 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
     [ensureAudioForStep]
   );
 
+  // Escribe un audio (base64) a un archivo temporal, lo reproduce, y
+  // resuelve cuando termina de sonar — no antes. Compartida por
+  // speakChatReply (una respuesta completa, de una sola vez) y quien
+  // reproduce pedazos del streaming de /chat, para no duplicar esta
+  // lógica en dos lugares.
+  const playAudioBase64 = useCallback(
+    async (audioBase64: string, cacheKeyText: string) => {
+      const fileUri =
+        FileSystem.cacheDirectory +
+        `${AUDIO_VERSION}-chat-${getHash(cacheKeyText)}.mp3`;
+
+      await FileSystem.writeAsStringAsync(fileUri, audioBase64, {
+        encoding: "base64",
+      });
+
+      await new Promise<void>((resolve) => {
+        const subscription = player.addListener(
+          "playbackStatusUpdate",
+          (status) => {
+            if (status.isLoaded && status.didJustFinish) {
+              subscription.remove();
+              resolve();
+            }
+          }
+        );
+
+        player.replace({ uri: fileUri });
+        player.play();
+      });
+    },
+    [getHash, player]
+  );
+
   // Reproduce una respuesta puntual del chat de voz. Se resuelve cuando
   // termina de sonar, para que quien la llame pueda retomar la narración
   // justo después.
@@ -199,35 +232,14 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
         }
 
         const arrayBuffer = await res.arrayBuffer();
-        const fileUri =
-          FileSystem.cacheDirectory +
-          `${AUDIO_VERSION}-chat-${getHash(text)}.mp3`;
+        const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
 
-        await FileSystem.writeAsStringAsync(
-          fileUri,
-          Buffer.from(arrayBuffer).toString("base64"),
-          { encoding: "base64" }
-        );
-
-        await new Promise<void>((resolve) => {
-          const subscription = player.addListener(
-            "playbackStatusUpdate",
-            (status) => {
-              if (status.isLoaded && status.didJustFinish) {
-                subscription.remove();
-                resolve();
-              }
-            }
-          );
-
-          player.replace({ uri: fileUri });
-          player.play();
-        });
+        await playAudioBase64(audioBase64, text);
       } catch (e) {
         console.log("Error reproduciendo respuesta de chat", e);
       }
     },
-    [getHash, player]
+    [playAudioBase64]
   );
 
   const stopCurrentAudio = useCallback(async () => {
@@ -248,6 +260,7 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
     preloadStepsAudio,
     stopCurrentAudio,
     speakChatReply,
+    playAudioBase64,
     voiceEnergy,
   };
 }

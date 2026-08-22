@@ -108,14 +108,21 @@ const {
   playCachedAudio,
   preloadStepsAudio,
   stopCurrentAudio,
-  speakChatReply,
+  playAudioBase64,
   voiceEnergy,
 } = useTourAudio(pulseAnim);
 
 // Modo de voz de GUÍA: se activa al escuchar la palabra clave.
-const { status: guiaVoiceStatus, askGuia, transcribeSpokenText } = useGuiaVoiceMode({
+const {
+  status: guiaVoiceStatus,
+  askGuia,
+  transcribeSpokenText,
+  resetConversation,
+  getHistory,
+  pushToHistory,
+} = useGuiaVoiceMode({
   stopCurrentAudio,
-  speakChatReply,
+  playAudioChunk: playAudioBase64,
 });
 
 // El ícono de micrófono del chat: dicta y muestra el texto transcrito en
@@ -145,7 +152,11 @@ useEffect(() => {
   setCurrentStepId(firstStepId)
   setStartMapViewed(false)
   setShowDecision(false)
-}, [tour?.id, tour?.steps])
+  // Un tour nuevo no debe arrastrar el contexto de la charla con GUÍA de
+  // un tour anterior (o de una sesión previa, si el componente no llegó
+  // a desmontarse).
+  resetConversation()
+}, [tour?.id, tour?.steps, resetConversation])
 
 
 useEffect(() => {
@@ -379,6 +390,13 @@ const sendMessage = async () => {
   setInput("")
   setIsThinking(true)
 
+  // Mismo historial compartido que usa askGuia (modo voz) — así, si el
+  // usuario escribe algo y después pregunta por voz (o viceversa), GUÍA
+  // recuerda ambos. El historial que se manda es el de ANTES de este
+  // mensaje; el mensaje en sí ya viaja aparte, en `message`.
+  const historyForRequest = getHistory()
+  pushToHistory({ role: "user", content: userMessage.text })
+
   try {
     const text = await sendTourChatMessage({
       message: userMessage.text,
@@ -386,7 +404,10 @@ const sendMessage = async () => {
       summary: step?.summary,
       highlights: step?.highlights,
       tourTitle: tour?.title,
+      history: historyForRequest,
     })
+
+    pushToHistory({ role: "assistant", content: text })
 
     const assistantMessage: ChatMessage = {
       role: "assistant",
