@@ -10,6 +10,11 @@ import { supabase } from "../lib/supabase";
 
 type AuthResult = {
   error: string | null;
+  // true si ya quedó una sesión activa apenas se resuelve la llamada. En
+  // signUp puede venir en false si el proyecto de Supabase exige
+  // confirmar el correo antes de dar sesión — ahí quien llama no debe
+  // navegar como si ya hubiera sesión.
+  hasSession: boolean;
 };
 
 type AuthContextValue = {
@@ -52,19 +57,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string): Promise<AuthResult> => {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      return { error: error?.message ?? null };
+      return { error: error?.message ?? null, hasSession: !!data.session };
     },
     []
   );
 
   const signUp = useCallback(
     async (email: string, password: string): Promise<AuthResult> => {
-      const { error } = await supabase.auth.signUp({ email, password });
-      return { error: error?.message ?? null };
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      return { error: error?.message ?? null, hasSession: !!data.session };
     },
     []
   );

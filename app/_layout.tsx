@@ -46,8 +46,11 @@ function RootNavigator() {
           animationDuration: 280,
         }}
       >
+        {/* Pantalla de inicio: pública, sin condición de sesión. El botón
+            "Empezar" decide a dónde ir según haya o no usuario. */}
+        <Stack.Screen name="(tabs)" />
+
         <Stack.Protected guard={!!user}>
-          <Stack.Screen name="(tabs)" />
           <Stack.Screen name="discover" />
           <Stack.Screen name="recomendations" />
           <Stack.Screen name="tour" />

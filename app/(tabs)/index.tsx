@@ -19,7 +19,8 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "../../hooks/useAuth";
 import {
   TOUR_ACCENT_COLOR,
   TOUR_GRADIENT_COLORS,
@@ -29,6 +30,11 @@ import {
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PARTICLE_COUNT = 6;
+// Espacio extra debajo del área segura para "Cerrar sesión", para que no
+// quede pegado al borde de esa zona (la hora del sistema, el notch, la
+// Dynamic Island) y, del lado derecho, quede bien lejos de la zona del
+// gesto del Centro de Control.
+const SIGN_OUT_TOP_MARGIN = 10;
 
 type ParticleConfig = {
   id: number;
@@ -136,6 +142,9 @@ function AmbientParticles() {
 }
 
 export default function StartScreen() {
+  const { user, signOut } = useAuth();
+  const insets = useSafeAreaInsets();
+
   // 1. Logo flotando: sube 12px y baja, ciclo 4000ms, infinito, ease-in-out
   const logoTranslateY = useSharedValue(0);
 
@@ -179,6 +188,20 @@ export default function StartScreen() {
 >
 <SafeAreaView style={styles.container}>
 
+  {/* Solo de prueba: para poder probar el flujo con/sin sesión sin
+      desinstalar la app. No es un elemento final de esta pantalla. */}
+  {user && (
+    <Pressable
+      style={[
+        styles.signOutLink,
+        { top: insets.top + SIGN_OUT_TOP_MARGIN },
+      ]}
+      onPress={() => signOut()}
+    >
+      <Text style={styles.signOutText}>Cerrar sesión</Text>
+    </Pressable>
+  )}
+
   <AmbientParticles />
 
   <View style={styles.topBlock}>
@@ -216,7 +239,7 @@ export default function StartScreen() {
 
   <Pressable
     style={styles.button}
-    onPress={() => router.push("/recomendations")}
+    onPress={() => router.push(user ? "/recomendations" : "/login")}
   >
     {/* brillo/vidrio sutil en la mitad superior */}
     <View style={styles.buttonShine} />
@@ -356,6 +379,22 @@ mainTitleShadow: {
 particle: {
   position: "absolute",
   backgroundColor: "rgba(255,255,255,0.4)",
+},
+
+signOutLink: {
+  position: "absolute",
+  // top se calcula en el componente con useSafeAreaInsets() (insets.top +
+  // SIGN_OUT_TOP_MARGIN) — un número fijo no se ajusta entre modelos de
+  // iPhone (los que tienen Dynamic Island necesitan más espacio).
+  right: 16,
+  padding: 8,
+  zIndex: 10,
+  
+},
+
+signOutText: {
+  fontSize: 17,
+  color: TOUR_TEXT_SECONDARY,
 },
 
 });

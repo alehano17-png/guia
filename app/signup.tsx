@@ -56,7 +56,7 @@ export default function SignupScreen() {
     setErrorMessage(null);
     setIsSubmitting(true);
 
-    const { error } = await signUp(email.trim(), password);
+    const { error, hasSession } = await signUp(email.trim(), password);
 
     setIsSubmitting(false);
 
@@ -65,9 +65,16 @@ export default function SignupScreen() {
       return;
     }
 
-    // Si Supabase pide confirmar el correo, todavía no hay sesión activa
-    // (el layout raíz no navega solo hasta que la haya) — se lo avisamos
-    // al usuario en vez de dejarlo esperando en esta pantalla sin motivo.
+    // Si Supabase ya dio sesión (auto-confirm activado en el proyecto),
+    // navegamos explícito — no asumimos que Stack.Protected nos mueve
+    // solo de /signup. Si en cambio pide confirmar el correo, todavía no
+    // hay sesión real a la que navegar, así que nos quedamos acá y se lo
+    // avisamos al usuario.
+    if (hasSession) {
+      router.replace("/recomendations");
+      return;
+    }
+
     setInfoMessage("Cuenta creada. Si tu proyecto pide confirmar el correo, revisa tu bandeja de entrada.");
   };
 

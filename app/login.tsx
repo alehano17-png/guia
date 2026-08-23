@@ -37,15 +37,20 @@ export default function LoginScreen() {
     setErrorMessage(null);
     setIsSubmitting(true);
 
-    const { error } = await signIn(email.trim(), password);
+    const { error, hasSession } = await signIn(email.trim(), password);
 
     setIsSubmitting(false);
 
     if (error) {
       setErrorMessage(error);
+      return;
     }
-    // Si no hay error, el cambio de sesión lo detecta el layout raíz
-    // (Stack.Protected en app/_layout.tsx) y navega solo a la app.
+
+    // No asumimos que Stack.Protected (app/_layout.tsx) nos saca solo de
+    // /login al detectar la sesión nueva — navegamos explícito.
+    if (hasSession) {
+      router.replace("/recomendations");
+    }
   };
 
   return (
