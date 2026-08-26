@@ -5,6 +5,7 @@ import {
   useAudioPlayer,
   useAudioSampleListener,
 } from "expo-audio";
+import { Audio } from "expo-av";
 import { useCallback, useEffect, useRef } from "react";
 import { Animated } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
@@ -16,6 +17,24 @@ type AudioStep = {
   id: string;
   text: string;
 };
+
+// Teoría a probar: expo-audio reimpone su propia configuración de sesión
+// de audio cada vez que reproduce algo, deshaciendo el arreglo del
+// altavoz que ya aplicamos una sola vez después de grabar (con expo-av,
+// en useGuiaVoiceMode.ts). Este refuerzo se llama justo antes de cada
+// player.play() para pelear esa reimposición en el momento en que más
+// importa. Silencioso a propósito: si falla, no debe romper la
+// reproducción.
+async function reinforcePlaybackAudioMode() {
+  try {
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+    });
+  } catch (e) {
+    console.log("Error reforzando el modo de audio antes de reproducir", e);
+  }
+}
 
 // El volumen real (RMS) varía mucho según la voz y el proveedor de audio,
 // así que en vez de umbrales fijos adivinados, el "techo" se autocalibra:
@@ -34,6 +53,12 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
   const isGeneratingRef = useRef(false);
   const smoothedAmplitudeRef = useRef(0);
   const peakRef = useRef(PEAK_FLOOR);
+  // Posición (en segundos) de lo que estaba sonando justo antes de la
+  // última pausa — la guarda stopCurrentAudio() para que
+  // resumeCachedAudioFromLastPosition() pueda retomar ahí en vez de
+  // siempre desde 0. `currentTime` del AudioPlayer de expo-audio ya está
+  // en segundos.
+  const lastPositionSecondsRef = useRef(0);
   // Espejo en el hilo de UI del mismo volumen normalizado (0 a 1) que ya
   // usa pulseAnim, para que componentes con reanimated (como VoiceBlob)
   // puedan animar sin cruzar al hilo de JS en cada frame.
@@ -144,9 +169,12 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
     [getCacheKey, getFileUri]
   );
 
-  // Reproduce el audio ya cacheado de un paso. Ya no hace falta que
-  // devuelva la duración para el pulso — el pulso ahora se maneja solo,
-  // en tiempo real, por el listener de arriba.
+  // Reproduce el audio ya cacheado de un paso, siempre desde el inicio.
+  // Ya no hace falta que devuelva la duración para el pulso — el pulso
+  // ahora se maneja solo, en tiempo real, por el listener de arriba. Se
+  // mantiene arrancando siempre desde 0 a propósito: es la que usa el
+  // efecto de narración al avanzar a un paso nuevo, donde eso es lo
+  // correcto.
   const playCachedAudio = useCallback(
     async (stepId: string, text: string) => {
       const cacheKey = getCacheKey(stepId, text);
@@ -156,9 +184,42 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
 
       try {
         player.replace({ uri });
+        await reinforcePlaybackAudioMode();
         player.play();
       } catch (e) {
         console.log("Error reproduciendo audio", e);
+      }
+    },
+    [getCacheKey, player]
+  );
+
+  // Igual que playCachedAudio, pero retoma desde la última posición
+  // guardada por stopCurrentAudio (lastPositionSecondsRef) en vez de
+  // siempre desde 0 — para "Hablar con GUÍA", que debe reanudar la
+  // narración donde se había quedado, no reiniciar el punto. Si no hay
+  // ninguna posición guardada (ej. primera vez que se usa el botón en
+  // este paso), arranca desde 0 con normalidad.
+  const resumeCachedAudioFromLastPosition = useCallback(
+    async (stepId: string, text: string) => {
+      const cacheKey = getCacheKey(stepId, text);
+      const uri = audioCacheRef.current[cacheKey];
+
+      if (!uri) return;
+
+      const resumePositionSeconds = lastPositionSecondsRef.current;
+      lastPositionSecondsRef.current = 0;
+
+      try {
+        player.replace({ uri });
+
+        if (resumePositionSeconds > 0) {
+          await player.seekTo(resumePositionSeconds);
+        }
+
+        await reinforcePlaybackAudioMode();
+        player.play();
+      } catch (e) {
+        console.log("Error reanudando audio desde la última posición", e);
       }
     },
     [getCacheKey, player]
@@ -197,6 +258,13 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
         encoding: "base64",
       });
 
+      // player.replace() y el refuerzo del modo de audio se sacan del
+      // executor de la Promise de abajo porque necesitan `await`, y ese
+      // executor no es async — así player.play() queda como lo único que
+      // pasa ahí, justo después del refuerzo.
+      player.replace({ uri: fileUri });
+      await reinforcePlaybackAudioMode();
+
       await new Promise<void>((resolve) => {
         const subscription = player.addListener(
           "playbackStatusUpdate",
@@ -208,7 +276,6 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
           }
         );
 
-        player.replace({ uri: fileUri });
         player.play();
       });
     },
@@ -244,6 +311,10 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
 
   const stopCurrentAudio = useCallback(async () => {
     try {
+      // Se guarda antes de pausar, para poder retomar desde acá más
+      // adelante (ej. al volver de "Hablar con GUÍA") en vez de siempre
+      // desde 0.
+      lastPositionSecondsRef.current = player.currentTime;
       player.pause();
     } catch {}
     if (pulseAnim) {
@@ -257,6 +328,7 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
   return {
     ensureAudioForStep,
     playCachedAudio,
+    resumeCachedAudioFromLastPosition,
     preloadStepsAudio,
     stopCurrentAudio,
     speakChatReply,

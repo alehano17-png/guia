@@ -106,11 +106,30 @@ const decisionAnim = useRef(new Animated.Value(0)).current
 const {
   ensureAudioForStep,
   playCachedAudio,
+  resumeCachedAudioFromLastPosition,
   preloadStepsAudio,
   stopCurrentAudio,
   playAudioBase64,
   voiceEnergy,
 } = useTourAudio(pulseAnim);
+
+// `step` todavía no existe en este punto del componente (se calcula más
+// abajo) — se usa una ref en vez de la variable directa para no reordenar
+// todo el archivo solo para que useGuiaVoiceMode pueda leer el paso
+// actual. Se mantiene al día con el efecto de más abajo.
+const stepRef = useRef<TourStep | undefined>(undefined);
+
+// Vuelve a reproducir el paso actual tras usar "Hablar con GUÍA" —
+// resumeCachedAudioFromLastPosition retoma desde donde se había quedado
+// (guardado por stopCurrentAudio), a diferencia de playCachedAudio (que
+// sigue arrancando siempre desde 0, correcto para cuando se avanza a un
+// paso nuevo — esa función no se toca).
+const resumeNarration = useCallback(async () => {
+  const currentStep = stepRef.current;
+  if (!currentStep) return;
+  await ensureAudioForStep(currentStep.id, currentStep.voiceText);
+  await resumeCachedAudioFromLastPosition(currentStep.id, currentStep.voiceText);
+}, [ensureAudioForStep, resumeCachedAudioFromLastPosition]);
 
 // Modo de voz de GUÍA: se activa al escuchar la palabra clave.
 const {
@@ -123,6 +142,7 @@ const {
 } = useGuiaVoiceMode({
   stopCurrentAudio,
   playAudioChunk: playAudioBase64,
+  resumeNarration,
 });
 
 // El ícono de micrófono del chat: dicta y muestra el texto transcrito en
@@ -216,6 +236,10 @@ const [currentStepId, setCurrentStepId] = useState("")
 const step: TourStep | undefined = useMemo(() => {
   return tour?.steps.find((s) => s.id === currentStepId)
 }, [tour, currentStepId])
+
+useEffect(() => {
+  stepRef.current = step
+}, [step])
 
 const handleWakeWordDetected = useCallback(() => {
   askGuia({

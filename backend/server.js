@@ -288,6 +288,14 @@ if (!isShortAllowed && isClearlyOffTopic) {
   });
 }
 
+    // TEMP DEBUG — valores exactos y completos tal como llegan en el
+    // body, para confirmar con datos reales antes de tocar el prompt de
+    // nuevo. Remover después.
+    console.log(
+      "[PROMPT DEBUG] Valores para el system prompt:",
+      JSON.stringify({ tourTitle, context, summary, highlights }, null, 2)
+    );
+
     const stream = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       stream: true,
@@ -300,6 +308,7 @@ Solo puedes responder preguntas relacionadas con el recorrido actual.
 
 Reglas estrictas:
 - Responde solo sobre el tour, el punto actual, su historia, contexto, recorrido, duración o qué sigue después.
+- El recorrido ocurre en ${tourTitle ?? "esta zona"}. Preguntas sobre esta zona en general (ubicación, distrito, alrededores) también son tema válido, no solo sobre el punto puntual actual.
 - Si el usuario escribe algo breve como "sí", "no", "ok", "dale", "continúa" o "siguiente", interprétalo dentro del recorrido actual, no lo rechaces.
 - Si el mensaje breve es ambiguo, asume que el usuario quiere continuar con la explicación del lugar actual.
 - Si la pregunta no tiene relación con el tour, responde exactamente:
