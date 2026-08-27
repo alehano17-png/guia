@@ -71,6 +71,14 @@ async function recordUntilSilence(): Promise<string | null> {
     "[GUIA FLOW] recordUntilSilence() - Audio.setAudioModeAsync() resolvió OK"
   );
 
+  // El software (prepareToRecordAsync, startAsync) no reporta ningún error
+  // en el segundo uso seguido, pero el micrófono como hardware a veces no
+  // se reconectó a tiempo tras el ciclo anterior de detener grabación +
+  // reproducir audio — el medidor queda clavado en -120 (sin señal) toda
+  // la grabación. Esta espera le da tiempo real al hardware antes de
+  // pedirle que empiece de nuevo.
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
   const recording = new Audio.Recording();
 
   try {
