@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import express from "express";
 import fs from "fs";
 import OpenAI, { toFile } from "openai";
+import { fileURLToPath } from "url";
 
 dotenv.config(); // 🔥 primero cargas variables
 
@@ -16,7 +17,7 @@ fs.mkdirSync(AUDIO_CACHE_DIR, { recursive: true });
 // Misma idea que AUDIO_VERSION del lado del cliente: si cambia la voz o
 // el modelo de ElevenLabs, subir este número invalida todo el caché
 // viejo de golpe, para no servir audio con la voz anterior por error.
-const SERVER_CACHE_VERSION = "v1";
+const SERVER_CACHE_VERSION = "v2";
 
 const app = express();
 app.use(cors());
@@ -92,7 +93,15 @@ function runWithConcurrencyLimit(taskFn) {
 // tal cual estaba dentro de /voice para que /chat pueda reutilizarla
 // oración por oración sin duplicar la lógica de caché — el comportamiento
 // de /voice no cambia, solo delega en esta función.
-async function generateVoiceAudio(rawText, mode) {
+//
+// withTimestamps (default false): con false, esta función es BYTE POR
+// BYTE idéntica a como estaba antes de agregar timestamps — mismo
+// endpoint, mismo Buffer de retorno. Ningún llamado existente (/voice sin
+// pedirlo, y /chat siempre) pasa este parámetro, así que quedan intactos.
+// Con true, usa el endpoint /with-timestamps de ElevenLabs (devuelve JSON
+// con audio_base64 + alignment) y devuelve { buffer, alignment } en vez
+// de un Buffer suelto.
+async function generateVoiceAudio(rawText, mode, withTimestamps = false) {
   const voice_settings = VOICE_SETTINGS[mode] ?? VOICE_SETTINGS.narration;
 
   // El texto de los tours trae marcas de dirección como "(pausa)" y
@@ -113,12 +122,73 @@ async function generateVoiceAudio(rawText, mode) {
     .digest("hex");
   const cacheFilePath = `${AUDIO_CACHE_DIR}/${cacheKey}.mp3`;
 
-  if (fs.existsSync(cacheFilePath)) {
-    return fs.readFileSync(cacheFilePath);
+  if (!withTimestamps) {
+    // Camino de siempre — no tocar nada acá.
+    if (fs.existsSync(cacheFilePath)) {
+      return fs.readFileSync(cacheFilePath);
+    }
+
+    const elevenRes = await runWithConcurrencyLimit(() =>
+      fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`, {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          model_id: ELEVENLABS_MODEL,
+          voice_settings,
+        }),
+      })
+    );
+
+    const contentType = elevenRes.headers.get("content-type") || "";
+
+    if (!elevenRes.ok || !contentType.includes("audio")) {
+      const errText = await elevenRes.text();
+      console.error("Respuesta inesperada de ElevenLabs:", elevenRes.status, contentType, errText);
+      throw new Error(`ElevenLabs ${elevenRes.status}: ${errText}`);
+    }
+
+    const buffer = Buffer.from(await elevenRes.arrayBuffer());
+
+    fs.writeFileSync(cacheFilePath, buffer);
+
+    return buffer;
+  }
+
+  // withTimestamps = true, solo para la narración principal.
+  const alignmentFilePath = `${AUDIO_CACHE_DIR}/${cacheKey}.json`;
+
+  // TEMP DEBUG [ALIGNMENT DEBUG] — bifurcación exacta: caché en disco vs.
+  // llamada real a ElevenLabs, con el cacheKey calculado para poder
+  // compararlo directo contra lo que ya sabemos que existe en
+  // backend/audio-cache/.
+  const cacheFileExists = fs.existsSync(cacheFilePath);
+  console.log(
+    "[ALIGNMENT DEBUG] generateVoiceAudio: cacheKey:",
+    cacheKey,
+    "| ¿existe el .mp3 en caché?",
+    cacheFileExists,
+    "| rama tomada:",
+    cacheFileExists ? "CACHÉ (no llama a ElevenLabs)" : "ELEVENLABS (llamada real)"
+  );
+
+  if (cacheFileExists) {
+    const buffer = fs.readFileSync(cacheFilePath);
+    // El .mp3 puede ser de un uso viejo, de antes de este cambio, sin su
+    // .json al lado — se devuelve el audio igual, con alignment en null
+    // (el cliente ya sabe caer a la estimación en ese caso), en vez de
+    // volver a pagarle a ElevenLabs por un audio que ya tenemos.
+    const alignment = fs.existsSync(alignmentFilePath)
+      ? JSON.parse(fs.readFileSync(alignmentFilePath, "utf-8"))
+      : null;
+    return { buffer, alignment };
   }
 
   const elevenRes = await runWithConcurrencyLimit(() =>
-    fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`, {
+    fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/with-timestamps`, {
       method: "POST",
       headers: {
         "xi-api-key": ELEVENLABS_API_KEY,
@@ -132,29 +202,61 @@ async function generateVoiceAudio(rawText, mode) {
     })
   );
 
-  const contentType = elevenRes.headers.get("content-type") || "";
-
-  if (!elevenRes.ok || !contentType.includes("audio")) {
+  if (!elevenRes.ok) {
     const errText = await elevenRes.text();
-    console.error("Respuesta inesperada de ElevenLabs:", elevenRes.status, contentType, errText);
+    console.error("Respuesta inesperada de ElevenLabs (with-timestamps):", elevenRes.status, errText);
     throw new Error(`ElevenLabs ${elevenRes.status}: ${errText}`);
   }
 
-  const buffer = Buffer.from(await elevenRes.arrayBuffer());
+  // TEMP DEBUG: ver el texto crudo de ElevenLabs antes de que nuestro
+  // código le toque nada. .json() consume el body una sola vez, así que
+  // para poder loguear el crudo hay que leerlo con .text() y parsearlo
+  // nosotros mismos — data queda idéntico a como quedaba con .json().
+  const rawResponseText = await elevenRes.text();
+  console.log(
+    "[ALIGNMENT DEBUG] Respuesta cruda de ElevenLabs /with-timestamps (primeros 500 caracteres):",
+    rawResponseText.slice(0, 500)
+  );
+
+  const data = JSON.parse(rawResponseText);
+  const buffer = Buffer.from(data.audio_base64, "base64");
+  const alignment = data.alignment ?? null;
 
   fs.writeFileSync(cacheFilePath, buffer);
+  if (alignment) {
+    fs.writeFileSync(alignmentFilePath, JSON.stringify(alignment));
+  }
 
-  return buffer;
+  return { buffer, alignment };
 }
+
+// Exportada solo para poder probar esta función real (no una copia) desde
+// un script de Node aislado, sin pasar por el celular ni por /voice.
+export { generateVoiceAudio };
 
 app.post("/voice", async (req, res) => {
   try {
-    const { mode } = req.body;
-    const buffer = await generateVoiceAudio(req.body.text, mode);
+    const { mode, withTimestamps } = req.body;
 
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.send(buffer);
+    if (!withTimestamps) {
+      // Camino de siempre — no tocar nada acá.
+      const buffer = await generateVoiceAudio(req.body.text, mode);
 
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.send(buffer);
+      return;
+    }
+
+    const { buffer, alignment } = await generateVoiceAudio(
+      req.body.text,
+      mode,
+      true
+    );
+
+    res.json({
+      audioBase64: buffer.toString("base64"),
+      alignment,
+    });
   } catch (e) {
     console.error("Error voz:", e);
     res.status(500).send("error voz");
@@ -403,6 +505,14 @@ Datos clave: ${Array.isArray(highlights) ? highlights.join(", ") : "Sin datos cl
   }
 });
 
-app.listen(3000, "0.0.0.0", () => {
-  console.log("🔥 Backend corriendo en red local");
-});
+// Arranca el servidor solo cuando este archivo se ejecuta directo
+// (`node server.js`, igual que siempre) — no cuando otro módulo lo
+// importa (ej. un script de prueba aislado que solo quiere usar
+// generateVoiceAudio), para no intentar levantar un segundo listener en
+// el puerto 3000 y chocar con el backend real que ya está corriendo.
+const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
+if (isMainModule) {
+  app.listen(3000, "0.0.0.0", () => {
+    console.log("🔥 Backend corriendo en red local");
+  });
+}

@@ -17,7 +17,11 @@ import {
   getTourNextAction,
 } from "../data/tours/navigation";
 import { getTourPreviewData } from "../data/tours/preview";
-import { useGuiaVoiceMode } from "../hooks/useGuiaVoiceMode";
+import {
+  GUIA_TRANSITION_AUDIO_STEP_ID,
+  GUIA_TRANSITION_PHRASES,
+  useGuiaVoiceMode,
+} from "../hooks/useGuiaVoiceMode";
 import { useTourAudio } from "../hooks/useTourAudio";
 import { useTourLocation } from "../hooks/useTourLocation";
 import { useTourRouteActions } from "../hooks/useTourRouteActions";
@@ -106,6 +110,7 @@ const decisionAnim = useRef(new Animated.Value(0)).current
 const {
   ensureAudioForStep,
   playCachedAudio,
+  playCachedAudioAndWait,
   resumeCachedAudioFromLastPosition,
   preloadStepsAudio,
   stopCurrentAudio,
@@ -119,7 +124,12 @@ const {
 // actual. Se mantiene al día con el efecto de más abajo.
 const stepRef = useRef<TourStep | undefined>(undefined);
 
-// Vuelve a reproducir el paso actual tras usar "Hablar con GUÍA" —
+// Vuelve a reproducir el paso actual tras usar "Hablar con GUÍA". Antes
+// de la narración real, dice una frase corta de transición (al azar,
+// del banco de useGuiaVoiceMode) — pasa por el mismo mecanismo de
+// caché+reproducción (ensureAudioForStep + el mismo player), y se espera
+// a que termine por completo antes de seguir, para que no suenen pisadas.
+//
 // resumeCachedAudioFromLastPosition retoma desde donde se había quedado
 // (guardado por stopCurrentAudio), a diferencia de playCachedAudio (que
 // sigue arrancando siempre desde 0, correcto para cuando se avanza a un
@@ -127,9 +137,35 @@ const stepRef = useRef<TourStep | undefined>(undefined);
 const resumeNarration = useCallback(async () => {
   const currentStep = stepRef.current;
   if (!currentStep) return;
-  await ensureAudioForStep(currentStep.id, currentStep.voiceText);
+
+  const transitionPhrase =
+    GUIA_TRANSITION_PHRASES[
+      Math.floor(Math.random() * GUIA_TRANSITION_PHRASES.length)
+    ];
+  await ensureAudioForStep(GUIA_TRANSITION_AUDIO_STEP_ID, transitionPhrase);
+  await playCachedAudioAndWait(GUIA_TRANSITION_AUDIO_STEP_ID, transitionPhrase);
+
+  // withTimestamps: true — es narración real, no la frase de transición
+  // de arriba (que se queda con el camino de siempre, sin este parámetro).
+  await ensureAudioForStep(currentStep.id, currentStep.voiceText, true);
   await resumeCachedAudioFromLastPosition(currentStep.id, currentStep.voiceText);
-}, [ensureAudioForStep, resumeCachedAudioFromLastPosition]);
+}, [ensureAudioForStep, playCachedAudioAndWait, resumeCachedAudioFromLastPosition]);
+
+// stopCurrentAudio acepta el paso actual como parámetro opcional para
+// redondear la posición guardada hacia atrás, hasta el inicio de la
+// oración (real, si hay alignment, o estimado si no) — pero askGuia() la
+// llama sin argumentos (su firma sigue siendo () => Promise<void> para no
+// romper nada). Este wrapper le inyecta el paso actual automáticamente,
+// así el redondeo sí aplica cuando se interrumpe la narración para
+// "Hablar con GUÍA".
+const stopCurrentAudioForGuia = useCallback(async () => {
+  const currentStep = stepRef.current;
+  await stopCurrentAudio(
+    currentStep
+      ? { stepId: currentStep.id, voiceText: currentStep.voiceText }
+      : undefined
+  );
+}, [stopCurrentAudio]);
 
 // Modo de voz de GUÍA: se activa al escuchar la palabra clave.
 const {
@@ -140,7 +176,7 @@ const {
   getHistory,
   pushToHistory,
 } = useGuiaVoiceMode({
-  stopCurrentAudio,
+  stopCurrentAudio: stopCurrentAudioForGuia,
   playAudioChunk: playAudioBase64,
   resumeNarration,
 });
@@ -491,7 +527,9 @@ useEffect(() => {
 
     if (cancelled) return;
 
-    await ensureAudioForStep(step.id, textToSpeak);
+    // withTimestamps: true — narración real, para que el alignment esté
+    // listo si más tarde se interrumpe este paso con "Hablar con GUÍA".
+    await ensureAudioForStep(step.id, textToSpeak, true);
 
     if (cancelled) return;
 
