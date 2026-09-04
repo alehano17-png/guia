@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useState } from "react";
 import { StyleProp, ViewStyle } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import Animated, {
@@ -55,10 +55,10 @@ export default function VoiceBlob({
   // Fase aleatoria fija por punto, asignada una sola vez al montar — así
   // cada punto respira con un desfase propio en vez de moverse todos en
   // sincronía perfecta (lo cual se vería mecánico, no orgánico).
-  const phases = useMemo(
-    () =>
-      Array.from({ length: POINT_COUNT }, () => Math.random() * Math.PI * 2),
-    []
+  // useState con inicializador (no useMemo): React garantiza que corre una
+  // sola vez; useMemo puede descartarse y re-generar las fases.
+  const [phases] = useState(() =>
+    Array.from({ length: POINT_COUNT }, () => Math.random() * Math.PI * 2)
   );
 
   const time = useSharedValue(0);

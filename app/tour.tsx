@@ -63,7 +63,7 @@ function TourScreenContent({ tourId }: { tourId: string }) {
 
 const insets = useSafeAreaInsets()
 
-const pulseAnim = useRef(new Animated.Value(1)).current
+const pulseAnim = useState(() => new Animated.Value(1))[0]
 
 const [messages, setMessages] = useState<ChatMessage[]>([])
 
@@ -84,7 +84,7 @@ const [input, setInput] = useState("")
 
 
 
-const decisionAnim = useRef(new Animated.Value(0)).current
+const decisionAnim = useState(() => new Animated.Value(0))[0]
 
 
 const {
@@ -152,7 +152,6 @@ const {
   status: guiaVoiceStatus,
   askGuia,
   transcribeSpokenText,
-  resetConversation,
   getHistory,
   pushToHistory,
 } = useGuiaVoiceMode({
@@ -181,18 +180,16 @@ const tour = useMemo(()=>getTourById(tourId),[tourId])
 const [loadingTour, setLoadingTour] = useState(true);
 const [readyStepIds, setReadyStepIds] = useState<string[]>([]);
 
-useEffect(() => {
-  const firstStepId = tour?.steps?.[0]?.id
-  if (!firstStepId) return
-
-  setCurrentStepId(firstStepId)
-  setStartMapViewed(false)
-  setShowDecision(false)
-  // Un tour nuevo no debe arrastrar el contexto de la charla con GUÍA de
-  // un tour anterior (o de una sesión previa, si el componente no llegó
-  // a desmontarse).
-  resetConversation()
-}, [tour?.id, tour?.steps, resetConversation])
+const [showDecision, setShowDecision] = useState(false)
+const [startMapViewed, setStartMapViewed] = useState(false)
+// currentStepId arranca en el primer paso del tour vía inicializador
+// perezoso (corre una sola vez). Antes esto lo hacía un useEffect que
+// además re-seteaba showDecision/startMapViewed y limpiaba el historial de
+// GUÍA — todo redundante, porque <TourScreenContent> ya se remonta con
+// key={tourId}: un tour nuevo entra siempre con estado fresco.
+const [currentStepId, setCurrentStepId] = useState(
+  () => getTourById(tourId)?.steps?.[0]?.id ?? ""
+)
 
 
 useEffect(() => {
@@ -232,13 +229,8 @@ useEffect(() => {
 
 
 
-const [showDecision, setShowDecision] = useState(false)
-const thinkingAnim = useRef(new Animated.Value(0)).current
+const thinkingAnim = useState(() => new Animated.Value(0))[0]
 const [showChat, setShowChat] = useState(false)
-
-
-const [startMapViewed, setStartMapViewed] = useState(false)
-const [currentStepId, setCurrentStepId] = useState("")
 
 
 
@@ -404,6 +396,9 @@ useEffect(() => {
   if (action.type !== "advance") return
 
   hasAutoAdvancedRef.current = true
+  // setState disparado por un cambio del GPS (sistema externo) — es el uso
+  // correcto de un effect según la doc de React, no una cascada de renders.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   goNext()
 }, [
   userLocation,

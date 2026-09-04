@@ -514,6 +514,11 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
       }
       smoothedAmplitudeRef.current = 0;
       peakRef.current = PEAK_FLOOR;
+      // voiceEnergy es un shared value de Reanimated (contenedor mutable,
+      // como un ref); mutar .value fuera de render es el patrón correcto y
+      // documentado. react-hooks/immutability lo marca solo porque este
+      // useCallback "captura y congela" el valor — falso positivo.
+      // eslint-disable-next-line react-hooks/immutability
       voiceEnergy.value = 0;
     },
     [player, pulseAnim, voiceEnergy, getCacheKey]

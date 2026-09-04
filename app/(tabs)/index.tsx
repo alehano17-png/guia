@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -119,17 +119,18 @@ function AmbientParticle({ config }: { config: ParticleConfig }) {
 }
 
 function AmbientParticles() {
-  const particles = useMemo<ParticleConfig[]>(
-    () =>
-      Array.from({ length: PARTICLE_COUNT }, (_, id) => ({
-        id,
-        top: Math.random() * 90,
-        left: Math.random() * 90,
-        size: 4 + Math.random() * 6, // 4-10px
-        duration: 4000 + Math.random() * 3000, // 4000-7000ms
-        delay: Math.random() * 2000, // hasta 2000ms
-      })),
-    []
+  // useState con inicializador (no useMemo): React garantiza que el
+  // inicializador corre una sola vez, así las posiciones aleatorias de las
+  // partículas nunca se re-generan (useMemo puede descartar y recalcular).
+  const [particles] = useState<ParticleConfig[]>(() =>
+    Array.from({ length: PARTICLE_COUNT }, (_, id) => ({
+      id,
+      top: Math.random() * 90,
+      left: Math.random() * 90,
+      size: 4 + Math.random() * 6, // 4-10px
+      duration: 4000 + Math.random() * 3000, // 4000-7000ms
+      delay: Math.random() * 2000, // hasta 2000ms
+    }))
   );
 
   return (
