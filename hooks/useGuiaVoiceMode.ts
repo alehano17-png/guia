@@ -69,9 +69,6 @@ type UseGuiaVoiceModeParams = {
 };
 
 async function recordUntilSilence(): Promise<string | null> {
-  // TEMP DEBUG [GUIA FLOW] — punto 4: entrando a recordUntilSilence().
-  console.log("[GUIA FLOW] recordUntilSilence() - entrando");
-
   const { status: permStatus } = await Audio.requestPermissionsAsync();
   if (permStatus !== "granted") {
     throw new Error("Permiso de micrófono no concedido");
@@ -81,11 +78,6 @@ async function recordUntilSilence(): Promise<string | null> {
     allowsRecordingIOS: true,
     playsInSilentModeIOS: true,
   });
-  // TEMP DEBUG [GUIA FLOW] — punto 5: setAudioModeAsync() resolvió bien,
-  // todavía no se crea el Recording.
-  console.log(
-    "[GUIA FLOW] recordUntilSilence() - Audio.setAudioModeAsync() resolvió OK"
-  );
 
   // El software (prepareToRecordAsync, startAsync) no reporta ningún error
   // en el segundo uso seguido, pero el micrófono como hardware a veces no
@@ -102,40 +94,7 @@ async function recordUntilSilence(): Promise<string | null> {
       ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
       isMeteringEnabled: true,
     });
-    // TEMP DEBUG [GUIA FLOW] — punto 6: prepareToRecordAsync() resolvió
-    // bien.
-    console.log(
-      "[GUIA FLOW] recordUntilSilence() - prepareToRecordAsync() resolvió OK"
-    );
   } catch (e) {
-    // TEMP DEBUG — diagnóstico de "recorder not prepared" en el segundo
-    // uso seguido de "Hablar con GUÍA". Log detallado a propósito: no
-    // solo el mensaje, todo lo que el objeto de error tenga (código,
-    // dominio, propiedades nativas específicas de iOS/Android, etc.).
-    // Remover después.
-    console.log("[GUIA DEBUG] prepareToRecordAsync FALLÓ. Error crudo:", e);
-    console.log(
-      "[GUIA DEBUG] prepareToRecordAsync — detalle:",
-      JSON.stringify(
-        {
-          message: e instanceof Error ? e.message : String(e),
-          name: e instanceof Error ? e.name : undefined,
-          stack: e instanceof Error ? e.stack : undefined,
-          ownProperties:
-            e && typeof e === "object"
-              ? Object.getOwnPropertyNames(e).reduce(
-                  (acc, key) => {
-                    acc[key] = (e as Record<string, unknown>)[key];
-                    return acc;
-                  },
-                  {} as Record<string, unknown>
-                )
-              : e,
-        },
-        null,
-        2
-      )
-    );
     // Se relanza para no cambiar el comportamiento real: sigue
     // propagándose exactamente igual que antes hasta el catch de
     // askGuia(), que pone status "error".
@@ -147,11 +106,6 @@ async function recordUntilSilence(): Promise<string | null> {
     let finished = false;
 
     const finish = async () => {
-      // TEMP DEBUG [GUIA FLOW] — punto 9: se llamó a finish() (antes de
-      // la guarda de "ya terminado", para ver también llamadas
-      // duplicadas si las hubiera).
-      console.log("[GUIA FLOW] recordUntilSilence() - finish() llamado, finished ya era:", finished);
-
       if (finished) return;
       finished = true;
       clearTimeout(maxTimer);
@@ -185,30 +139,13 @@ async function recordUntilSilence(): Promise<string | null> {
         console.log("Error volviendo a modo solo-reproducción", e);
       }
 
-      // TEMP DEBUG [GUIA FLOW] — punto 10: justo cuando recordUntilSilence()
-      // retorna, con el valor exacto (URI o null).
-      const finalUri = recording.getURI();
-      console.log("[GUIA FLOW] recordUntilSilence() - retornando:", finalUri);
-      resolve(finalUri);
+      resolve(recording.getURI());
     };
 
     const maxTimer = setTimeout(finish, MAX_RECORDING_MS);
     const recordingStartedAt = Date.now();
 
     recording.setOnRecordingStatusUpdate((status) => {
-      // TEMP DEBUG [GUIA FLOW] — punto 8: cada vez que se dispara el
-      // callback de status/metering, con el metering y si está dentro
-      // del período de gracia.
-      console.log(
-        "[GUIA FLOW] recordUntilSilence() - status update:",
-        JSON.stringify({
-          isRecording: status.isRecording,
-          metering: status.metering,
-          withinGracePeriod:
-            Date.now() - recordingStartedAt < MIN_RECORDING_MS_BEFORE_SILENCE,
-        })
-      );
-
       if (!status.isRecording || status.metering === undefined) return;
 
       // Período de gracia: todavía no evaluamos silencio, sin importar
@@ -228,14 +165,9 @@ async function recordUntilSilence(): Promise<string | null> {
       }
     });
 
-    recording.startAsync().then(() => {
-      // TEMP DEBUG [GUIA FLOW] — punto 7: justo después de que
-      // startAsync() resuelve bien. No se agrega .catch() para no
-      // cambiar el comportamiento actual (ya no estaba manejado).
-      console.log(
-        "[GUIA FLOW] recordUntilSilence() - recording.startAsync() resolvió OK"
-      );
-    });
+    // No se agrega .catch() para no cambiar el comportamiento actual (ya
+    // no estaba manejado).
+    recording.startAsync();
   });
 }
 
@@ -265,12 +197,6 @@ export function useGuiaVoiceMode({
   // Se llama cuando se detecta la palabra clave "GUÍA" mientras narra.
   const askGuia = useCallback(
     async (tourContext: TourContext) => {
-      // TEMP DEBUG [GUIA FLOW] — punto 1: entrando a askGuia().
-      console.log("[GUIA FLOW] askGuia() - entrando");
-
-      // TEMP DEBUG [GUIA FLOW] — punto 2: valor exacto de isActiveRef.current
-      // antes de decidir si continuar o hacer return.
-      console.log("[GUIA FLOW] askGuia() - isActiveRef.current:", isActiveRef.current);
       if (isActiveRef.current) return; // ya hay una pregunta en curso
       isActiveRef.current = true;
 
@@ -278,9 +204,6 @@ export function useGuiaVoiceMode({
         await stopCurrentAudio();
 
         setStatus("listening");
-        // TEMP DEBUG [GUIA FLOW] — punto 3: justo antes de llamar a
-        // recordUntilSilence().
-        console.log("[GUIA FLOW] askGuia() - antes de recordUntilSilence()");
         const uri = await recordUntilSilence();
 
         if (!uri) {
@@ -316,13 +239,6 @@ export function useGuiaVoiceMode({
           ...tourContext,
           history: historyForRequest,
           onChunk: async (chunkText, chunkAudioBase64) => {
-            // TEMP DEBUG — diagnóstico del bug "GUÍA nunca se escucha",
-            // remover después.
-            console.log(
-              "[GUIA DEBUG] onChunk recibido:",
-              JSON.stringify({ text: chunkText, hasAudio: !!chunkAudioBase64 })
-            );
-
             if (!hasStartedSpeaking) {
               hasStartedSpeaking = true;
               setStatus("speaking");
@@ -331,31 +247,10 @@ export function useGuiaVoiceMode({
             if (!chunkAudioBase64) {
               // Ese pedazo puntual falló al generar audio — se salta sin
               // cortar la reproducción de los siguientes.
-              console.log(
-                "[GUIA DEBUG] Pedazo sin audio, se salta:",
-                chunkText
-              );
               return;
             }
 
-            console.log(
-              "[GUIA DEBUG] Llamando a playAudioChunk para:",
-              chunkText
-            );
-            try {
-              await playAudioChunk(chunkAudioBase64, chunkText);
-              console.log(
-                "[GUIA DEBUG] playAudioChunk terminó OK para:",
-                chunkText
-              );
-            } catch (playError) {
-              console.log(
-                "[GUIA DEBUG] playAudioChunk FALLÓ para:",
-                chunkText,
-                playError
-              );
-              throw playError;
-            }
+            await playAudioChunk(chunkAudioBase64, chunkText);
           },
         });
 
@@ -421,9 +316,18 @@ export function useGuiaVoiceMode({
       setStatus("error");
       return "";
     } finally {
+      // Pase lo que pase (éxito, transcripción vacía, o error),
+      // stopCurrentAudio() ya pausó la narración al principio de esta
+      // función — sin esto, el tour queda mudo por el resto de la
+      // caminata (mismo patrón que askGuia()).
+      try {
+        await resumeNarration();
+      } catch (e) {
+        console.log("Error reanudando la narración tras el dictado", e);
+      }
       isActiveRef.current = false;
     }
-  }, [stopCurrentAudio]);
+  }, [stopCurrentAudio, resumeNarration]);
 
   return {
     status,

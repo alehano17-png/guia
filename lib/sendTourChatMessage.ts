@@ -1,6 +1,6 @@
 import { Buffer } from "buffer";
 import { fetch as expoFetch } from "expo/fetch";
-import { TOUR_API_BASE_URL } from "./tourApiConfig";
+import { TOUR_API_BASE_URL, TOUR_API_KEY, TOUR_API_KEY_HEADER } from "./tourApiConfig";
 
 // Un turno de la conversación (pregunta o respuesta) — lo que se manda
 // como contexto de los mensajes anteriores, no el mensaje nuevo en sí.
@@ -53,6 +53,7 @@ export async function sendTourChatMessage({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
     },
     body: JSON.stringify({
       message,

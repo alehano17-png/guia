@@ -24,6 +24,22 @@ app.use(cors());
 // Límite alto porque /transcribe recibe audio corto en base64 dentro del JSON
 app.use(express.json({ limit: "25mb" }));
 
+// Autenticación simple: solo la propia app (con la misma llave en su
+// EXPO_PUBLIC_GUIA_BACKEND_KEY) puede usar los endpoints reales. No es
+// autenticación de usuarios — es una sola llave compartida para bloquear
+// a cualquiera que no sea la app.
+const BACKEND_SECRET_KEY = process.env.BACKEND_SECRET_KEY;
+
+function requireGuiaKey(req, res, next) {
+  const providedKey = req.header("x-guia-key");
+
+  if (!BACKEND_SECRET_KEY || providedKey !== BACKEND_SECRET_KEY) {
+    return res.status(401).send("No autorizado");
+  }
+
+  next();
+}
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -161,19 +177,7 @@ async function generateVoiceAudio(rawText, mode, withTimestamps = false) {
   // withTimestamps = true, solo para la narración principal.
   const alignmentFilePath = `${AUDIO_CACHE_DIR}/${cacheKey}.json`;
 
-  // TEMP DEBUG [ALIGNMENT DEBUG] — bifurcación exacta: caché en disco vs.
-  // llamada real a ElevenLabs, con el cacheKey calculado para poder
-  // compararlo directo contra lo que ya sabemos que existe en
-  // backend/audio-cache/.
   const cacheFileExists = fs.existsSync(cacheFilePath);
-  console.log(
-    "[ALIGNMENT DEBUG] generateVoiceAudio: cacheKey:",
-    cacheKey,
-    "| ¿existe el .mp3 en caché?",
-    cacheFileExists,
-    "| rama tomada:",
-    cacheFileExists ? "CACHÉ (no llama a ElevenLabs)" : "ELEVENLABS (llamada real)"
-  );
 
   if (cacheFileExists) {
     const buffer = fs.readFileSync(cacheFilePath);
@@ -208,16 +212,7 @@ async function generateVoiceAudio(rawText, mode, withTimestamps = false) {
     throw new Error(`ElevenLabs ${elevenRes.status}: ${errText}`);
   }
 
-  // TEMP DEBUG: ver el texto crudo de ElevenLabs antes de que nuestro
-  // código le toque nada. .json() consume el body una sola vez, así que
-  // para poder loguear el crudo hay que leerlo con .text() y parsearlo
-  // nosotros mismos — data queda idéntico a como quedaba con .json().
   const rawResponseText = await elevenRes.text();
-  console.log(
-    "[ALIGNMENT DEBUG] Respuesta cruda de ElevenLabs /with-timestamps (primeros 500 caracteres):",
-    rawResponseText.slice(0, 500)
-  );
-
   const data = JSON.parse(rawResponseText);
   const buffer = Buffer.from(data.audio_base64, "base64");
   const alignment = data.alignment ?? null;
@@ -234,7 +229,7 @@ async function generateVoiceAudio(rawText, mode, withTimestamps = false) {
 // un script de Node aislado, sin pasar por el celular ni por /voice.
 export { generateVoiceAudio };
 
-app.post("/voice", async (req, res) => {
+app.post("/voice", requireGuiaKey, async (req, res) => {
   try {
     const { mode, withTimestamps } = req.body;
 
@@ -289,7 +284,7 @@ function extractCompleteSentences(buffer) {
   return { sentences, remainder: buffer.slice(start) };
 }
 
-app.post("/transcribe", async (req, res) => {
+app.post("/transcribe", requireGuiaKey, async (req, res) => {
   try {
     const { audioBase64 } = req.body;
 
@@ -314,7 +309,7 @@ app.post("/transcribe", async (req, res) => {
   }
 });
 
-app.post("/chat", async (req, res) => {
+app.post("/chat", requireGuiaKey, async (req, res) => {
   try {
     console.log("📩 Mensaje recibido:", req.body.message);
 
@@ -389,14 +384,6 @@ if (!isShortAllowed && isClearlyOffTopic) {
     text: "Solo puedo responder preguntas sobre este recorrido y este lugar."
   });
 }
-
-    // TEMP DEBUG — valores exactos y completos tal como llegan en el
-    // body, para confirmar con datos reales antes de tocar el prompt de
-    // nuevo. Remover después.
-    console.log(
-      "[PROMPT DEBUG] Valores para el system prompt:",
-      JSON.stringify({ tourTitle, context, summary, highlights }, null, 2)
-    );
 
     const stream = await openai.chat.completions.create({
       model: "gpt-4o-mini",

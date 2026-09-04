@@ -16,7 +16,7 @@ import {
   estimateSentenceStartTimes,
   findSentenceStartAtOrBefore,
 } from "../lib/sentences";
-import { TOUR_API_BASE_URL } from "../lib/tourApiConfig";
+import { TOUR_API_BASE_URL, TOUR_API_KEY, TOUR_API_KEY_HEADER } from "../lib/tourApiConfig";
 
 const FileSystem = require("expo-file-system/legacy");
 
@@ -166,12 +166,6 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
         !withTimestamps || !!alignmentCacheRef.current[cacheKey];
 
       if (audioCacheRef.current[cacheKey] && hasRequiredAlignment) {
-        // TEMP DEBUG [ALIGNMENT DEBUG] — este chequeo temprano no logueaba
-        // nada antes, por eso una interrupción de acá era invisible.
-        console.log(
-          "[ALIGNMENT DEBUG] Cortando en el chequeo de memoria silencioso para:",
-          stepId
-        );
         return;
       }
 
@@ -200,6 +194,7 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
             },
             body: JSON.stringify({ text, mode: "narration" }),
           });
@@ -224,49 +219,20 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
       }
 
       try {
-        // TEMP DEBUG [ALIGNMENT DEBUG] — punto 1: justo antes del fetch.
-        console.log(
-          "[ALIGNMENT DEBUG] ensureAudioForStep: pidiendo con withTimestamps, stepId:",
-          stepId,
-          "| cacheKey:",
-          cacheKey
-        );
-
         const res = await fetch(`${TOUR_API_BASE_URL}/voice`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
           },
           body: JSON.stringify({ text, mode: "narration", withTimestamps: true }),
         });
-
-        // TEMP DEBUG [ALIGNMENT DEBUG] — punto 2: justo después de recibir
-        // la respuesta, antes de procesarla.
-        console.log(
-          "[ALIGNMENT DEBUG] ensureAudioForStep: respuesta recibida:",
-          JSON.stringify({
-            stepId,
-            ok: res.ok,
-            status: res.status,
-            contentType: res.headers.get("content-type"),
-          })
-        );
 
         if (!res.ok) {
           throw new Error(`Backend /voice respondió ${res.status}`);
         }
 
         const data = await res.json();
-
-        // TEMP DEBUG [ALIGNMENT DEBUG] — punto 3: justo después de
-        // res.json().
-        console.log(
-          "[ALIGNMENT DEBUG] ensureAudioForStep: data.alignment presente?",
-          !!data.alignment,
-          data.alignment
-            ? `| data.alignment.characters.length: ${data.alignment.characters?.length}`
-            : ""
-        );
 
         // audioBase64 ya viene en base64 (a diferencia del camino de
         // arriba, que recibe bytes crudos vía arrayBuffer) — se escribe
@@ -276,13 +242,6 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
         });
 
         audioCacheRef.current[cacheKey] = fileUri;
-
-        // TEMP DEBUG [ALIGNMENT DEBUG] — punto 4: justo antes de guardar
-        // en alignmentCacheRef.
-        console.log(
-          "[ALIGNMENT DEBUG] ensureAudioForStep: guardando alignment bajo cacheKey:",
-          cacheKey
-        );
 
         alignmentCacheRef.current[cacheKey] = data.alignment
           ? {
@@ -294,33 +253,6 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
             }
           : null;
       } catch (e) {
-        // TEMP DEBUG [ALIGNMENT DEBUG] — punto 5: error completo, no solo
-        // el mensaje — para no perder detalles (código, propiedades
-        // nativas, etc.) como pasó antes con "recorder not prepared".
-        console.log("[ALIGNMENT DEBUG] ensureAudioForStep: ERROR crudo:", e);
-        console.log(
-          "[ALIGNMENT DEBUG] ensureAudioForStep: ERROR detalle:",
-          JSON.stringify(
-            {
-              stepId,
-              message: e instanceof Error ? e.message : String(e),
-              name: e instanceof Error ? e.name : undefined,
-              stack: e instanceof Error ? e.stack : undefined,
-              ownProperties:
-                e && typeof e === "object"
-                  ? Object.getOwnPropertyNames(e).reduce(
-                      (acc, key) => {
-                        acc[key] = (e as Record<string, unknown>)[key];
-                        return acc;
-                      },
-                      {} as Record<string, unknown>
-                    )
-                  : e,
-            },
-            null,
-            2
-          )
-        );
         console.log("Error generando audio", e);
       }
     },
@@ -436,24 +368,10 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
           onStepReady?.(step.id);
         }
       } finally {
-        // TEMP DEBUG [ALIGNMENT DEBUG] — punto 7: cuántos steps terminaron
-        // con alignment real guardado vs el total, justo antes de que
-        // preloadStepsAudio termine.
-        const stepsWithAlignment = steps.filter((step) => {
-          const cacheKey = getCacheKey(step.id, step.text);
-          return !!alignmentCacheRef.current[cacheKey];
-        }).length;
-        console.log(
-          "[ALIGNMENT DEBUG] preloadStepsAudio: steps con alignment guardado:",
-          stepsWithAlignment,
-          "/",
-          steps.length
-        );
-
         isGeneratingRef.current = false;
       }
     },
-    [ensureAudioForStep, getCacheKey]
+    [ensureAudioForStep]
   );
 
   // Escribe un audio (base64) a un archivo temporal, lo reproduce, y
@@ -503,7 +421,10 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
       try {
         const res = await fetch(`${TOUR_API_BASE_URL}/voice`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
+          },
           body: JSON.stringify({ text, mode: "chat" }),
         });
 
@@ -546,15 +467,6 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
           const cacheKey = getCacheKey(currentStep.stepId, currentStep.voiceText);
           const alignment = alignmentCacheRef.current[cacheKey];
 
-          // TEMP DEBUG — confirmar si esta interrupción entra al camino
-          // de alignment real o al de estimación. Remover después.
-          console.log(
-            "[ALIGNMENT DEBUG] ¿Hay alignment disponible para este paso?",
-            !!alignment,
-            "| cacheKey:",
-            cacheKey
-          );
-
           if (alignment) {
             const sentenceStarts = buildSentenceStartsFromAlignment(
               cleanedVoiceText,
@@ -563,28 +475,6 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
             const rawPosition = findSentenceStartAtOrBefore(
               sentenceStarts,
               currentTimeSeconds
-            );
-
-            // TEMP DEBUG — diagnóstico del "se escucha la oración
-            // anterior completa" con alignment real. Remover después.
-            console.log(
-              "[ALIGNMENT DEBUG] sentenceStarts:",
-              JSON.stringify(
-                sentenceStarts.map((s) => ({
-                  sentence: s.sentence,
-                  startSeconds: s.startSeconds,
-                })),
-                null,
-                2
-              )
-            );
-            console.log(
-              "[ALIGNMENT DEBUG] currentTimeSeconds:",
-              currentTimeSeconds
-            );
-            console.log(
-              "[ALIGNMENT DEBUG] findSentenceStartAtOrBefore devolvió:",
-              rawPosition
             );
 
             // Solo acá — el camino de estimación de abajo ya funciona

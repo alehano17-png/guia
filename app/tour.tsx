@@ -27,6 +27,7 @@ import { useTourLocation } from "../hooks/useTourLocation";
 import { useTourRouteActions } from "../hooks/useTourRouteActions";
 import { useWakeWord } from "../hooks/useWakeWord";
 import { getDistanceInMeters } from "../lib/geo";
+import { ChatMessage } from "../lib/chatTypes";
 import { sendTourChatMessage } from "../lib/sendTourChatMessage";
 import { TOUR_GRADIENT_COLORS } from "../lib/tourTheme";
 
@@ -37,7 +38,6 @@ const ARRIVAL_RADIUS_METERS = 30;
 
 import {
   Animated,
-  Keyboard,
   StyleSheet,
   View
 } from "react-native";
@@ -49,12 +49,6 @@ import {
   TourStep
 } from "../data/tours/index";
 
-type ChatMessage = {
-  role: "user" | "assistant"
-  text: string
-}
-
-
 export default function TourScreen() {
   const params = useLocalSearchParams<{ tourId?: string }>()
   const tourId =
@@ -65,28 +59,6 @@ export default function TourScreen() {
 
 function TourScreenContent({ tourId }: { tourId: string }) {
 
-const [keyboardOpen, setKeyboardOpen] = useState(false);
-
-useEffect(() => {
-  const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardOpen(true));
-  const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardOpen(false));
-
-  return () => {
-    show.remove();
-    hide.remove();
-  };
-}, []);
-
-const cardHeightAnim = useRef(new Animated.Value(1)).current
-
-useEffect(() => {
-  Animated.timing(cardHeightAnim, {
-    toValue: keyboardOpen ? 0 : 1,
-    duration: 250,
-    useNativeDriver: false
-  }).start();
-}, [keyboardOpen, cardHeightAnim]);
-
 
 
 
@@ -95,6 +67,15 @@ const insets = useSafeAreaInsets()
 const pulseAnim = useRef(new Animated.Value(1)).current
 
 const [messages, setMessages] = useState<ChatMessage[]>([])
+
+// Contador simple para las key de React de la lista de mensajes — no
+// necesita ser más sofisticado que esto, solo tiene que ser único dentro
+// de esta pantalla.
+const nextMessageIdRef = useRef(0)
+const createMessageId = () => {
+  nextMessageIdRef.current += 1
+  return `msg-${nextMessageIdRef.current}`
+}
 
 const [isThinking, setIsThinking] = useState(false)
 
@@ -438,12 +419,21 @@ useEffect(() => {
   step,
 ])
 
-const sendMessage = async () => {
-  if (!input.trim()) return
+// messageOverride: para las sugerencias del estado vacío del chat, que
+// llenan Y envían en el mismo toque (ver onSuggestionPress más abajo) —
+// sin esto, tendrían que hacer setInput(text) y llamar a sendMessage()
+// por separado, pero como `input` recién se actualiza en el próximo
+// render, sendMessage() leería el valor viejo (closure obsoleto) en vez
+// del texto de la sugerencia. Sin messageOverride, se comporta exactamente
+// igual que antes: usa `input`.
+const sendMessage = async (messageOverride?: string) => {
+  const messageText = (messageOverride ?? input).trim()
+  if (!messageText) return
 
   const userMessage: ChatMessage = {
+    id: createMessageId(),
     role: "user",
-    text: input
+    text: messageText
   }
 
   setMessages(prev => [...prev, userMessage])
@@ -470,6 +460,7 @@ const sendMessage = async () => {
     pushToHistory({ role: "assistant", content: text })
 
     const assistantMessage: ChatMessage = {
+      id: createMessageId(),
       role: "assistant",
       text,
     }
@@ -480,6 +471,7 @@ const sendMessage = async () => {
     setMessages(prev => [
       ...prev,
       {
+        id: createMessageId(),
         role: "assistant",
         text: "Tuve un problema al responder. Intenta otra vez."
       }
@@ -691,8 +683,6 @@ return(
   visible={showChat}
   insetsTop={insets.top}
   insetsBottom={insets.bottom}
-  keyboardOpen={keyboardOpen}
-  cardHeightAnim={cardHeightAnim}
   pulseAnim={pulseAnim}
   thinkingAnim={thinkingAnim}
   stepTitle={step.title}
@@ -702,8 +692,8 @@ return(
   isDictating={isDictating}
   onClose={handleCloseChat}
   onChangeInput={setInput}
-  onSend={sendMessage}
-  onSuggestionPress={setInput}
+  onSend={() => sendMessage()}
+  onSuggestionPress={(text) => sendMessage(text)}
   onMicPress={handleDictate}
 />
 

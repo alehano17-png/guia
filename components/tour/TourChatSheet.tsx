@@ -1,31 +1,27 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useRef } from "react";
+import React from "react";
 import {
     Animated,
     Pressable,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     View,
 } from "react-native";
 import ReanimatedAnimated, {
+    interpolate,
     useAnimatedKeyboard,
+    useAnimatedRef,
     useAnimatedStyle,
+    useDerivedValue,
 } from "react-native-reanimated";
+import { ChatMessage } from "../../lib/chatTypes";
 import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
-
-type ChatMessage = {
-  role: "user" | "assistant";
-  text: string;
-};
 
 type Props = {
   visible: boolean;
   insetsTop: number;
   insetsBottom: number;
-  keyboardOpen: boolean;
-  cardHeightAnim: Animated.Value;
   pulseAnim: Animated.Value;
   thinkingAnim: Animated.Value;
   stepTitle: string;
@@ -44,8 +40,6 @@ export default function TourChatSheet({
   visible,
   insetsTop,
   insetsBottom,
-  keyboardOpen,
-  cardHeightAnim,
   pulseAnim,
   thinkingAnim,
   stepTitle,
@@ -59,15 +53,51 @@ export default function TourChatSheet({
   onSuggestionPress,
   onMicPress,
 }: Props) {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useAnimatedRef<ReanimatedAnimated.ScrollView>();
 
   // El "padding" de KeyboardAvoidingView no era confiable con este layout
   // (position: absolute + varios niveles de flex). useAnimatedKeyboard da
-  // la altura real del teclado, frame a frame, para empujar hacia arriba
-  // solo el bloque de mensajes + barra de entrada.
+  // la altura real del teclado, frame a frame — única fuente de verdad
+  // para todo lo que reacciona al teclado en este componente (antes había
+  // un boolean + Animated.timing aparte para el colapso de la tarjeta,
+  // desincronizado de esto).
   const keyboard = useAnimatedKeyboard();
   const keyboardAvoidingStyle = useAnimatedStyle(() => ({
     paddingBottom: keyboard.height.value,
+  }));
+
+  // Progreso de colapso de la tarjeta de info: 1 = totalmente expandida
+  // (teclado cerrado), 0 = totalmente colapsada. 300 es el mismo alto
+  // máximo que ya tenía la tarjeta — a partir de esa altura de teclado se
+  // la considera colapsada del todo. 'clamp' por si el teclado real mide
+  // más en algún dispositivo.
+  const CARD_COLLAPSE_RANGE = 300;
+  const cardProgress = useDerivedValue(() =>
+    interpolate(keyboard.height.value, [0, CARD_COLLAPSE_RANGE], [1, 0], "clamp")
+  );
+
+  const cardStyle = useAnimatedStyle(() => ({
+    height: interpolate(cardProgress.value, [0, 1], [0, 300]),
+    opacity: cardProgress.value,
+    transform: [
+      { translateY: interpolate(cardProgress.value, [0, 1], [-30, 0]) },
+    ],
+  }));
+
+  const chatMessagesStyle = useAnimatedStyle(() => ({
+    marginTop: interpolate(cardProgress.value, [0, 1], [-40, 0]),
+  }));
+
+  // Mismo comportamiento que el boolean externo que reemplaza (swap
+  // instantáneo, no gradual): apenas el teclado tiene 1px de alto ya vale
+  // 14, sin esperar a que termine de subir.
+  const inputContainerStyle = useAnimatedStyle(() => ({
+    paddingBottom: interpolate(
+      keyboard.height.value,
+      [0, 1],
+      [insetsBottom + 12, 14],
+      "clamp"
+    ),
   }));
 
   if (!visible) return null;
@@ -76,7 +106,7 @@ export default function TourChatSheet({
     <View style={styles.chatSheet}>
       <View style={[styles.chatOverlay, { paddingTop: insetsTop }]}>
         <View style={styles.chatHeader}>
-          <Pressable onPress={onClose}>
+          <Pressable onPress={onClose} hitSlop={12}>
             <Text style={styles.chatClose}>Cerrar</Text>
           </Pressable>
 
@@ -85,29 +115,8 @@ export default function TourChatSheet({
           <View style={{ width: 40 }} />
         </View>
 
-        <Animated.View
-          style={[
-            styles.chatCard,
-            {
-              height: cardHeightAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 300],
-              }),
-              opacity: cardHeightAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 1],
-              }),
-              transform: [
-                {
-                  translateY: cardHeightAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-30, 0],
-                  }),
-                },
-              ],
-              overflow: "hidden",
-            },
-          ]}
+        <ReanimatedAnimated.View
+          style={[styles.chatCard, cardStyle, { overflow: "hidden" }]}
         >
           <View style={styles.chatCardRow}>
             <View style={styles.chatVoiceMini}>
@@ -131,28 +140,14 @@ export default function TourChatSheet({
                 Puedes preguntarme algo sobre este lugar o sobre cualquier parte
                 del tour.
               </Text>
-
-              <View style={styles.placeImageFrame}>
-                <Text style={styles.placeImagePlaceholder}>
-                  Imagen del lugar
-                </Text>
-              </View>
             </View>
           </View>
-        </Animated.View>
+        </ReanimatedAnimated.View>
 
         <ReanimatedAnimated.View style={[styles.chatBody, keyboardAvoidingStyle]}>
-        <Animated.ScrollView
+        <ReanimatedAnimated.ScrollView
           ref={scrollRef}
-          style={[
-            styles.chatMessages,
-            {
-              marginTop: cardHeightAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-40, 0],
-              }),
-            },
-          ]}
+          style={[styles.chatMessages, chatMessagesStyle]}
           contentContainerStyle={{ paddingBottom: 20 }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
@@ -193,12 +188,12 @@ export default function TourChatSheet({
             </View>
           )}
 
-          {messages.map((m, i) => {
+          {messages.map((m) => {
             const isUser = m.role === "user";
 
             return (
               <View
-                key={i}
+                key={m.id}
                 style={
                   isUser
                     ? styles.chatBubbleUserWrapper
@@ -206,7 +201,7 @@ export default function TourChatSheet({
                 }
               >
                 <View style={isUser ? styles.chatBubbleUser : styles.chatBubbleGuide}>
-                  <Text>{m.text}</Text>
+                  <Text style={styles.chatMessageText}>{m.text}</Text>
                 </View>
 
                 <View style={isUser ? styles.chatTailUser : styles.chatTailGuide} />
@@ -254,16 +249,13 @@ export default function TourChatSheet({
               </View>
             </View>
           )}
-        </Animated.ScrollView>
+        </ReanimatedAnimated.ScrollView>
 
-        <View
-          style={[
-            styles.chatInputContainer,
-            { paddingBottom: keyboardOpen ? 14 : insetsBottom + 12 },
-          ]}
+        <ReanimatedAnimated.View
+          style={[styles.chatInputContainer, inputContainerStyle]}
         >
           <View style={styles.chatInputBar}>
-            <Pressable onPress={onMicPress}>
+            <Pressable onPress={onMicPress} hitSlop={10}>
               <Ionicons
                 name="mic"
                 size={18}
@@ -279,11 +271,11 @@ export default function TourChatSheet({
               onChangeText={onChangeInput}
             />
 
-            <Pressable onPress={onSend}>
+            <Pressable onPress={onSend} hitSlop={10}>
               <Ionicons name="send" size={18} color={TOUR_ACCENT_COLOR} />
             </Pressable>
           </View>
-        </View>
+        </ReanimatedAnimated.View>
         </ReanimatedAnimated.View>
       </View>
     </View>
@@ -380,26 +372,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#8E7BFF",
   },
 
-  placeImageFrame: {
-    width: "100%",
-    height: 150,
-    borderRadius: 20,
-    backgroundColor: "#E9E7FF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 18,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-  },
-
-  placeImagePlaceholder: {
-    opacity: 0.5,
-    fontSize: 14,
-  },
-
   // Envuelve el scroll de mensajes + la barra de entrada; su paddingBottom
   // se anima con la altura real del teclado (useAnimatedKeyboard).
   chatBody: {
@@ -428,7 +400,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1EEFF",
     padding: 16,
     borderRadius: 18,
-    marginBottom: 18,
     alignSelf: "flex-start",
     maxWidth: "78%",
     minHeight: 36,
@@ -439,8 +410,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#E7E1FF",
     padding: 16,
     borderRadius: 18,
-    marginBottom: 18,
     maxWidth: "72%",
+  },
+
+  chatMessageText: {
+    fontSize: 15,
+    lineHeight: 20,
+    color: TOUR_TEXT_PRIMARY,
   },
 
   chatTailGuide: {
