@@ -1,6 +1,7 @@
 import { Buffer } from "buffer";
 import CryptoJS from "crypto-js";
 import {
+  AudioStatus,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioPlayer,
@@ -19,6 +20,18 @@ import {
 import { TOUR_API_BASE_URL, TOUR_API_KEY, TOUR_API_KEY_HEADER } from "../lib/tourApiConfig";
 
 const FileSystem = require("expo-file-system/legacy");
+
+// expo-audio@57 dejó de declarar `addListener` en el tipo de AudioPlayer,
+// pero el método sigue existiendo en runtime (la propia librería lo usa
+// internamente). Este tipo re-declara solo lo que necesitan los dos
+// esperadores de `didJustFinish` de abajo — no cambia ningún
+// comportamiento, es puramente para que tsc no falle.
+type PlayerWithPlaybackListener = {
+  addListener(
+    event: "playbackStatusUpdate",
+    listener: (status: AudioStatus) => void
+  ): { remove: () => void };
+};
 
 type AudioStep = {
   id: string;
@@ -334,15 +347,14 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
         await reinforcePlaybackAudioMode();
 
         await new Promise<void>((resolve) => {
-          const subscription = player.addListener(
-            "playbackStatusUpdate",
-            (status) => {
-              if (status.isLoaded && status.didJustFinish) {
-                subscription.remove();
-                resolve();
-              }
+          const subscription = (
+            player as unknown as PlayerWithPlaybackListener
+          ).addListener("playbackStatusUpdate", (status) => {
+            if (status.isLoaded && status.didJustFinish) {
+              subscription.remove();
+              resolve();
             }
-          );
+          });
 
           player.play();
         });
@@ -398,15 +410,14 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
       await reinforcePlaybackAudioMode();
 
       await new Promise<void>((resolve) => {
-        const subscription = player.addListener(
-          "playbackStatusUpdate",
-          (status) => {
-            if (status.isLoaded && status.didJustFinish) {
-              subscription.remove();
-              resolve();
-            }
+        const subscription = (
+          player as unknown as PlayerWithPlaybackListener
+        ).addListener("playbackStatusUpdate", (status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            subscription.remove();
+            resolve();
           }
-        );
+        });
 
         player.play();
       });

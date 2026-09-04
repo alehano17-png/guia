@@ -138,7 +138,7 @@ const { loadingSubtitle, headerSubtitle } = getRecommendationsCopy({
 if (loading) {
     return (
       <>
-        <StatusBar translucent backgroundColor="transparent" style="dark" />
+        <StatusBar style="dark" />
         <LoadingSearchScreen
           title={discoveryCopy.recommendations.loadingTitle}
           subtitle={loadingSubtitle}
@@ -154,7 +154,7 @@ if (loading) {
       end={{ x: 1, y: 1 }}
       style={{ flex: 1 }}
     >
-      <StatusBar translucent backgroundColor="transparent" style="dark" />
+      <StatusBar style="dark" />
 
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
