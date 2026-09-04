@@ -25,7 +25,6 @@ import {
 import { useTourAudio } from "../hooks/useTourAudio";
 import { useTourLocation } from "../hooks/useTourLocation";
 import { useTourRouteActions } from "../hooks/useTourRouteActions";
-import { useWakeWord } from "../hooks/useWakeWord";
 import { getDistanceInMeters } from "../lib/geo";
 import { ChatMessage } from "../lib/chatTypes";
 import { sendTourChatMessage } from "../lib/sendTourChatMessage";
@@ -258,6 +257,10 @@ useEffect(() => {
   stepRef.current = step
 }, [step])
 
+// Dispara el modo de voz de GUÍA. Hoy lo llama solo el botón manual
+// "Hablar con GUÍA" (onAskGuia en TourNarrationBlock); antes también lo
+// disparaba la palabra clave por micrófono (useWakeWord + Picovoice),
+// que se quitó por ser código nunca terminado de conectar.
 const handleWakeWordDetected = useCallback(() => {
   askGuia({
     context: step?.title,
@@ -266,13 +269,6 @@ const handleWakeWordDetected = useCallback(() => {
     tourTitle: tour?.title,
   })
 }, [askGuia, step, tour])
-
-// Escucha "GUÍA" solo mientras hay un tour cargado y no se está ya
-// procesando una pregunta anterior.
-useWakeWord({
-  onDetected: handleWakeWordDetected,
-  enabled: !loadingTour && !!step && guiaVoiceStatus === "idle",
-})
 
 const stepIndex = tour?.steps.findIndex((s) => s.id === step?.id) ?? 0
 const totalSteps = tour?.steps.length ?? 0

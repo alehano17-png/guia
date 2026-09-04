@@ -1,4 +1,10 @@
-﻿import { Audio } from "expo-av";
+﻿import {
+  AudioRecorder,
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from "expo-audio";
 import { useCallback, useRef, useState } from "react";
 import {
   ConversationMessage,
@@ -21,6 +27,20 @@ const MAX_RECORDING_MS = 12000;
 // usuario tarda un instante normal en empezar a hablar después de tocar
 // el botón (reacción, respirar, pensar la pregunta).
 const MIN_RECORDING_MS_BEFORE_SILENCE = 800;
+// Cada cuánto se consulta el nivel del micrófono. expo-audio no empuja el
+// metering en un callback como hacía expo-av; hay que sondearlo nosotros
+// con recorder.getStatus(). 500ms replica exactamente la cadencia que
+// traía expo-av por defecto (nunca se configuró setProgressUpdateInterval).
+const METERING_POLL_MS = 500;
+
+// Igual que antes: el preset de alta calidad más el flag de metering
+// (RecordingPresets.HIGH_QUALITY no lo incluye). Objeto fijo a nivel de
+// módulo para que useAudioRecorder no recree el grabador entre renders
+// (recrea si cambia el JSON de las opciones).
+const RECORDING_OPTIONS = {
+  ...RecordingPresets.HIGH_QUALITY,
+  isMeteringEnabled: true,
+};
 
 // 5 preguntas + 5 respuestas — bastante para que la siguiente pregunta
 // tenga contexto ("¿y hasta qué hora?" después de "¿a qué hora abre?"),
@@ -68,18 +88,20 @@ type UseGuiaVoiceModeParams = {
   resumeNarration: () => Promise<void>;
 };
 
-async function recordUntilSilence(): Promise<string | null> {
-  const { status: permStatus } = await Audio.requestPermissionsAsync();
-  if (permStatus !== "granted") {
+async function recordUntilSilence(
+  recorder: AudioRecorder
+): Promise<string | null> {
+  const { granted } = await requestRecordingPermissionsAsync();
+  if (!granted) {
     throw new Error("Permiso de micrófono no concedido");
   }
 
-  await Audio.setAudioModeAsync({
-    allowsRecordingIOS: true,
-    playsInSilentModeIOS: true,
+  await setAudioModeAsync({
+    allowsRecording: true,
+    playsInSilentMode: true,
   });
 
-  // El software (prepareToRecordAsync, startAsync) no reporta ningún error
+  // El software (prepareToRecordAsync, record) no reporta ningún error
   // en el segundo uso seguido, pero el micrófono como hardware a veces no
   // se reconectó a tiempo tras el ciclo anterior de detener grabación +
   // reproducir audio — el medidor queda clavado en -120 (sin señal) toda
@@ -87,13 +109,12 @@ async function recordUntilSilence(): Promise<string | null> {
   // pedirle que empiece de nuevo.
   await new Promise((resolve) => setTimeout(resolve, 300));
 
-  const recording = new Audio.Recording();
-
+  // `recorder` es una única instancia de useAudioRecorder que se reusa
+  // entre grabaciones (expo-av creaba un Audio.Recording nuevo cada vez).
+  // prepareToRecordAsync lo deja listo otra vez antes de cada uso; las
+  // opciones (RECORDING_OPTIONS, con metering) ya viajan en el hook.
   try {
-    await recording.prepareToRecordAsync({
-      ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      isMeteringEnabled: true,
-    });
+    await recorder.prepareToRecordAsync();
   } catch (e) {
     // Se relanza para no cambiar el comportamiento real: sigue
     // propagándose exactamente igual que antes hasta el catch de
@@ -109,10 +130,10 @@ async function recordUntilSilence(): Promise<string | null> {
       if (finished) return;
       finished = true;
       clearTimeout(maxTimer);
-      recording.setOnRecordingStatusUpdate(null);
+      clearInterval(pollTimer);
 
       try {
-        await recording.stopAndUnloadAsync();
+        await recorder.stop();
       } catch {
         // ya pudo haberse detenido; no es un error real
       }
@@ -124,28 +145,30 @@ async function recordUntilSilence(): Promise<string | null> {
       // solo-reproducción es un intento razonable de que reasigne la
       // salida — no es una solución garantizada, es un problema abierto
       // en el repo de expo-audio, no un error de este código.
-      //
-      // Usa Audio.setAudioModeAsync de expo-av (la misma librería que ya
-      // usa esta función para grabar) en vez de la de expo-audio: mezclar
-      // las dos dejaba la sesión de audio en un estado que rompía el
-      // grabador en el siguiente intento ("Prepare encountered an error:
-      // recorder not prepared").
       try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
+        await setAudioModeAsync({
+          allowsRecording: false,
+          playsInSilentMode: true,
         });
       } catch (e) {
         console.log("Error volviendo a modo solo-reproducción", e);
       }
 
-      resolve(recording.getURI());
+      // recorder.uri suele estar poblado apenas resuelve stop(); el
+      // getStatus().url es un respaldo por reportes de uri nulo justo
+      // después de parar (sobre todo en Android).
+      resolve(recorder.uri ?? recorder.getStatus().url);
     };
 
     const maxTimer = setTimeout(finish, MAX_RECORDING_MS);
     const recordingStartedAt = Date.now();
 
-    recording.setOnRecordingStatusUpdate((status) => {
+    // expo-audio no empuja el metering en un callback (el statusListener
+    // de useAudioRecorder solo avisa fin/error, sin nivel). Se sondea el
+    // estado nosotros: recorder.getStatus() es síncrono y trae `metering`
+    // porque RECORDING_OPTIONS lleva isMeteringEnabled.
+    const pollTimer = setInterval(() => {
+      const status = recorder.getStatus();
       if (!status.isRecording || status.metering === undefined) return;
 
       // Período de gracia: todavía no evaluamos silencio, sin importar
@@ -163,11 +186,11 @@ async function recordUntilSilence(): Promise<string | null> {
       } else {
         silenceStartedAt = null;
       }
-    });
+    }, METERING_POLL_MS);
 
-    // No se agrega .catch() para no cambiar el comportamiento actual (ya
-    // no estaba manejado).
-    recording.startAsync();
+    // record() es síncrono en expo-audio (startAsync() de expo-av era
+    // async; igual acá nunca se le hacía await ni .catch()).
+    recorder.record();
   });
 }
 
@@ -177,6 +200,10 @@ export function useGuiaVoiceMode({
   resumeNarration,
 }: UseGuiaVoiceModeParams) {
   const [status, setStatus] = useState<GuiaVoiceStatus>("idle");
+  // Instancia única de grabador, con lifecycle atado a este hook (se libera
+  // al desmontar). recordUntilSilence la recibe por parámetro y la reusa en
+  // cada grabación.
+  const recorder = useAudioRecorder(RECORDING_OPTIONS);
   const isActiveRef = useRef(false);
   // useRef (no useState): esto no necesita disparar un render propio, solo
   // acompañar a askGuia() de una llamada a la siguiente dentro del mismo
@@ -204,7 +231,7 @@ export function useGuiaVoiceMode({
         await stopCurrentAudio();
 
         setStatus("listening");
-        const uri = await recordUntilSilence();
+        const uri = await recordUntilSilence(recorder);
 
         if (!uri) {
           setStatus("idle");
@@ -273,7 +300,7 @@ export function useGuiaVoiceMode({
         isActiveRef.current = false;
       }
     },
-    [stopCurrentAudio, playAudioChunk, pushToHistory, resumeNarration]
+    [recorder, stopCurrentAudio, playAudioChunk, pushToHistory, resumeNarration]
   );
 
   // Vacía el historial de conversación — se llama al arrancar un tour
@@ -295,7 +322,7 @@ export function useGuiaVoiceMode({
       await stopCurrentAudio();
 
       setStatus("listening");
-      const uri = await recordUntilSilence();
+      const uri = await recordUntilSilence(recorder);
 
       if (!uri) {
         setStatus("idle");
@@ -327,7 +354,7 @@ export function useGuiaVoiceMode({
       }
       isActiveRef.current = false;
     }
-  }, [stopCurrentAudio, resumeNarration]);
+  }, [recorder, stopCurrentAudio, resumeNarration]);
 
   return {
     status,

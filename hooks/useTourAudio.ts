@@ -2,10 +2,10 @@ import { Buffer } from "buffer";
 import CryptoJS from "crypto-js";
 import {
   requestRecordingPermissionsAsync,
+  setAudioModeAsync,
   useAudioPlayer,
   useAudioSampleListener,
 } from "expo-audio";
-import { Audio } from "expo-av";
 import { useCallback, useEffect, useRef } from "react";
 import { Animated } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
@@ -27,16 +27,17 @@ type AudioStep = {
 
 // Teoría a probar: expo-audio reimpone su propia configuración de sesión
 // de audio cada vez que reproduce algo, deshaciendo el arreglo del
-// altavoz que ya aplicamos una sola vez después de grabar (con expo-av,
-// en useGuiaVoiceMode.ts). Este refuerzo se llama justo antes de cada
+// altavoz que ya aplicamos una sola vez después de grabar (en
+// useGuiaVoiceMode.ts). Este refuerzo se llama justo antes de cada
 // player.play() para pelear esa reimposición en el momento en que más
-// importa. Silencioso a propósito: si falla, no debe romper la
-// reproducción.
+// importa. Ahora usa el setAudioModeAsync de expo-audio (antes era el de
+// expo-av) — así este archivo ya no mezcla las dos librerías de audio.
+// Silencioso a propósito: si falla, no debe romper la reproducción.
 async function reinforcePlaybackAudioMode() {
   try {
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
+    await setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: true,
     });
   } catch (e) {
     console.log("Error reforzando el modo de audio antes de reproducir", e);
