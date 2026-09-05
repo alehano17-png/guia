@@ -1,22 +1,31 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     Animated,
+    LayoutChangeEvent,
     Pressable,
     StyleSheet,
     Text,
     TextInput,
+    useWindowDimensions,
     View,
 } from "react-native";
 import ReanimatedAnimated, {
+    Easing,
     interpolate,
+    runOnJS,
     useAnimatedKeyboard,
     useAnimatedRef,
     useAnimatedStyle,
     useDerivedValue,
+    useSharedValue,
+    withTiming,
 } from "react-native-reanimated";
 import { ChatMessage } from "../../lib/chatTypes";
 import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
+
+// Duración de la transición de entrada/salida de la hoja (Reanimated).
+const SHEET_ANIM_MS = 280;
 
 type Props = {
   visible: boolean;
@@ -55,6 +64,65 @@ export default function TourChatSheet({
 }: Props) {
   const scrollRef = useAnimatedRef<ReanimatedAnimated.ScrollView>();
 
+  const isFirstRun = useRef(true);
+
+  // `visible` es la intención del padre (showChat en app/tour.tsx). La hoja
+  // sigue renderizada mientras esté visible O mientras isMounted siga true —
+  // eso es lo que la mantiene viva durante la animación de salida, hasta que
+  // el withTiming de cierre termina de verdad (ver el useEffect de abajo).
+  const [isMounted, setIsMounted] = useState(visible);
+
+  const { height: windowHeight } = useWindowDimensions();
+
+  // Progreso de la transición de la hoja: 0 = fuera de pantalla (abajo) +
+  // transparente, 1 = en su posición final + opaco.
+  const progress = useSharedValue(visible ? 1 : 0);
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [
+      { translateY: interpolate(progress.value, [0, 1], [windowHeight, 0]) },
+    ],
+  }));
+
+  useEffect(() => {
+    // En el primer render, progress e isMounted ya reflejan `visible`; solo
+    // animamos ante cambios reales de `visible`.
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+
+    if (visible) {
+      // Mantener montada durante toda la animación de entrada.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsMounted(true);
+      // Escribir un shared value dentro de un useEffect para disparar
+      // withTiming es el patrón documentado de Reanimated; la regla lo marca
+      // solo porque useAnimatedStyle "congela" progress al capturarlo.
+      // eslint-disable-next-line react-hooks/immutability
+      progress.value = withTiming(1, {
+        duration: SHEET_ANIM_MS,
+        easing: Easing.out(Easing.cubic),
+      });
+    } else {
+      // La misma animación en reversa. El desmontaje ocurre en el callback y
+      // SOLO si la animación llegó al final (finished): si el usuario vuelve
+      // a abrir a mitad del cierre, el withTiming(1) de arriba interrumpe
+      // este, su callback corre con finished=false, y el guard evita
+      // desmontar una animación cortada por la mitad.
+      progress.value = withTiming(
+        0,
+        { duration: SHEET_ANIM_MS, easing: Easing.in(Easing.cubic) },
+        (finished) => {
+          if (finished) {
+            runOnJS(setIsMounted)(false);
+          }
+        }
+      );
+    }
+  }, [visible, progress]);
+
   // El "padding" de KeyboardAvoidingView no era confiable con este layout
   // (position: absolute + varios niveles de flex). useAnimatedKeyboard da
   // la altura real del teclado, frame a frame — única fuente de verdad
@@ -66,18 +134,37 @@ export default function TourChatSheet({
     paddingBottom: keyboard.height.value,
   }));
 
+  // Altura natural del contenido real de la tarjeta (la fila con el ícono +
+  // los textos), medida con onLayout y guardada en un shared value.
+  // Distintos puntos del tour tienen textos de distinto largo, así que en
+  // vez de un alto fijo la tarjeta se ajusta a lo que realmente mide su
+  // contenido. 300 es solo el valor de arranque, hasta el primer onLayout.
+  const cardContentHeight = useSharedValue(300);
+
+  const handleCardRowLayout = (e: LayoutChangeEvent) => {
+    const rowHeight = e.nativeEvent.layout.height;
+    if (rowHeight <= 0) return;
+    // + 36 = padding vertical de chatCard (18 arriba + 18 abajo): el height
+    // animado se aplica al card externo, que incluye su propio padding.
+    cardContentHeight.value = rowHeight + 36;
+  };
+
   // Progreso de colapso de la tarjeta de info: 1 = totalmente expandida
-  // (teclado cerrado), 0 = totalmente colapsada. 300 es el mismo alto
-  // máximo que ya tenía la tarjeta — a partir de esa altura de teclado se
-  // la considera colapsada del todo. 'clamp' por si el teclado real mide
-  // más en algún dispositivo.
-  const CARD_COLLAPSE_RANGE = 300;
+  // (teclado cerrado), 0 = totalmente colapsada. El "alto completo" ahora es
+  // la altura real medida (cardContentHeight): cuando el teclado llega a esa
+  // altura, la tarjeta se considera colapsada del todo. 'clamp' por si el
+  // teclado real mide más en algún dispositivo.
   const cardProgress = useDerivedValue(() =>
-    interpolate(keyboard.height.value, [0, CARD_COLLAPSE_RANGE], [1, 0], "clamp")
+    interpolate(
+      keyboard.height.value,
+      [0, cardContentHeight.value],
+      [1, 0],
+      "clamp"
+    )
   );
 
   const cardStyle = useAnimatedStyle(() => ({
-    height: interpolate(cardProgress.value, [0, 1], [0, 300]),
+    height: interpolate(cardProgress.value, [0, 1], [0, cardContentHeight.value]),
     opacity: cardProgress.value,
     transform: [
       { translateY: interpolate(cardProgress.value, [0, 1], [-30, 0]) },
@@ -100,10 +187,12 @@ export default function TourChatSheet({
     ),
   }));
 
-  if (!visible) return null;
+  // Montada mientras esté visible O mientras isMounted siga true (durante la
+  // animación de salida). Recién devuelve null cuando ambos son false.
+  if (!visible && !isMounted) return null;
 
   return (
-    <View style={styles.chatSheet}>
+    <ReanimatedAnimated.View style={[styles.chatSheet, sheetStyle]}>
       <View style={[styles.chatOverlay, { paddingTop: insetsTop }]}>
         <View style={styles.chatHeader}>
           <Pressable onPress={onClose} hitSlop={12}>
@@ -118,7 +207,7 @@ export default function TourChatSheet({
         <ReanimatedAnimated.View
           style={[styles.chatCard, cardStyle, { overflow: "hidden" }]}
         >
-          <View style={styles.chatCardRow}>
+          <View style={styles.chatCardRow} onLayout={handleCardRowLayout}>
             <View style={styles.chatVoiceMini}>
               <Animated.View
                 style={[
@@ -278,7 +367,7 @@ export default function TourChatSheet({
         </ReanimatedAnimated.View>
         </ReanimatedAnimated.View>
       </View>
-    </View>
+    </ReanimatedAnimated.View>
   );
 }
 

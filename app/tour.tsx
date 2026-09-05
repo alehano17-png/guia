@@ -178,7 +178,6 @@ const { userLocation, locationPermissionGranted } = useTourLocation()
 const tour = useMemo(()=>getTourById(tourId),[tourId])
 
 const [loadingTour, setLoadingTour] = useState(true);
-const [readyStepIds, setReadyStepIds] = useState<string[]>([]);
 
 const [showDecision, setShowDecision] = useState(false)
 const [startMapViewed, setStartMapViewed] = useState(false)
@@ -204,9 +203,7 @@ useEffect(() => {
       text: step.voiceText,
     }));
 
-    await preloadStepsAudio(allSteps, (stepId) => {
-      setReadyStepIds((prev) => [...prev, stepId])
-    });
+    await preloadStepsAudio(allSteps);
 
     const elapsed = Date.now() - startTime;
     const remaining = Math.max(0, 2800 - elapsed);
@@ -567,13 +564,7 @@ bounciness:6
 
 
 if (loadingTour) {
-  return (
-    <TourLoadingScreen
-      tourTitle={tour?.title ?? ""}
-      steps={tour?.steps.map((s) => ({ id: s.id, title: s.title })) ?? []}
-      readyStepIds={readyStepIds}
-    />
-  );
+  return <TourLoadingScreen tourTitle={tour?.title ?? ""} />;
 }
 
 if (!step) {
@@ -660,6 +651,13 @@ return(
 
 
 
+</View>
+
+</SafeAreaView>
+
+{/* Hijos directos de <LinearGradient>, fuera de <SafeAreaView> y del <View>
+    con padding: así su posicionamiento absoluto de borde a borde cubre la
+    pantalla real y no deja ver el degradado en los bordes. */}
 <TourDecisionModal
   visible={showDecision}
   decisionAnim={decisionAnim}
@@ -667,8 +665,6 @@ return(
   onSelectChoice={handleSelectChoice}
   onClose={handleCloseDecision}
 />
-
-
 
 <TourChatSheet
   visible={showChat}
@@ -687,11 +683,6 @@ return(
   onSuggestionPress={(text) => sendMessage(text)}
   onMicPress={handleDictate}
 />
-
-
-</View>
-
-</SafeAreaView>
 
 </LinearGradient>
 

@@ -1,4 +1,4 @@
-﻿export const TOUR_API_BASE_URL = "http://192.168.1.36:3000";
+﻿export const TOUR_API_BASE_URL = "http://192.168.18.5:3000";
 
 // Llave compartida que autoriza a esta app (y solo a esta app) a usar el
 // backend — el mismo valor vive en el .env de la raíz

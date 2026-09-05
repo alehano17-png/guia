@@ -19,10 +19,6 @@ export function getRecommendationsCopy({
   hasFeaturedTours,
   hasDiscoverPlaces,
 }: Params) {
-  const loadingSubtitle = hasSupportedCity
-    ? interpolate(discoveryCopy.recommendations.loadingDetected, cityName)
-    : discoveryCopy.recommendations.loadingDetecting;
-
   const headerSubtitle =
     hasSupportedCity && hasFeaturedTours
       ? interpolate(
@@ -51,7 +47,6 @@ export function getRecommendationsCopy({
   : "";
 
 return {
-  loadingSubtitle,
   headerSubtitle: zoneContext
     ? `${zoneContext} ${headerSubtitle}`
     : headerSubtitle,

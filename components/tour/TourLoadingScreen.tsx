@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -11,13 +11,11 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import {
   TOUR_ACCENT_COLOR,
   TOUR_GRADIENT_COLORS,
-  TOUR_TEXT_PRIMARY,
 } from "../../lib/tourTheme";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -72,27 +70,8 @@ const WAVE_POINTS = WAVE_POINT_STOPS.map((t) => ({
   t,
 }));
 
-// Frases decorativas de "trabajo en proceso" para el checklist — no son
-// los nombres reales de los puntos del tour, se recorren cíclicamente si
-// hay más pasos que frases.
-const CHECKLIST_PHRASES = [
-  "Descifrando la historia local...",
-  "Trazando rutas escondidas...",
-  "Sincronizando relatos antiguos...",
-  "Revelando leyendas urbanas...",
-  "Buscando secretos arquitectónicos...",
-  "Preparando tu experiencia...",
-];
-
-type LoadingStep = {
-  id: string;
-  title: string;
-};
-
 type Props = {
   tourTitle: string;
-  steps: LoadingStep[];
-  readyStepIds: string[];
 };
 
 const WAVE_POINT_RADIUS = 5;
@@ -218,99 +197,8 @@ function WaveVisual() {
   );
 }
 
-// Cuánto tarda cada carácter al escribir/borrar, cuánto se mantiene la
-// frase completa visible, y el período del parpadeo del cursor.
-const TYPE_INTERVAL_MS = 45;
-const DELETE_INTERVAL_MS = 25;
-const HOLD_MS = 1200;
-const CURSOR_BLINK_MS = 500;
-
-function TypewriterPhrase({ phrase }: { phrase: string }) {
-  const [displayedText, setDisplayedText] = useState("");
-  // Siempre tiene la frase más reciente — el ciclo de abajo la relee solo
-  // al empezar a escribir de nuevo (frase vacía), nunca corta un
-  // escribir/borrar en curso a mitad de camino.
-  const phraseRef = useRef(phrase);
-
-  useEffect(() => {
-    phraseRef.current = phrase;
-  }, [phrase]);
-
-  // Ciclo escribir → mantener → borrar, encadenado a mano con setTimeout
-  // (no Reanimated: esto anima contenido de texto carácter a carácter, no
-  // un valor numérico). Se arma una sola vez al montar; en cada vuelta
-  // relee `phraseRef.current`, así que si la frase cambia a mitad de un
-  // ciclo, termina de borrar la actual y recién ahí empieza la nueva.
-  useEffect(() => {
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout>;
-
-    const type = (target: string, count: number) => {
-      if (cancelled) return;
-
-      if (count > target.length) {
-        timer = setTimeout(() => erase(target), HOLD_MS);
-        return;
-      }
-
-      setDisplayedText(target.slice(0, count));
-      timer = setTimeout(() => type(target, count + 1), TYPE_INTERVAL_MS);
-    };
-
-    const erase = (current: string) => {
-      if (cancelled) return;
-
-      if (current.length === 0) {
-        timer = setTimeout(() => type(phraseRef.current, 0), 0);
-        return;
-      }
-
-      const next = current.slice(0, -1);
-      setDisplayedText(next);
-      timer = setTimeout(() => erase(next), DELETE_INTERVAL_MS);
-    };
-
-    type(phraseRef.current, 0);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, []);
-
-  const cursorOpacity = useSharedValue(1);
-
-  useEffect(() => {
-    cursorOpacity.value = withRepeat(
-      withTiming(0, { duration: CURSOR_BLINK_MS }),
-      -1,
-      true
-    );
-  }, []);
-
-  const cursorStyle = useAnimatedStyle(() => ({
-    opacity: cursorOpacity.value,
-  }));
-
-  return (
-    <View style={styles.typewriterWrap}>
-      <Text style={styles.typewriterText}>
-        {displayedText}
-        <Animated.Text style={[styles.typewriterCursor, cursorStyle]}>
-          |
-        </Animated.Text>
-      </Text>
-    </View>
-  );
-}
-
-export default function TourLoadingScreen({ tourTitle, readyStepIds }: Props) {
-  const headline = `${tourTitle} tiene algo que contar`;
-  // Mismo cálculo cíclico que antes usaba el checklist por fila, ahora
-  // evaluado una sola vez para la frase "activa" (el paso que se está
-  // preparando ahora mismo).
-  const activePhrase =
-    CHECKLIST_PHRASES[readyStepIds.length % CHECKLIST_PHRASES.length];
+export default function TourLoadingScreen({ tourTitle }: Props) {
+  const headline = `Preparando tu recorrido por ${tourTitle}`;
 
   return (
     <LinearGradient
@@ -330,8 +218,6 @@ export default function TourLoadingScreen({ tourTitle, readyStepIds }: Props) {
             {/* texto principal */}
             <Text style={styles.title}>{headline}</Text>
           </View>
-
-          <TypewriterPhrase phrase={activePhrase} />
         </View>
       </SafeAreaView>
     </LinearGradient>
@@ -359,7 +245,7 @@ const styles = StyleSheet.create({
     position: "relative",
     top: 3,
     left: 3,
-    width: 280,
+    width: 300,
     fontFamily: "PlusJakartaSans_700Bold",
     fontWeight: "700",
     fontSize: 24,
@@ -370,30 +256,11 @@ const styles = StyleSheet.create({
   title: {
     position: "absolute",
     top: 0,
-    width: 280,
+    width: 300,
     fontFamily: "PlusJakartaSans_700Bold",
     fontWeight: "700",
     fontSize: 24,
     color: "#4B3F8F",
     textAlign: "center",
-  },
-
-  typewriterWrap: {
-    marginTop: 28,
-    maxWidth: 300,
-    alignItems: "center",
-  },
-
-  typewriterText: {
-    fontFamily: "PlusJakartaSans_700Bold",
-    fontSize: 17,
-    color: TOUR_TEXT_PRIMARY,
-    textAlign: "center",
-  },
-
-  typewriterCursor: {
-    fontFamily: "PlusJakartaSans_700Bold",
-    fontSize: 17,
-    color: TOUR_TEXT_PRIMARY,
   },
 });

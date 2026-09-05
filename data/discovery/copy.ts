@@ -3,10 +3,6 @@
     title: "Genial, vamos a pasear.",
     detectedZone: "Te ubicamos cerca de {{zoneName}}.",
     loadingTitle: "Buscando tours cerca de ti...",
-    loadingDetected:
-      "Encontramos opciones disponibles en {{cityName}}.",
-    loadingDetecting:
-      "Detectando tu ubicación y preparando opciones cercanas.",
     headerSupportedWithTours:
       "Aquí tienes los tours disponibles más cerca de ti en {{cityName}}:",
     headerSupportedWithPlaces:

@@ -9,7 +9,6 @@ import Animated, {
   useSharedValue,
   withDelay,
   withRepeat,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,7 +16,6 @@ import Svg, { Circle, Path } from "react-native-svg";
 import {
   TOUR_ACCENT_COLOR,
   TOUR_GRADIENT_COLORS,
-  TOUR_TEXT_PRIMARY,
 } from "../../lib/tourTheme";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -187,39 +185,11 @@ function BreathingRoutes() {
   );
 }
 
-function TypingDot({ delay }: { delay: number }) {
-  const opacity = useSharedValue(0.3);
-
-  useEffect(() => {
-    opacity.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: 250, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.3, { duration: 250, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1
-      )
-    );
-  }, []);
-
-  const dotStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  return <Animated.Text style={[styles.title, dotStyle]}>.</Animated.Text>;
-}
-
 type Props = {
   title: string;
-  subtitle: string;
 };
 
-export default function LoadingSearchScreen({ title, subtitle }: Props) {
-  // Los "..." finales del copy se separan del texto base para animarse
-  // en secuencia, como el indicador de "escribiendo" de un chat.
-  const baseTitle = title.replace(/\.+$/, "");
-
+export default function LoadingSearchScreen({ title }: Props) {
   return (
     <LinearGradient
       colors={TOUR_GRADIENT_COLORS}
@@ -230,11 +200,12 @@ export default function LoadingSearchScreen({ title, subtitle }: Props) {
       <SafeAreaView style={styles.fill}>
         <View style={styles.content}>
           <BreathingRoutes />
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>{baseTitle}</Text>
-            <TypingDot delay={0} />
-            <TypingDot delay={150} />
-            <TypingDot delay={300} />
+          <View style={styles.titleWrap}>
+            {/* sombra/base, desplazada para simular profundidad — color
+                distinto al del texto principal, si no el efecto no se ve */}
+            <Text style={styles.titleShadow}>{title}</Text>
+            {/* texto principal */}
+            <Text style={styles.title}>{title}</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -255,17 +226,31 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -30 }],
   },
 
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "center",
+  titleWrap: {
+    alignItems: "center",
     marginTop: 18,
   },
 
-  title: {
+  titleShadow: {
+    position: "relative",
+    top: 3,
+    left: 3,
+    width: 240,
     fontFamily: "PlusJakartaSans_700Bold",
     fontWeight: "700",
     fontSize: 24,
-    color: TOUR_TEXT_PRIMARY,
+    color: "#C9B3EF",
+    textAlign: "center",
+  },
+
+  title: {
+    position: "absolute",
+    top: 0,
+    width: 240,
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontWeight: "700",
+    fontSize: 24,
+    color: "#4B3F8F",
     textAlign: "center",
   },
 });
