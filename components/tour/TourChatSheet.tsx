@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef, useState } from "react";
 import {
     Animated,
+    Image,
     LayoutChangeEvent,
     Pressable,
     StyleSheet,
@@ -278,63 +279,87 @@ export default function TourChatSheet({
           )}
 
           {messages.map((m) => {
-            const isUser = m.role === "user";
+            if (m.role === "user") {
+              return (
+                <View key={m.id} style={styles.chatBubbleUserWrapper}>
+                  <View style={styles.chatBubbleUser}>
+                    <Text style={styles.chatMessageText}>{m.text}</Text>
+                  </View>
+
+                  <View style={styles.chatTailUser} />
+                </View>
+              );
+            }
 
             return (
-              <View
-                key={m.id}
-                style={
-                  isUser
-                    ? styles.chatBubbleUserWrapper
-                    : styles.chatBubbleGuideWrapper
-                }
-              >
-                <View style={isUser ? styles.chatBubbleUser : styles.chatBubbleGuide}>
-                  <Text style={styles.chatMessageText}>{m.text}</Text>
-                </View>
+              <View key={m.id} style={styles.chatBubbleGuideWrapper}>
+                <Image
+                  source={require("../../assets/images/guia-feliz.png")}
+                  style={styles.chatAvatarGuide}
+                  resizeMode="cover"
+                />
 
-                <View style={isUser ? styles.chatTailUser : styles.chatTailGuide} />
+                {/* Agrupa la burbuja + su tail aparte del avatar, para que
+                    el `position: "absolute"` del tail siga anclado solo a
+                    la burbuja (como antes) y no a toda la fila. */}
+                <View style={styles.chatBubbleGuideGroup}>
+                  <View style={styles.chatBubbleGuide}>
+                    <Text style={styles.chatMessageText}>{m.text}</Text>
+                  </View>
+
+                  <View style={styles.chatTailGuide} />
+                </View>
               </View>
             );
           })}
 
           {isThinking && (
             <View style={styles.chatBubbleGuideWrapper}>
-              <View style={styles.chatBubbleGuide}>
-                <View style={{ flexDirection: "row", gap: 6 }}>
-                  <Animated.View
-                    style={[
-                      styles.thinkingDot,
-                      {
-                        opacity: thinkingAnim,
-                      },
-                    ]}
-                  />
+              <Image
+                source={require("../../assets/images/guia-feliz.png")}
+                style={styles.chatAvatarGuide}
+                resizeMode="cover"
+              />
 
-                  <Animated.View
-                    style={[
-                      styles.thinkingDot,
-                      {
-                        opacity: thinkingAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.3, 1],
-                        }),
-                      },
-                    ]}
-                  />
+              <View style={styles.chatBubbleGuideGroup}>
+                <View style={styles.chatBubbleGuide}>
+                  <View style={{ flexDirection: "row", gap: 6 }}>
+                    <Animated.View
+                      style={[
+                        styles.thinkingDot,
+                        {
+                          opacity: thinkingAnim,
+                        },
+                      ]}
+                    />
 
-                  <Animated.View
-                    style={[
-                      styles.thinkingDot,
-                      {
-                        opacity: thinkingAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.1, 1],
-                        }),
-                      },
-                    ]}
-                  />
+                    <Animated.View
+                      style={[
+                        styles.thinkingDot,
+                        {
+                          opacity: thinkingAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.3, 1],
+                          }),
+                        },
+                      ]}
+                    />
+
+                    <Animated.View
+                      style={[
+                        styles.thinkingDot,
+                        {
+                          opacity: thinkingAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.1, 1],
+                          }),
+                        },
+                      ]}
+                    />
+                  </View>
                 </View>
+
+                <View style={styles.chatTailGuide} />
               </View>
             </View>
           )}
@@ -476,8 +501,25 @@ const styles = StyleSheet.create({
   },
 
   chatBubbleGuideWrapper: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
     alignSelf: "flex-start",
     marginBottom: 18,
+  },
+
+  chatAvatarGuide: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#F1EEFF",
+  },
+
+  // Envuelve solo la burbuja + su tail (no el avatar), para que el
+  // position:"absolute" del tail siga midiéndose contra la burbuja, igual
+  // que antes de agregar la fila avatar+burbuja.
+  chatBubbleGuideGroup: {
+    flexShrink: 1,
   },
 
   chatBubbleUserWrapper: {

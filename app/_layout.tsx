@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import OfflineBanner from '@/components/OfflineBanner';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 
@@ -11,16 +12,23 @@ export default function RootLayout() {
     PlusJakartaSans_700Bold,
   });
 
-  // Mientras carga la fuente, blanco en vez de un flash de texto sin
-  // estilar — apenas toma un instante, no hace falta un loader propio.
-  if (!fontsLoaded) {
-    return null;
-  }
-
+  // OfflineBanner va afuera de todo lo demás, incondicional, para que
+  // cubra la app completa sin importar en qué pantalla esté la persona —
+  // incluidos los blancos de acá abajo (fuente cargando, y la sesión
+  // cargando adentro de RootNavigator), no solo una vez que el Stack ya
+  // está montado.
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <>
+      <OfflineBanner />
+
+      {/* Mientras carga la fuente, blanco en vez de un flash de texto sin
+          estilar — apenas toma un instante, no hace falta un loader propio. */}
+      {fontsLoaded ? (
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      ) : null}
+    </>
   );
 }
 

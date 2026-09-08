@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   TOUR_ACCENT_COLOR,
   TOUR_TEXT_PRIMARY,
@@ -33,6 +33,13 @@ export default function TourHeader({
         <Pressable style={styles.chatButton} onPress={onOpenChat}>
           <View style={styles.chatIconCircle}>
             <Ionicons name="chatbubble" size={18} color="#FFF" />
+            {/* TEMPORAL: superpuesta sobre el ícono a propósito, para
+                verla antes de decidir si reemplaza al ícono o no. */}
+            <Image
+              source={require("../../assets/images/guia-feliz.png")}
+              style={styles.chatIconOverlayImage}
+              resizeMode="contain"
+            />
           </View>
         </Pressable>
       </View>
@@ -88,6 +95,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: TOUR_ACCENT_COLOR,
+  },
+
+  // Sin top/left/right/bottom: RN centra los hijos position:"absolute"
+  // según el alignItems/justifyContent del padre — por eso queda centrada
+  // sobre el ícono sin cálculos de offset a mano. 30x34 conserva la
+  // proporción real de la imagen (960x1112) y deja margen dentro del
+  // círculo de 42px.
+  chatIconOverlayImage: {
+    position: "absolute",
+    width: 30,
+    height: 34,
   },
 
   stepTitle: {
