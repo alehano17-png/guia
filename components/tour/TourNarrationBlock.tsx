@@ -4,6 +4,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { SharedValue } from "react-native-reanimated";
 import { GuiaVoiceStatus } from "../../hooks/useGuiaVoiceMode";
 import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
+import { FONT_REGULAR, FONT_SIZE_LG, FONT_SIZE_XS } from "../../lib/typography";
 import VoiceBlob from "./VoiceBlob";
 
 type Props = {
@@ -192,9 +193,13 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 
+  // Párrafo de lectura potencialmente largo (el resumen del punto actual
+  // del tour) — LG/REGULAR, nunca bold: es prosa, no una etiqueta.
   summaryText: {
     textAlign: "center",
-    fontSize: 17,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_LG,
     lineHeight: 24,
     paddingHorizontal: 18,
     color: TOUR_TEXT_PRIMARY,
@@ -217,8 +222,9 @@ const styles = StyleSheet.create({
   },
 
   askTip: {
-    fontSize: 13,
-    color: TOUR_TEXT_PRIMARY,
+    fontFamily: FONT_REGULAR,
     fontWeight: "400",
+    fontSize: FONT_SIZE_XS,
+    color: TOUR_TEXT_PRIMARY,
   },
 });

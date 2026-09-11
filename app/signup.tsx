@@ -19,6 +19,15 @@ import {
   TOUR_TEXT_PRIMARY,
   TOUR_TEXT_SECONDARY,
 } from "../lib/tourTheme";
+import {
+  FONT_BOLD,
+  FONT_REGULAR,
+  FONT_SEMIBOLD,
+  FONT_SIZE_DISPLAY,
+  FONT_SIZE_MD,
+  FONT_SIZE_SM,
+  FONT_SIZE_XS,
+} from "../lib/typography";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -184,16 +193,18 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontFamily: "PlusJakartaSans_700Bold",
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
-    fontSize: 30,
+    fontSize: FONT_SIZE_DISPLAY,
     color: TOUR_TEXT_PRIMARY,
     textAlign: "center",
   },
 
   subtitle: {
     marginTop: 8,
-    fontSize: 15,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_MD,
     color: TOUR_TEXT_SECONDARY,
     textAlign: "center",
   },
@@ -207,8 +218,9 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 13,
+    fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
+    fontSize: FONT_SIZE_XS,
     color: TOUR_TEXT_SECONDARY,
     marginBottom: 6,
   },
@@ -218,7 +230,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    fontSize: 15,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_MD,
     color: TOUR_TEXT_PRIMARY,
     borderWidth: 1,
     borderColor: "rgba(124,111,224,0.25)",
@@ -226,14 +240,18 @@ const styles = StyleSheet.create({
 
   errorText: {
     color: "#C0392B",
-    fontSize: 13,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_XS,
     marginBottom: 12,
     textAlign: "center",
   },
 
   infoText: {
     color: TOUR_TEXT_SECONDARY,
-    fontSize: 13,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_XS,
     marginBottom: 12,
     textAlign: "center",
   },
@@ -257,8 +275,9 @@ const styles = StyleSheet.create({
 
   buttonText: {
     color: "#FFF",
-    fontSize: 16,
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
+    fontSize: FONT_SIZE_MD,
   },
 
   linkRow: {
@@ -267,7 +286,9 @@ const styles = StyleSheet.create({
   },
 
   linkText: {
-    fontSize: 14,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_SM,
     color: TOUR_TEXT_SECONDARY,
   },
 

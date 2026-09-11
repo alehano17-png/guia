@@ -27,6 +27,14 @@ import {
   TOUR_TEXT_PRIMARY,
   TOUR_TEXT_SECONDARY,
 } from "../../lib/tourTheme";
+import {
+  FONT_BOLD,
+  FONT_REGULAR,
+  FONT_SEMIBOLD,
+  FONT_SIZE_HERO,
+  FONT_SIZE_MD,
+  FONT_SIZE_XL,
+} from "../../lib/typography";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PARTICLE_COUNT = 6;
@@ -318,8 +326,9 @@ buttonSweep: {
 
   buttonText: {
     textAlign: "center",
-    fontSize: 16,
+    fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
+    fontSize: FONT_SIZE_MD,
     color: "#FFF",
   },
 topBlock: {
@@ -346,14 +355,21 @@ logo: {
   transform: [{ translateY: -30 }],
 },
 
+// Frase de entrada antes del wordmark "GUÍA" (42px, justo debajo) — más
+// prominente que un subtítulo plano pero subordinada al foco real de la
+// pantalla, por eso va en XL y no en un tamaño de título propio.
 title: {
-  fontSize: 22,
+  fontFamily: FONT_REGULAR,
+  fontWeight: "400",
+  fontSize: FONT_SIZE_XL,
   color: TOUR_TEXT_PRIMARY,
   marginTop: 10,
 },
 
 subtitle: {
-  fontSize: 16,
+  fontFamily: FONT_REGULAR,
+  fontWeight: "400",
+  fontSize: FONT_SIZE_MD,
   color: TOUR_TEXT_SECONDARY,
   textAlign: "center",
   maxWidth: 280,
@@ -361,10 +377,16 @@ subtitle: {
 },
 
 
+// El wordmark de marca — el texto más grande de toda la app. El diseño
+// original pedía fontWeight 900, pero ese peso no existe en la fuente
+// cargada (llega hasta 700/Bold); se corrige a 700 para que coincida con
+// el fontFamily real, en vez de quedar como un valor que ya no significa
+// nada una vez que hay una fuente de verdad puesta.
 mainTitle: {
   position: "absolute",
-  fontSize: 42,
-  fontWeight: "900",
+  fontFamily: FONT_BOLD,
+  fontWeight: "700",
+  fontSize: FONT_SIZE_HERO,
   color: TOUR_ACCENT_COLOR,
 },
 
@@ -372,8 +394,9 @@ mainTitleShadow: {
   position: "relative",
   top: 3,
   left: 3,
-  fontSize: 42,
-  fontWeight: "900",
+  fontFamily: FONT_BOLD,
+  fontWeight: "700",
+  fontSize: FONT_SIZE_HERO,
   color: TOUR_ACCENT_COLOR,
 },
 
@@ -390,11 +413,13 @@ signOutLink: {
   right: 16,
   padding: 8,
   zIndex: 10,
-  
+
 },
 
 signOutText: {
-  fontSize: 17,
+  fontFamily: FONT_REGULAR,
+  fontWeight: "400",
+  fontSize: FONT_SIZE_MD,
   color: TOUR_TEXT_SECONDARY,
 },
 

@@ -1,195 +1,23 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedProps,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Circle, Path } from "react-native-svg";
-import {
-  TOUR_ACCENT_COLOR,
-  TOUR_GRADIENT_COLORS,
-} from "../../lib/tourTheme";
-
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-
-// Longitud de trazo aproximada, holgada respecto al largo real de las
-// formas de abajo — alcanza con que sea mayor o igual al largo real para
-// que el truco de stroke-dasharray/offset dibuje/borre la forma completa.
-const DASH_LENGTH = 900;
-
-// Tres formas tipo "ruta de mapa" que se cruzan entre sí, dentro de un
-// viewBox de 400x400.
-const ROUTES = [
-  {
-    d: "M 50,300 Q 100,250 150,250 T 250,150 Q 300,100 350,150 L 320,280 Q 280,320 200,300 Z",
-    dot: { cx: 200, cy: 300 },
-    strokeWidth: 3,
-    opacity: 0.8,
-    delay: 0,
-    duration: 4000,
-  },
-  {
-    d: "M 80,100 L 120,180 Q 150,220 220,200 T 300,250 L 280,100 Z",
-    dot: { cx: 220, cy: 200 },
-    strokeWidth: 2,
-    opacity: 0.6,
-    delay: 500,
-    duration: 4500,
-  },
-  {
-    d: "M 200,50 Q 250,80 230,150 T 150,350 L 100,280 Z",
-    dot: { cx: 150, cy: 350 },
-    strokeWidth: 1.5,
-    opacity: 0.4,
-    delay: 1000,
-    duration: 5000,
-  },
-];
-
-function RouteLine({
-  d,
-  strokeWidth,
-  opacity,
-  delay,
-  duration,
-}: {
-  d: string;
-  strokeWidth: number;
-  opacity: number;
-  delay: number;
-  duration: number;
-}) {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withDelay(
-      delay,
-      withRepeat(withTiming(1, { duration, easing: Easing.linear }), -1)
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Un ciclo completo: aparece dibujándose (0 → 0.5), se mantiene visible
-  // y luego se borra hacia el otro extremo mientras se desvanece (→ 1).
-  const animatedProps = useAnimatedProps(() => {
-    const strokeDashoffset = interpolate(
-      progress.value,
-      [0, 0.5, 1],
-      [DASH_LENGTH, 0, -DASH_LENGTH]
-    );
-    const lineOpacity = interpolate(
-      progress.value,
-      [0, 0.1, 0.9, 1],
-      [0, opacity, opacity, 0],
-      "clamp"
-    );
-
-    return { strokeDashoffset, opacity: lineOpacity };
-  });
-
-  // Aproximación del glow (React Native no soporta blur de SVG): la misma
-  // forma dibujada dos veces, una copia más gruesa y tenue debajo (el
-  // "halo") y la línea nítida real encima, ambas sincronizadas por el
-  // mismo `progress`.
-  const haloAnimatedProps = useAnimatedProps(() => {
-    const strokeDashoffset = interpolate(
-      progress.value,
-      [0, 0.5, 1],
-      [DASH_LENGTH, 0, -DASH_LENGTH]
-    );
-    const haloOpacity = interpolate(
-      progress.value,
-      [0, 0.1, 0.9, 1],
-      [0, opacity * 0.35, opacity * 0.35, 0],
-      "clamp"
-    );
-
-    return { strokeDashoffset, opacity: haloOpacity };
-  });
-
-  return (
-    <>
-      <AnimatedPath
-        d={d}
-        stroke={TOUR_ACCENT_COLOR}
-        strokeWidth={strokeWidth + 3}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-        strokeDasharray={[DASH_LENGTH, DASH_LENGTH]}
-        animatedProps={haloAnimatedProps}
-      />
-      <AnimatedPath
-        d={d}
-        stroke={TOUR_ACCENT_COLOR}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-        strokeDasharray={[DASH_LENGTH, DASH_LENGTH]}
-        animatedProps={animatedProps}
-      />
-    </>
-  );
-}
-
-function BreathingRoutes() {
-  // Respiración del conjunto completo, independiente del dibujado de cada
-  // línea individual: un escalado continuo de ida y vuelta.
-  const scale = useSharedValue(0.95);
-
-  useEffect(() => {
-    scale.value = withRepeat(
-      withTiming(1.05, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
-  }, []);
-
-  const breathingStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Animated.View style={breathingStyle}>
-      <Svg width={280} height={280} viewBox="0 0 400 400">
-        {ROUTES.map((route, index) => (
-          <RouteLine
-            key={index}
-            d={route.d}
-            strokeWidth={route.strokeWidth}
-            opacity={route.opacity}
-            delay={route.delay}
-            duration={route.duration}
-          />
-        ))}
-        {ROUTES.map((route, index) => (
-          <Circle
-            key={`dot-${index}`}
-            cx={route.dot.cx}
-            cy={route.dot.cy}
-            r={4}
-            fill={TOUR_ACCENT_COLOR}
-          />
-        ))}
-      </Svg>
-    </Animated.View>
-  );
-}
+import { LOADING_ANIMATIONS } from "../loadingAnimations";
+import { FONT_BOLD, FONT_SIZE_TITLE } from "../../lib/typography";
+import { TOUR_GRADIENT_COLORS } from "../../lib/tourTheme";
 
 type Props = {
   title: string;
 };
 
 export default function LoadingSearchScreen({ title }: Props) {
+  // Una sola vez por montaje (inicializador perezoso de useState, mismo
+  // patrón que ya usa TourLoadingScreen) — no se vuelve a elegir otra en
+  // cada re-render mientras la pantalla sigue abierta.
+  const [LoadingAnimation] = useState(
+    () => LOADING_ANIMATIONS[Math.floor(Math.random() * LOADING_ANIMATIONS.length)]
+  );
+
   return (
     <LinearGradient
       colors={TOUR_GRADIENT_COLORS}
@@ -199,7 +27,9 @@ export default function LoadingSearchScreen({ title }: Props) {
     >
       <SafeAreaView style={styles.fill}>
         <View style={styles.content}>
-          <BreathingRoutes />
+          <View style={styles.animationFrame}>
+            <LoadingAnimation />
+          </View>
           <View style={styles.titleWrap}>
             {/* sombra/base, desplazada para simular profundidad — color
                 distinto al del texto principal, si no el efecto no se ve */}
@@ -226,6 +56,16 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -30 }],
   },
 
+  // Tamaño fijo compartido por las 6 animaciones de la biblioteca (5 de
+  // las 6 ya son 160x160; la onda, más angosta y bajita, queda centrada
+  // acá adentro con aire alrededor en vez de estirarse).
+  animationFrame: {
+    width: 260,
+    height: 160,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   titleWrap: {
     alignItems: "center",
     marginTop: 18,
@@ -236,9 +76,9 @@ const styles = StyleSheet.create({
     top: 3,
     left: 3,
     width: 240,
-    fontFamily: "PlusJakartaSans_700Bold",
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
-    fontSize: 24,
+    fontSize: FONT_SIZE_TITLE,
     color: "#C9B3EF",
     textAlign: "center",
   },
@@ -247,9 +87,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     width: 240,
-    fontFamily: "PlusJakartaSans_700Bold",
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
-    fontSize: 24,
+    fontSize: FONT_SIZE_TITLE,
     color: "#4B3F8F",
     textAlign: "center",
   },

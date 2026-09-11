@@ -20,6 +20,16 @@ import { useDiscoveryNavigation } from "../hooks/useDiscoveryNavigation";
 import { useDiscoveryContent } from "../hooks/useDiscoveryContent";
 import { useTourLocation } from "../hooks/useTourLocation";
 import { TOUR_GRADIENT_COLORS, TOUR_TEXT_PRIMARY, TOUR_TEXT_SECONDARY } from "../lib/tourTheme";
+import {
+  FONT_BOLD,
+  FONT_REGULAR,
+  FONT_SEMIBOLD,
+  FONT_SIZE_DISPLAY,
+  FONT_SIZE_LG,
+  FONT_SIZE_MD,
+  FONT_SIZE_SM,
+  FONT_SIZE_XS,
+} from "../lib/typography";
 
 type PlaceCardProps = {
   title: string;
@@ -131,8 +141,9 @@ const styles = StyleSheet.create({
   },
 
   topActionText: {
-    fontSize: 15,
+    fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
+    fontSize: FONT_SIZE_SM,
     color: TOUR_TEXT_SECONDARY,
   },
 
@@ -142,14 +153,17 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 32,
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
+    fontSize: FONT_SIZE_DISPLAY,
     color: TOUR_TEXT_PRIMARY,
     marginBottom: 10,
   },
 
   subtitle: {
-    fontSize: 17,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_LG,
     lineHeight: 24,
     color: TOUR_TEXT_SECONDARY,
     marginBottom: 22,
@@ -165,7 +179,9 @@ const styles = StyleSheet.create({
   },
 
   sectionPillText: {
-    fontSize: 13,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_XS,
     color: TOUR_TEXT_PRIMARY,
   },
 
@@ -198,19 +214,24 @@ const styles = StyleSheet.create({
 
   cardTitle: {
     flex: 1,
-    fontSize: 18,
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
+    fontSize: FONT_SIZE_LG,
     color: TOUR_TEXT_PRIMARY,
   },
 
   cardSubtitle: {
-    fontSize: 15,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_MD,
     color: TOUR_TEXT_SECONDARY,
     marginBottom: 6,
   },
 
   cardMeta: {
-    fontSize: 13,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_XS,
     color: TOUR_TEXT_SECONDARY,
   },
 
@@ -222,8 +243,9 @@ const styles = StyleSheet.create({
   },
 
   statusText: {
-    fontSize: 12,
+    fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
+    fontSize: FONT_SIZE_XS,
     color: TOUR_TEXT_PRIMARY,
   },
 });

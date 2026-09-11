@@ -2,6 +2,12 @@ import NetInfo from "@react-native-community/netinfo";
 import React, { useEffect, useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../lib/tourTheme";
+import {
+  FONT_BOLD,
+  FONT_REGULAR,
+  FONT_SIZE_MD,
+  FONT_SIZE_XL,
+} from "../lib/typography";
 
 // Se considera "sin conexión" si el radio (WiFi/datos) está desconectado, O
 // si está conectado pero no llega a internet de verdad (WiFi de un
@@ -148,15 +154,18 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 20,
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
+    fontSize: FONT_SIZE_XL,
     textAlign: "center",
     marginBottom: 8,
     color: TOUR_TEXT_PRIMARY,
   },
 
   message: {
-    fontSize: 15,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_MD,
     lineHeight: 21,
     textAlign: "center",
     color: "#6B7280",
@@ -178,7 +187,8 @@ const styles = StyleSheet.create({
 
   retryText: {
     color: "#FFF",
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: FONT_SIZE_MD,
   },
 });

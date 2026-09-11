@@ -2,7 +2,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LOADING_ANIMATIONS } from "./loadingAnimations";
+import { LOADING_ANIMATIONS } from "../loadingAnimations";
+import { FONT_BOLD, FONT_SIZE_TITLE } from "../../lib/typography";
 import { TOUR_GRADIENT_COLORS } from "../../lib/tourTheme";
 
 type Props = {
@@ -28,7 +29,9 @@ export default function TourLoadingScreen({ tourTitle }: Props) {
     >
       <SafeAreaView style={styles.safe}>
         <View style={styles.content}>
-          <LoadingAnimation />
+          <View style={styles.animationFrame}>
+            <LoadingAnimation />
+          </View>
 
           <View style={styles.titleWrap}>
             {/* sombra/base, desplazada para simular profundidad — color
@@ -55,6 +58,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
 
+  // Tamaño fijo compartido por las 6 animaciones de la biblioteca (5 de
+  // las 6 ya son 160x160; la onda, más angosta y bajita, queda centrada
+  // acá adentro con aire alrededor en vez de estirarse).
+  animationFrame: {
+    width: 260,
+    height: 160,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   titleWrap: {
     alignItems: "center",
     marginTop: 24,
@@ -65,9 +78,9 @@ const styles = StyleSheet.create({
     top: 3,
     left: 3,
     width: 300,
-    fontFamily: "PlusJakartaSans_700Bold",
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
-    fontSize: 24,
+    fontSize: FONT_SIZE_TITLE,
     color: "#C9B3EF",
     textAlign: "center",
   },
@@ -76,9 +89,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     width: 300,
-    fontFamily: "PlusJakartaSans_700Bold",
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
-    fontSize: 24,
+    fontSize: FONT_SIZE_TITLE,
     color: "#4B3F8F",
     textAlign: "center",
   },

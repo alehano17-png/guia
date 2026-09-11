@@ -1,4 +1,9 @@
-import { PlusJakartaSans_700Bold, useFonts } from '@expo-google-fonts/plus-jakarta-sans';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  useFonts,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -9,6 +14,8 @@ import { AuthProvider, useAuth } from '@/hooks/useAuth';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
   });
 

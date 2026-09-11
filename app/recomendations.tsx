@@ -23,6 +23,14 @@ import {
   TOUR_TEXT_PRIMARY,
   TOUR_TEXT_SECONDARY,
 } from "../lib/tourTheme";
+import {
+  FONT_BOLD,
+  FONT_REGULAR,
+  FONT_SIZE_DISPLAY,
+  FONT_SIZE_LG,
+  FONT_SIZE_MD,
+  FONT_SIZE_SM,
+} from "../lib/typography";
 
 type TourCardProps = {
   image?: any;
@@ -213,8 +221,9 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 34,
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
+    fontSize: FONT_SIZE_DISPLAY,
     color: TOUR_TEXT_PRIMARY,
     letterSpacing: -0.5,
     textAlign: "center",
@@ -222,7 +231,9 @@ const styles = StyleSheet.create({
 
   subtitle: {
     marginTop: 12,
-    fontSize: 17,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_LG,
     color: TOUR_TEXT_SECONDARY,
     textAlign: "center",
   },
@@ -258,20 +269,25 @@ const styles = StyleSheet.create({
   },
 
   cardTitle: {
-    fontSize: 18,
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
+    fontSize: FONT_SIZE_LG,
     color: TOUR_TEXT_PRIMARY,
   },
 
   cardDesc: {
     marginTop: 4,
-    fontSize: 15,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_MD,
     color: TOUR_TEXT_SECONDARY,
   },
 
   cardTime: {
     marginTop: 6,
-    fontSize: 14,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_SM,
     color: "#6B7280",
   },
 
@@ -289,8 +305,9 @@ const styles = StyleSheet.create({
   },
 
   cardImageFallbackText: {
-    fontSize: 34,
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
+    fontSize: FONT_SIZE_DISPLAY,
     color: "#6D28D9",
   },
 

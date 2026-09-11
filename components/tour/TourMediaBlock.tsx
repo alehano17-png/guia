@@ -8,6 +8,14 @@ import {
   TOUR_TEXT_PRIMARY,
   TOUR_TEXT_SECONDARY,
 } from "../../lib/tourTheme";
+import {
+  FONT_BOLD,
+  FONT_REGULAR,
+  FONT_SEMIBOLD,
+  FONT_SIZE_LG,
+  FONT_SIZE_SM,
+  FONT_SIZE_XS,
+} from "../../lib/typography";
 
 type ActionCardData = {
   tag: string;
@@ -163,13 +171,16 @@ const styles = StyleSheet.create({
   },
 
   mapPreviewCtaText: {
-    fontSize: 14,
+    fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
+    fontSize: FONT_SIZE_SM,
     color: "#FFF",
   },
 
   previewInfoText: {
-  fontSize: 13,
+  fontFamily: FONT_REGULAR,
+  fontWeight: "400",
+  fontSize: FONT_SIZE_XS,
   lineHeight: 18,
   color: TOUR_TEXT_SECONDARY,
   textAlign: "center",
@@ -213,15 +224,17 @@ const styles = StyleSheet.create({
   },
 
   actionTagText: {
-    fontSize: 13,
+    fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
+    fontSize: FONT_SIZE_XS,
     color: TOUR_TEXT_SECONDARY,
   },
 
   actionTitle: {
-    fontSize: 18,
-    lineHeight: 24,
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
+    fontSize: FONT_SIZE_LG,
+    lineHeight: 24,
     color: TOUR_TEXT_PRIMARY,
     textAlign: "center",
     marginBottom: 8,
@@ -229,7 +242,9 @@ const styles = StyleSheet.create({
   },
 
   actionSubtitle: {
-    fontSize: 14,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_SM,
     lineHeight: 20,
     color: TOUR_TEXT_SECONDARY,
     textAlign: "center",

@@ -6,6 +6,14 @@ import {
   TOUR_TEXT_PRIMARY,
   TOUR_TEXT_SECONDARY,
 } from "../../lib/tourTheme";
+import {
+  FONT_BOLD,
+  FONT_REGULAR,
+  FONT_SEMIBOLD,
+  FONT_SIZE_SM,
+  FONT_SIZE_TITLE,
+  FONT_SIZE_XS,
+} from "../../lib/typography";
 
 type Props = {
   title: string;
@@ -79,8 +87,9 @@ const styles = StyleSheet.create({
   },
 
   topActionText: {
-    fontSize: 15,
+    fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
+    fontSize: FONT_SIZE_SM,
     color: TOUR_TEXT_SECONDARY,
   },
 
@@ -108,9 +117,14 @@ const styles = StyleSheet.create({
     height: 34,
   },
 
+  // El título de este paso en particular (no el de toda la pantalla) —
+  // vive en un header compacto compartiendo lugar con otros dos botones,
+  // así que va en TITLE, no en DISPLAY (reservado para el título dedicado
+  // de una pantalla entera, como discover.tsx o recomendations.tsx).
   stepTitle: {
-    fontSize: 28,
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
+    fontSize: FONT_SIZE_TITLE,
     marginTop: 0,
     marginBottom: 12,
     color: TOUR_TEXT_PRIMARY,
@@ -138,8 +152,9 @@ const styles = StyleSheet.create({
   },
 
   liveText: {
-    fontSize: 13,
+    fontFamily: FONT_REGULAR,
     fontWeight: "400",
+    fontSize: FONT_SIZE_XS,
     color: TOUR_TEXT_PRIMARY,
   },
 });

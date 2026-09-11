@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
+import { FONT_BOLD, FONT_SIZE_MD } from "../../lib/typography";
 
 type Props = {
   label: string;
@@ -31,7 +32,8 @@ const styles = StyleSheet.create({
 
   primaryButtonText: {
     color: "#FFF",
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: FONT_SIZE_MD,
   },
 });

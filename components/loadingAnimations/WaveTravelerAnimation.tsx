@@ -10,7 +10,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { TOUR_ACCENT_COLOR } from "../../../lib/tourTheme";
+import { TOUR_ACCENT_COLOR } from "../../lib/tourTheme";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 

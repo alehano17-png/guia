@@ -8,6 +8,14 @@ import {
   View,
 } from "react-native";
 import { TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
+import {
+  FONT_BOLD,
+  FONT_REGULAR,
+  FONT_SEMIBOLD,
+  FONT_SIZE_MD,
+  FONT_SIZE_SM,
+  FONT_SIZE_XL,
+} from "../../lib/typography";
 
 type ChoiceOption = {
   label: string;
@@ -109,8 +117,9 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 20,
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
+    fontSize: FONT_SIZE_XL,
     textAlign: "center",
     marginBottom: 16,
     color: TOUR_TEXT_PRIMARY,
@@ -142,9 +151,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // Peso original (500/Medium) no existe en la fuente cargada — sube a
+  // SEMIBOLD (600): es una opción tocable, se gana un poco de énfasis
+  // sobre texto plano.
   optionTitle: {
-    fontSize: 16,
-    fontWeight: "500",
+    fontFamily: FONT_SEMIBOLD,
+    fontWeight: "600",
+    fontSize: FONT_SIZE_MD,
     color: TOUR_TEXT_PRIMARY,
   },
 
@@ -154,9 +167,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
 
+  // "Cancelar" es la acción de descartar — a diferencia de las opciones de
+  // arriba, quiere verse más discreta: baja a REGULAR (no SEMIBOLD) y a
+  // SM (no MD), reforzando que es la acción secundaria del modal.
   cancelText: {
     color: "#6B7280",
-    fontSize: 15,
-    fontWeight: "500",
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_SM,
   },
 });

@@ -24,6 +24,14 @@ import ReanimatedAnimated, {
 } from "react-native-reanimated";
 import { ChatMessage } from "../../lib/chatTypes";
 import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
+import {
+    FONT_BOLD,
+    FONT_REGULAR,
+    FONT_SEMIBOLD,
+    FONT_SIZE_MD,
+    FONT_SIZE_SM,
+    FONT_SIZE_XL,
+} from "../../lib/typography";
 
 // Duración de la transición de entrada/salida de la hoja (Reanimated).
 const SHEET_ANIM_MS = 280;
@@ -425,11 +433,23 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
 
+  // Título del encabezado de la hoja — no tenía fontSize propio, caía en
+  // el tamaño por defecto del sistema. Mismo tier que otros títulos de
+  // modal/hoja (TourDecisionModal, OfflineBanner): XL/BOLD. El diseño
+  // original pedía peso 800, pero ese peso no existe en el paquete de
+  // fuentes cargado — 700 (BOLD) es el más pesado disponible.
   chatTitle: {
-    fontWeight: "800",
+    fontFamily: FONT_BOLD,
+    fontWeight: "700",
+    fontSize: FONT_SIZE_XL,
   },
 
+  // "Cerrar" — acción corta de botón, mismo tratamiento que "Salir" en
+  // TourHeader y el botón de volver en discover.tsx: SM/SEMIBOLD.
   chatClose: {
+    fontFamily: FONT_SEMIBOLD,
+    fontWeight: "600",
+    fontSize: FONT_SIZE_SM,
     color: "#6B7280",
   },
 
@@ -446,19 +466,24 @@ const styles = StyleSheet.create({
   },
 
   chatCardLabel: {
-    fontSize: 14,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_SM,
     opacity: 0.7,
   },
 
   chatCardTitle: {
-    fontSize: 20,
+    fontFamily: FONT_BOLD,
     fontWeight: "700",
+    fontSize: FONT_SIZE_XL,
     marginTop: 2,
     marginBottom: 6,
   },
 
   chatCardText: {
-    fontSize: 14,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_SM,
     lineHeight: 20,
     opacity: 0.8,
   },
@@ -545,7 +570,9 @@ const styles = StyleSheet.create({
   },
 
   chatMessageText: {
-    fontSize: 15,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_MD,
     lineHeight: 20,
     color: TOUR_TEXT_PRIMARY,
   },
@@ -584,8 +611,9 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
-    fontSize: 16,
+    fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
+    fontSize: FONT_SIZE_MD,
     opacity: 0.7,
   },
 
@@ -597,7 +625,9 @@ const styles = StyleSheet.create({
   },
 
   suggestionText: {
-    fontSize: 14,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_SM,
   },
 
   chatInputContainer: {
@@ -621,7 +651,9 @@ const styles = StyleSheet.create({
 
   chatInput: {
     flex: 1,
-    fontSize: 15,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_MD,
     color: TOUR_TEXT_PRIMARY,
   },
 });
