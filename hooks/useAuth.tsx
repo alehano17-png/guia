@@ -24,11 +24,24 @@ type AuthContextValue = {
   // después de eso, onAuthStateChange mantiene `user` al día solo.
   isLoadingSession: boolean;
   signIn: (email: string, password: string) => Promise<AuthResult>;
-  signUp: (email: string, password: string) => Promise<AuthResult>;
+  signUp: (
+    email: string,
+    password: string,
+    displayName?: string
+  ) => Promise<AuthResult>;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+// Lee el nombre elegido por el usuario en el registro. Se guarda en el
+// registro como options.data: { name } de supabase.auth.signUp(), lo que
+// Supabase expone de vuelta en user.user_metadata.name. Todavía no se usa
+// en ninguna pantalla — queda listo para el saludo de la pantalla de inicio.
+export function getUserDisplayName(user: AuthUser | null): string | null {
+  const name = user?.user_metadata?.name;
+  return typeof name === "string" && name.trim().length > 0 ? name : null;
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -67,8 +80,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signUp = useCallback(
-    async (email: string, password: string): Promise<AuthResult> => {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+    async (
+      email: string,
+      password: string,
+      displayName?: string
+    ): Promise<AuthResult> => {
+      const trimmedName = displayName?.trim();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        // options.data va al metadata del usuario (auth.users.raw_user_meta_data),
+        // legible después como user.user_metadata — ver getUserDisplayName arriba.
+        ...(trimmedName ? { options: { data: { name: trimmedName } } } : {}),
+      });
       return { error: error?.message ?? null, hasSession: !!data.session };
     },
     []

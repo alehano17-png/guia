@@ -34,6 +34,7 @@ const MIN_PASSWORD_LENGTH = 6;
 export default function SignupScreen() {
   const { signUp } = useAuth();
 
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -42,7 +43,7 @@ export default function SignupScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!email.trim() || !password || !confirmPassword) {
+    if (!displayName.trim() || !email.trim() || !password || !confirmPassword) {
       setErrorMessage("Completa todos los campos.");
       setInfoMessage(null);
       return;
@@ -65,7 +66,11 @@ export default function SignupScreen() {
     setErrorMessage(null);
     setIsSubmitting(true);
 
-    const { error, hasSession } = await signUp(email.trim(), password);
+    const { error, hasSession } = await signUp(
+      email.trim(),
+      password,
+      displayName.trim()
+    );
 
     setIsSubmitting(false);
 
@@ -106,6 +111,18 @@ export default function SignupScreen() {
             </Text>
 
             <View style={styles.form}>
+              <View style={styles.field}>
+                <Text style={styles.label}>¿Cómo te gustaría que te llame?</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Tu nombre"
+                  placeholderTextColor="#9C93B5"
+                  autoCapitalize="words"
+                  value={displayName}
+                  onChangeText={setDisplayName}
+                />
+              </View>
+
               <View style={styles.field}>
                 <Text style={styles.label}>Correo</Text>
                 <TextInput
