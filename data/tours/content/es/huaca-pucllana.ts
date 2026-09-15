@@ -1,48 +1,33 @@
-import type { Tour } from "./types";
+import type { TourContent } from "../../content-types";
 
-export const huacaPucllana: Tour = {
-  id: "huaca-pucllana",
+export const huacaPucllanaContentEs: TourContent = {
   title: "Huaca Pucllana",
   steps: [
-
     {
-  id: "inicio-huaca-pucllana",
-  startRoute: {
-    destinationTitle: "Huaca Pucllana",
-    latitude: -12.110807,
-    longitude: -77.034034,
-    nextStepId: "huaca-exterior",
-    buttonLabel: "Ver ruta a la Huaca",
-  },
-  title: "Huaca Pucllana",
-  latitude: -12.110807,
-  longitude: -77.034034,
-  summary: `Un sitio arqueológico de Lima
-levantado por la cultura Lima
-en pleno corazón de Miraflores.`,
-  voiceText: `
-Bienvenido a la Huaca Pucllana,
+      id: "inicio-huaca-pucllana",
+      title: "Huaca Pucllana",
+      voiceText: `Bienvenido a la Huaca Pucllana,
 uno de los espacios arqueológicos más importantes de Lima.
 
 Hoy no vamos a recorrer un distrito completo,
 vamos a entrar directo a un lugar que existía muchos siglos antes de la ciudad moderna.
 
 Primero te llevo hasta el punto correcto
-y cuando estés listo, comenzamos el recorrido.
-  `.trim(),
-  highlights: [],
-},
+y cuando estés listo, comenzamos el recorrido.`,
+      summary: `Un sitio arqueológico de Lima
+levantado por la cultura Lima
+en pleno corazón de Miraflores.`,
+      highlights: [],
+      startRoute: {
+        destinationTitle: "Huaca Pucllana",
+        buttonLabel: "Ver ruta a la Huaca",
+      },
+    },
 
     {
       id: "huaca-exterior",
-      previewText: "Siguiente paso: elige si recorres por fuera o entras",
       title: "Huaca Pucllana (Exterior)",
-      latitude: -12.110807,
-      longitude: -77.034034,
-      summary: `Un complejo ceremonial de Lima 
-  construido entre los años 200 y 700 d.C. en el corazón de Miraflores.`,
-      voiceText: `
-Lo que ves frente a ti no pertenece a la Lima moderna.
+      voiceText: `Lo que ves frente a ti no pertenece a la Lima moderna.
 (pausa)
 
 La Huaca Pucllana fue construida entre los años 200 y 700 d.C., por la cultura Lima, más de mil años antes de los incas.
@@ -64,29 +49,26 @@ Cuando aquí se levantaban estos muros, en Europa aún existía el Imperio Roman
 
 Desde aquí tienes dos opciones, y ambas valen la pena:
 – recorrer la huaca desde fuera
-– o entrar y conocerla por dentro, paso a paso
-      `.trim(),
+– o entrar y conocerla por dentro, paso a paso`,
+      summary: `Un complejo ceremonial de Lima 
+  construido entre los años 200 y 700 d.C. en el corazón de Miraflores.`,
       highlights: [
         "Cultura Lima (200–700 d.C.)",
         "Centro ceremonial y político",
         "Adobes antisísmicos",
         "Más antigua que los incas",
       ],
+      previewText: "Siguiente paso: elige si recorres por fuera o entras",
       choices: [
-        { label: "Recorrer por fuera", nextId: "huaca-exterior-recorrido" },
-        { label: "Entrar", nextId: "huaca-interior-decision" },
+        { id: "recorrer-por-fuera", label: "Recorrer por fuera" },
+        { id: "entrar", label: "Entrar" },
       ],
     },
 
     {
       id: "huaca-exterior-recorrido",
-      previewText: "Siguiente paso: cierre del recorrido",
       title: "Huaca Pucllana — Recorrido Exterior",
-      summary: `Una pirámide ceremonial prehispánica
-levantada como centro de poder
-en la antigua Lima.`,
-      voiceText: `
-Perfecto.
+      voiceText: `Perfecto.
 La recorremos desde afuera.
 (pausa)
 
@@ -118,52 +100,42 @@ Aquí se ritualizaba.
 Aquí se gobernaba.
 (pausa)
 
-Cuando quieras, seguimos con el recorrido.
-      `.trim(),
+Cuando quieras, seguimos con el recorrido.`,
+      summary: `Una pirámide ceremonial prehispánica
+levantada como centro de poder
+en la antigua Lima.`,
       highlights: [
         "Arquitectura de poder",
         "Estructura jerárquica",
         "Técnica en librero",
         "Presencia ritual dominante",
       ],
-      nextId: "fin-tour-huaca",
+      previewText: "Siguiente paso: cierre del recorrido",
     },
 
     {
       id: "huaca-interior-decision",
-      previewText: "Siguiente paso: elige historia base o profunda",
       title: "Huaca Pucllana — Interior",
-      summary: `Un complejo ceremonial
-que puede recorrerse paso a paso
-para entender su historia.`,
-      voiceText: `
-Si decides entrar, seguimos con un recorrido guiado por confirmación.
+      voiceText: `Si decides entrar, seguimos con un recorrido guiado por confirmación.
 
 Y dime algo antes de empezar:
 ¿Quieres solo la historia base bien clara
-o prefieres que profundicemos más en el contexto histórico?
-      `.trim(),
+o prefieres que profundicemos más en el contexto histórico?`,
+      summary: `Un complejo ceremonial
+que puede recorrerse paso a paso
+para entender su historia.`,
       highlights: [],
+      previewText: "Siguiente paso: elige historia base o profunda",
       choices: [
-        { label: "Historia base", nextId: "huaca-base-1" },
-        { label: "Historia profunda", nextId: "huaca-power-1" },
+        { id: "historia-base", label: "Historia base" },
+        { id: "historia-profunda", label: "Historia profunda" },
       ],
     },
 
     {
       id: "huaca-base-1",
-      actionCard: {
-  tag: "Recorrido por confirmación",
-  title: "Avanza hacia la rampa principal",
-  subtitle: 'Cuando llegues, toca "Siguiente".',
-},
       title: "Entrada — Base",
-      summary: `La entrada a un complejo ceremonial
-construido hace más de 1500 años
-por la cultura Lima.`,
-      
-      voiceText: `
-Estás entrando a la Huaca Pucllana, un centro ceremonial construido entre los años 200 y 700 d.C., mucho antes de los incas.
+      voiceText: `Estás entrando a la Huaca Pucllana, un centro ceremonial construido entre los años 200 y 700 d.C., mucho antes de los incas.
 (pausa)
 
 Fue levantado por la cultura Lima, cuando en Europa aún existía el Imperio Romano.
@@ -179,31 +151,27 @@ Esa técnica permitía que las estructuras resistieran los terremotos sin colaps
 (pausa)
 
 Cuando estés listo, avanza hacia la rampa principal.
-(confirmación requerida)
-      `.trim(),
+(confirmación requerida)`,
+      summary: `La entrada a un complejo ceremonial
+construido hace más de 1500 años
+por la cultura Lima.`,
       highlights: [
         "Ingreso ceremonial",
         "Cultura Lima",
         "Religión y poder unidos",
         "Arquitectura antisísmica",
       ],
-      nextId: "huaca-base-2",
+      actionCard: {
+        tag: "Recorrido por confirmación",
+        title: "Avanza hacia la rampa principal",
+        subtitle: "Cuando llegues, toca \"Siguiente\".",
+      },
     },
 
     {
       id: "huaca-base-2",
-      actionCard: {
-  tag: "Recorrido por confirmación",
-  title: "Sube con calma hasta la parte alta",
-  subtitle: 'Cuando estés arriba, toca "Siguiente".',
-},
       title: "Rampa — Base",
-      summary: `Una rampa ceremonial
-que marcaba el ascenso
-hacia zonas de mayor jerarquía.`,
-      
-      voiceText: `
-Esta rampa marca un cambio real de jerarquía y de función.
+      voiceText: `Esta rampa marca un cambio real de jerarquía y de función.
 (pausa)
 
 Mientras subes, dejas atrás espacios más abiertos y te acercas a zonas donde se concentraba el poder ritual.
@@ -220,31 +188,27 @@ Era entrar en otro nivel de autoridad, donde el acceso estaba regulado.
 
 Tómalo con calma.
 Avísame cuando llegues arriba.
-(confirmación requerida)
-      `.trim(),
+(confirmación requerida)`,
+      summary: `Una rampa ceremonial
+que marcaba el ascenso
+hacia zonas de mayor jerarquía.`,
       highlights: [
         "Ascenso jerárquico",
         "Acceso restringido",
         "Construcción por etapas",
         "Control del espacio",
       ],
-      nextId: "huaca-base-3",
+      actionCard: {
+        tag: "Recorrido por confirmación",
+        title: "Sube con calma hasta la parte alta",
+        subtitle: "Cuando estés arriba, toca \"Siguiente\".",
+      },
     },
 
     {
       id: "huaca-base-3",
-      actionCard: {
-  tag: "Recorrido por confirmación",
-  title: "Detente en la zona ceremonial",
-  subtitle: 'Cuando estés listo, toca "Siguiente".',
-},
       title: "Zona ceremonial — Base",
-      summary: `El espacio donde se realizaban
-los principales rituales
-de la cultura Lima.`,
-      
-      voiceText: `
-Aquí se realizaban los rituales más importantes.
+      voiceText: `Aquí se realizaban los rituales más importantes.
 (pausa)
 
 Se han encontrado ofrendas marinas, cerámica fina y evidencia de sacrificios humanos, fechados entre los siglos V y VII d.C.
@@ -261,31 +225,27 @@ Nada aquí era improvisado.
 Todo estaba pensado para rituales que involucraban a la comunidad, aunque no todos pudieran presenciarlos.
 (pausa)
 
-Estás en el centro ceremonial de la huaca.
-      `.trim(),
+Estás en el centro ceremonial de la huaca.`,
+      summary: `El espacio donde se realizaban
+los principales rituales
+de la cultura Lima.`,
       highlights: [
         "Rituales principales",
         "Ofrendas marinas",
         "Relación con el océano",
         "Espacio sagrado",
       ],
-      nextId: "huaca-base-4",
+      actionCard: {
+        tag: "Recorrido por confirmación",
+        title: "Detente en la zona ceremonial",
+        subtitle: "Cuando estés listo, toca \"Siguiente\".",
+      },
     },
 
     {
       id: "huaca-base-4",
-      actionCard: {
-  tag: "Recorrido por confirmación",
-  title: "Avanza hacia la zona central",
-  subtitle: 'Cuando llegues, toca "Siguiente".',
-},
       title: "Zona central — Base",
-      summary: `Un área de soporte
-donde se preparaban ofrendas
-para la actividad ritual.`,
-      
-      voiceText: `
-Aquí se conectaba lo sagrado con lo cotidiano.
+      voiceText: `Aquí se conectaba lo sagrado con lo cotidiano.
 (pausa)
 
 Se preparaban alimentos rituales, se organizaban ofrendas y se almacenaban elementos necesarios para las ceremonias superiores.
@@ -294,30 +254,27 @@ Se preparaban alimentos rituales, se organizaban ofrendas y se almacenaban eleme
 Sin este espacio, la huaca no funcionaba.
 (pausa)
 
-Es el engranaje del complejo.
-      `.trim(),
+Es el engranaje del complejo.`,
+      summary: `Un área de soporte
+donde se preparaban ofrendas
+para la actividad ritual.`,
       highlights: [
         "Soporte del ritual",
         "Preparación de ofrendas",
         "Organización interna",
         "Función logística",
       ],
-      nextId: "huaca-base-5",
+      actionCard: {
+        tag: "Recorrido por confirmación",
+        title: "Avanza hacia la zona central",
+        subtitle: "Cuando llegues, toca \"Siguiente\".",
+      },
     },
 
     {
       id: "huaca-base-5",
-      actionCard: {
-  tag: "Recorrido por confirmación",
-  title: "Este tramo está por terminar",
-  subtitle: 'Cuando quieras continuar, toca "Siguiente".',
-},
       title: "Cierre — Base",
-      summary: `Un sitio ceremonial activo
-durante siglos antes
-de la Lima colonial.`,
-      voiceText: `
-Antes de salir, quédate con esta idea.
+      voiceText: `Antes de salir, quédate con esta idea.
 (pausa)
 
 Este lugar ya estaba aquí muchos siglos antes de que existiera la Lima actual.
@@ -330,31 +287,27 @@ organizado, activo y conectado con su entorno.
 No era un espacio aislado.
 Formaba parte de una red de asentamientos en la costa central,
 con reglas, jerarquías y continuidad en el tiempo.
-(pausa)
-      `.trim(),
+(pausa)`,
+      summary: `Un sitio ceremonial activo
+durante siglos antes
+de la Lima colonial.`,
       highlights: [
         "Anterior a los incas",
         "Centro de poder duradero",
         "Continuidad cultural",
         "Lima prehispánica",
       ],
-      nextId: "fin-tour-huaca",
+      actionCard: {
+        tag: "Recorrido por confirmación",
+        title: "Este tramo está por terminar",
+        subtitle: "Cuando quieras continuar, toca \"Siguiente\".",
+      },
     },
 
     {
       id: "huaca-power-1",
-      actionCard: {
-  tag: "Recorrido por confirmación",
-  title: "Avanza hacia la rampa principal",
-  subtitle: 'Cuando llegues, toca "Siguiente".',
-},
       title: "Entrada — Profunda",
-      summary: `Un centro ceremonial regional
-activo entre los siglos III y VII
-en la costa central del Perú.`,
-      
-      voiceText: `
-Estás entrando a un complejo construido entre los años 200 y 700 d.C., durante el periodo conocido como Intermedio Temprano en los Andes Centrales.
+      voiceText: `Estás entrando a un complejo construido entre los años 200 y 700 d.C., durante el periodo conocido como Intermedio Temprano en los Andes Centrales.
 (pausa)
 
 En ese mismo periodo, entre los siglos III y V d.C., el Imperio Romano atravesaba su crisis más profunda, con emperadores que duraban meses en el poder.
@@ -377,31 +330,27 @@ Era un centro de poder regional.
 (pausa)
 
 Cuando quieras, comenzamos a subir por la rampa.
-(confirmación requerida)
-      `.trim(),
+(confirmación requerida)`,
+      summary: `Un centro ceremonial regional
+activo entre los siglos III y VII
+en la costa central del Perú.`,
       highlights: [
         "Intermedio Temprano",
         "Roma en crisis",
         "Red regional ceremonial",
         "Poder político-religioso",
       ],
-      nextId: "huaca-power-2",
+      actionCard: {
+        tag: "Recorrido por confirmación",
+        title: "Avanza hacia la rampa principal",
+        subtitle: "Cuando llegues, toca \"Siguiente\".",
+      },
     },
 
     {
       id: "huaca-power-2",
-      actionCard: {
-  tag: "Recorrido por confirmación",
-  title: "Sube con calma hasta la parte alta",
-  subtitle: 'Cuando estés arriba, toca "Siguiente".',
-},
       title: "Rampa — Profunda",
-      summary: `Una estructura escalonada
-que expresaba jerarquía
-y poder ritual.`,
-      
-      voiceText: `
-Entre los siglos III y VII d.C., la arquitectura monumental en la costa central del Perú adoptó una organización piramidal escalonada.
+      voiceText: `Entre los siglos III y VII d.C., la arquitectura monumental en la costa central del Perú adoptó una organización piramidal escalonada.
 (pausa)
 
 No era estética.
@@ -422,31 +371,27 @@ Es filtro de acceso.
 (pausa)
 
 Cuando llegues arriba, dime.
-(confirmación requerida)
-      `.trim(),
+(confirmación requerida)`,
+      summary: `Una estructura escalonada
+que expresaba jerarquía
+y poder ritual.`,
       highlights: [
         "Arquitectura política",
         "Separación social",
         "Modelo piramidal",
         "Acceso simbólico al poder",
       ],
-      nextId: "huaca-power-3",
+      actionCard: {
+        tag: "Recorrido por confirmación",
+        title: "Sube con calma hasta la parte alta",
+        subtitle: "Cuando estés arriba, toca \"Siguiente\".",
+      },
     },
 
     {
       id: "huaca-power-3",
-      actionCard: {
-  tag: "Recorrido por confirmación",
-  title: "Detente en la zona ceremonial",
-  subtitle: 'Cuando quieras descender, toca "Siguiente".',
-},
       title: "Zona ceremonial — Profunda",
-      summary: `Un espacio ritual asociado
-a ceremonias complejas
-y sacrificios humanos.`,
-      
-      voiceText: `
-Las excavaciones realizadas desde la década de 1980 han fechado sacrificios humanos entre los años 450 y 650 d.C.
+      voiceText: `Las excavaciones realizadas desde la década de 1980 han fechado sacrificios humanos entre los años 450 y 650 d.C.
 (pausa)
 
 Los cuerpos muestran entierros ordenados, sin señales de tortura descontrolada.
@@ -472,31 +417,27 @@ Era estructura.
 (pausa)
 
 Cuando quieras, descendemos.
-(confirmación requerida)
-      `.trim(),
+(confirmación requerida)`,
+      summary: `Un espacio ritual asociado
+a ceremonias complejas
+y sacrificios humanos.`,
       highlights: [
         "Sacrificios humanos",
         "Negociación con la naturaleza",
         "Fenómeno El Niño",
         "Planificación ritual",
       ],
-      nextId: "huaca-power-4",
+      actionCard: {
+        tag: "Recorrido por confirmación",
+        title: "Detente en la zona ceremonial",
+        subtitle: "Cuando quieras descender, toca \"Siguiente\".",
+      },
     },
 
     {
       id: "huaca-power-4",
-      actionCard: {
-  tag: "Recorrido por confirmación",
-  title: "Avanza hacia la zona central",
-  subtitle: 'Cuando estés listo, toca "Siguiente".',
-},
       title: "Zona central — Profunda",
-      summary: `Un área administrativa
-que sostenía la actividad ritual
-del complejo ceremonial.`,
-      
-      voiceText: `
-Hay evidencia de actividad constante entre los siglos IV y VII d.C.
+      voiceText: `Hay evidencia de actividad constante entre los siglos IV y VII d.C.
 (pausa)
 
 Se han encontrado fogones, áreas de almacenamiento y cerámica utilitaria junto a piezas ceremoniales.
@@ -512,30 +453,27 @@ No era un grupo tribal pequeño.
 Era una sociedad organizada regionalmente.
 (pausa)
 
-Mientras en Europa se consolidaban los reinos germánicos tras la caída de Roma, aquí había estabilidad ritual prolongada.
-      `.trim(),
+Mientras en Europa se consolidaban los reinos germánicos tras la caída de Roma, aquí había estabilidad ritual prolongada.`,
+      summary: `Un área administrativa
+que sostenía la actividad ritual
+del complejo ceremonial.`,
       highlights: [
         "Administración permanente",
         "Especialistas rituales",
         "Excedente agrícola",
         "Sociedad organizada",
       ],
-      nextId: "huaca-power-5",
+      actionCard: {
+        tag: "Recorrido por confirmación",
+        title: "Avanza hacia la zona central",
+        subtitle: "Cuando estés listo, toca \"Siguiente\".",
+      },
     },
 
     {
       id: "huaca-power-5",
-      actionCard: {
-  tag: "Recorrido por confirmación",
-  title: "Este tramo está por terminar",
-  subtitle: 'Cuando quieras cerrar, toca "Siguiente".',
-},
       title: "Cierre — Profunda",
-      summary: `Un centro ceremonial activo
-durante más de cinco siglos
-antes del mundo inca.`,
-      voiceText: `
-Antes de salir, vale la pena ordenar el tiempo.
+      voiceText: `Antes de salir, vale la pena ordenar el tiempo.
 (pausa)
 
 Entre los años 200 y 700 d.C.,
@@ -553,35 +491,38 @@ este sitio ya pertenecía a un pasado antiguo.
 Lo que queda hoy no es una ruina aislada,
 sino el registro material de una sociedad organizada,
 con decisiones sostenidas en el tiempo.
-(pausa)
-      `.trim(),
+(pausa)`,
+      summary: `Un centro ceremonial activo
+durante más de cinco siglos
+antes del mundo inca.`,
       highlights: [
         "Cinco siglos de uso",
         "Antes de Wari e incas",
         "Tradición arquitectónica",
         "Ruina no aislada",
       ],
-      nextId: "fin-tour-huaca",
+      actionCard: {
+        tag: "Recorrido por confirmación",
+        title: "Este tramo está por terminar",
+        subtitle: "Cuando quieras cerrar, toca \"Siguiente\".",
+      },
     },
 
-   {
-  id: "fin-tour-huaca",
-  previewText: "Recorrido terminado",
-  title: "Fin del recorrido",
-  summary: `Fin del recorrido por Huaca Pucllana,
-uno de los espacios arqueológicos
-más importantes de Lima.`,
-      voiceText: `
-Hemos llegado al final de este recorrido por la Huaca Pucllana.
+    {
+      id: "fin-tour-huaca",
+      title: "Fin del recorrido",
+      voiceText: `Hemos llegado al final de este recorrido por la Huaca Pucllana.
 
 Ahora ya no la estás viendo solo como una ruina,
 sino como el rastro de una sociedad organizada,
 con poder, ritual y continuidad histórica.
 
-Gracias por recorrerla conmigo.
-      `.trim(),
+Gracias por recorrerla conmigo.`,
+      summary: `Fin del recorrido por Huaca Pucllana,
+uno de los espacios arqueológicos
+más importantes de Lima.`,
       highlights: [],
-      end: true,
+      previewText: "Recorrido terminado",
     },
   ],
 };

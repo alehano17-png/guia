@@ -1,32 +1,12 @@
+import type { TourContent } from "../../content-types";
 
-
-import type { Tour } from "./types";
-
-
-export const mirafloresCompleto: Tour = {
-  id: "miraflores-completo",
+export const mirafloresContentEs: TourContent = {
   title: "Miraflores",
   steps: [
-
-
-
-{
-id: "inicio-miraflores",
-startRoute: {
-  destinationTitle: "Faro de la Marina",
-  latitude: -12.123722,
-  longitude: -77.040097,
-  nextStepId: "faro",
-  buttonLabel: "Ver ruta al Faro",
-},
-latitude: -12.123722,
-longitude: -77.040097,
-title: "Miraflores",
-summary: `Un distrito costero de Lima
-donde ciudad moderna y océano
-se encuentran frente al Pacífico.`,
-voiceText: `
-Bienvenido a Miraflores,
+    {
+      id: "inicio-miraflores",
+      title: "Miraflores",
+      voiceText: `Bienvenido a Miraflores,
 uno de los distritos más importantes del Perú.
 
 Hoy combina comercio, ciudad y mar,
@@ -34,27 +14,21 @@ pero también conserva una historia mucho más antigua
 de lo que parece.
 
 En este recorrido vamos a caminar por algunos de los puntos más simbólicos de Miraflores,
-entre el malecón, los acantilados y espacios que forman parte de la Lima costera actual.
+entre el malecón, los acantilados y espacios que forman parte de la Lima costera actual.`,
+      summary: `Un distrito costero de Lima
+donde ciudad moderna y océano
+se encuentran frente al Pacífico.`,
+      highlights: [],
+      startRoute: {
+        destinationTitle: "Faro de la Marina",
+        buttonLabel: "Ver ruta al Faro",
+      },
+    },
 
-
-  `.trim(),
-highlights: [],
-
-},
-
-{
-id: "faro",
-nextStepPreview: {
-  time: "2–4 min a pie",
-},
-title: "Faro de la Marina",
-latitude: -12.123722,
-longitude: -77.040097,
-summary: `Un faro urbano construido en 1990
-que marca el límite entre Lima
-y el océano Pacífico.`,
-voiceText: `
-Estás en uno de los puntos más simbólicos de Miraflores.
+    {
+      id: "faro",
+      title: "Faro de la Marina",
+      voiceText: `Estás en uno de los puntos más simbólicos de Miraflores.
 (pausa)
 
 
@@ -84,30 +58,23 @@ detrás de ti, Lima contemporánea;
 delante, un océano que ha sido ruta, frontera y sustento desde hace miles de años.
 (pausa)
 
-Cuando quieras, caminamos hacia el malecón.
-      `.trim(),
-highlights: [
-"Construido en 1990",
-"Faro urbano, no marítimo",
-"Marca presencia de ciudad",
-"Límite entre Lima y el oceáno",
-],
-nextId: "malecon",
-},
+Cuando quieras, caminamos hacia el malecón.`,
+      summary: `Un faro urbano construido en 1990
+que marca el límite entre Lima
+y el océano Pacífico.`,
+      highlights: [
+        "Construido en 1990",
+        "Faro urbano, no marítimo",
+        "Marca presencia de ciudad",
+        "Límite entre Lima y el oceáno",
+      ],
+      nextStepPreview: { time: "2–4 min a pie" },
+    },
 
-{
-id: "malecon",
-nextStepPreview: {
-  time: "3–5 min a pie",
-},
-title: "Malecón de Miraflores",
-latitude: -12.124500,
-longitude: -77.038690,
-summary: `Un paseo elevado sobre acantilados
-que conecta parques y miradores
-a lo largo de la costa de Miraflores.`,
-voiceText: `
-Este tramo del malecón no es solo un paseo bonito.
+    {
+      id: "malecon",
+      title: "Malecón de Miraflores",
+      voiceText: `Este tramo del malecón no es solo un paseo bonito.
 (pausa)
 
 Estás caminando sobre un acantilado natural formado hace miles de años.
@@ -129,29 +96,23 @@ Gente caminando, corriendo, conversando, mirando.
 
 Si te provoca, guarda el celular un momento y camina unos metros mirando solo el horizonte.
 (silencio 3s)
-Yo te aviso cuando retomamos.
-      `.trim(),
-highlights: [
-"Acantilado natural",
-"Costa Verde bajo tus pies",
-"Uso prehispánico del litoral",
-"Espacio de conexión urbana",
-],
-nextId: "parque-amor",
-},
+Yo te aviso cuando retomamos.`,
+      summary: `Un paseo elevado sobre acantilados
+que conecta parques y miradores
+a lo largo de la costa de Miraflores.`,
+      highlights: [
+        "Acantilado natural",
+        "Costa Verde bajo tus pies",
+        "Uso prehispánico del litoral",
+        "Espacio de conexión urbana",
+      ],
+      nextStepPreview: { time: "3–5 min a pie" },
+    },
 
-{
-id: "parque-amor",
-nextStepPreview: {
-  time: "2–4 min a pie",
-},
-title: "Parque del Amor",
-latitude: -12.1267984,
-longitude: -77.0365665,
-summary: `Un parque frente al mar dedicado al encuentro y la contemplación
-en el malecón de Miraflores.`,
-voiceText: `
-Este parque no es antiguo, pero sí es simbólico.
+    {
+      id: "parque-amor",
+      title: "Parque del Amor",
+      voiceText: `Este parque no es antiguo, pero sí es simbólico.
 (pausa)
 
 Se creó en la década de 1990 como un espacio para el encuentro, el descanso y la contemplación.
@@ -176,30 +137,22 @@ No todo necesita explicación.
 (pausa)
 
 Cuando quieras, seguimos.
-Ahora el recorrido cambia de tono.
-      `.trim(),
-highlights: [
-"Parque creado en los años 90",
-"Mural de inspiración precolombina",
-"Espacio de contemplación",
-"El mar como protagonista",
-],
-nextId: "villena",
-},
+Ahora el recorrido cambia de tono.`,
+      summary: `Un parque frente al mar dedicado al encuentro y la contemplación
+en el malecón de Miraflores.`,
+      highlights: [
+        "Parque creado en los años 90",
+        "Mural de inspiración precolombina",
+        "Espacio de contemplación",
+        "El mar como protagonista",
+      ],
+      nextStepPreview: { time: "2–4 min a pie" },
+    },
 
-{
-id: "villena",
-nextStepPreview: {
-  time: "5–7 min a pie",
-},
-title: "Puente Villena Rey",
-latitude: -12.127552,
-longitude: -77.035575,
-summary: `Un puente que atraviesa los acantilados
-y conecta distintas zonas
-del malecón de Miraflores.`,
-voiceText: `
-Aquí la ciudad cambia de escala.
+    {
+      id: "villena",
+      title: "Puente Villena Rey",
+      voiceText: `Aquí la ciudad cambia de escala.
 (pausa)
 
 El puente Villena Rey, construido en el siglo XX, conecta zonas altas del distrito y cruza un vacío natural profundo marcado por los acantilados.
@@ -222,28 +175,23 @@ Hoy funciona como un recordatorio silencioso de que Lima no es solo postal.
 Desde aquí puedes ver el malecón extendiéndose como una línea continua, casi como si la ciudad quisiera acompañar al mar sin invadirlo del todo.
 (pausa)
 
-Seguimos.
-      `.trim(),
-highlights: [
-"Cruza un vacío natural",
-"Infraestructura del siglo XX",
-"Ciudad adaptada al terreno",
-"Mirador del malecón",
-],
-nextId: "larcomar",
-},
+Seguimos.`,
+      summary: `Un puente que atraviesa los acantilados
+y conecta distintas zonas
+del malecón de Miraflores.`,
+      highlights: [
+        "Cruza un vacío natural",
+        "Infraestructura del siglo XX",
+        "Ciudad adaptada al terreno",
+        "Mirador del malecón",
+      ],
+      nextStepPreview: { time: "5–7 min a pie" },
+    },
 
-
-
-{
-id: "larcomar",
-title: "Larcomar",
-latitude: -12.1322691,
-longitude: -77.0301446,
-summary: `Un centro comercial inaugurado en 1998, construido dentro del acantilado
-frente al océano Pacífico.`,
-voiceText: `
-Estás en Larcomar.
+    {
+      id: "larcomar",
+      title: "Larcomar",
+      voiceText: `Estás en Larcomar.
 (pausa)
 
 Este lugar se inauguró en 1998 y, para su momento, fue una idea poco común en Lima.
@@ -274,36 +222,32 @@ ciudad, paisaje y vida contemporánea compartiendo el mismo borde frente al mar.
 Con esto cerramos el recorrido.
 (pausa)
 
-Continuamos.
-`.trim(),
-highlights: [
-"Inaugurado en 1998",
-"Construido sobre un acantilado",
-"Proyecto con debate urbano",
-"Ingeniería de estabilización",
-],
-nextId: "fin-tour-miraflores"
-},
+Continuamos.`,
+      summary: `Un centro comercial inaugurado en 1998, construido dentro del acantilado
+frente al océano Pacífico.`,
+      highlights: [
+        "Inaugurado en 1998",
+        "Construido sobre un acantilado",
+        "Proyecto con debate urbano",
+        "Ingeniería de estabilización",
+      ],
+      previewText: "Siguiente paso: cierre del recorrido",
+    },
 
-
-{
-id: "fin-tour-miraflores",
-previewText: "Recorrido terminado",
-title: "Fin del recorrido",
-summary: `Fin del recorrido por Miraflores,
-donde historia antigua
-y ciudad moderna conviven.`,
-voiceText: `
-Hemos llegado al final de este recorrido por Miraflores.
+    {
+      id: "fin-tour-miraflores",
+      title: "Fin del recorrido",
+      voiceText: `Hemos llegado al final de este recorrido por Miraflores.
 
 Lo caminamos juntos, pero ahora el lugar es tuyo.
 Si te quedas un rato más, disfrútalo sin el teléfono.
 
-Gracias por recorrer Miraflores conmigo.
-  `.trim(),
-highlights: [],
-end: true,
-},
-],
+Gracias por recorrer Miraflores conmigo.`,
+      summary: `Fin del recorrido por Miraflores,
+donde historia antigua
+y ciudad moderna conviven.`,
+      highlights: [],
+      previewText: "Recorrido terminado",
+    },
+  ],
 };
-
