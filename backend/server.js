@@ -49,7 +49,12 @@ const openai = new OpenAI({
 // (filtra por español, escucha las muestras, y copia su Voice ID).
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 console.log("🔑 Llave de ElevenLabs detectada:", ELEVENLABS_API_KEY ? `sí, ${ELEVENLABS_API_KEY.length} caracteres` : "NO detectada (undefined)");
-const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
+// Un voice id por idioma — agregar un idioma nuevo es sumar una línea acá
+// (y su ELEVENLABS_VOICE_ID_XX en .env), no reestructurar nada.
+const VOICE_IDS = {
+  es: process.env.ELEVENLABS_VOICE_ID,
+  en: process.env.ELEVENLABS_VOICE_ID_EN,
+};
 const ELEVENLABS_MODEL = "eleven_multilingual_v2";
 
 // Ajustes de expresividad por modo. "stability" más bajo = más variación en
@@ -117,7 +122,12 @@ function runWithConcurrencyLimit(taskFn) {
 // Con true, usa el endpoint /with-timestamps de ElevenLabs (devuelve JSON
 // con audio_base64 + alignment) y devuelve { buffer, alignment } en vez
 // de un Buffer suelto.
-async function generateVoiceAudio(rawText, mode, withTimestamps = false) {
+//
+// language (default "es"): elige el voice id de VOICE_IDS. El default
+// mantiene a /chat (que nunca lo pasa) funcionando exactamente igual que
+// antes de este parámetro.
+async function generateVoiceAudio(rawText, mode, withTimestamps = false, language = "es") {
+  const voiceId = VOICE_IDS[language];
   const voice_settings = VOICE_SETTINGS[mode] ?? VOICE_SETTINGS.narration;
 
   // El texto de los tours trae marcas de dirección como "(pausa)" y
@@ -134,7 +144,7 @@ async function generateVoiceAudio(rawText, mode, withTimestamps = false) {
   // directo del disco, sin tocar ElevenLabs ni la fila de concurrencia.
   const cacheKey = crypto
     .createHash("md5")
-    .update(`${SERVER_CACHE_VERSION}-${mode}-${text}`)
+    .update(`${SERVER_CACHE_VERSION}-${mode}-${language}-${text}`)
     .digest("hex");
   const cacheFilePath = `${AUDIO_CACHE_DIR}/${cacheKey}.mp3`;
 
@@ -145,7 +155,7 @@ async function generateVoiceAudio(rawText, mode, withTimestamps = false) {
     }
 
     const elevenRes = await runWithConcurrencyLimit(() =>
-      fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`, {
+      fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
         method: "POST",
         headers: {
           "xi-api-key": ELEVENLABS_API_KEY,
@@ -192,7 +202,7 @@ async function generateVoiceAudio(rawText, mode, withTimestamps = false) {
   }
 
   const elevenRes = await runWithConcurrencyLimit(() =>
-    fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/with-timestamps`, {
+    fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps`, {
       method: "POST",
       headers: {
         "xi-api-key": ELEVENLABS_API_KEY,
@@ -231,11 +241,22 @@ export { generateVoiceAudio };
 
 app.post("/voice", requireGuiaKey, async (req, res) => {
   try {
-    const { mode, withTimestamps } = req.body;
+    const { mode, withTimestamps, language = "es" } = req.body;
+
+    // Falla clara y sin costo (antes de tocar la cola de ElevenLabs) si
+    // piden un idioma sin voz configurada — en vez de generar en español
+    // en silencio para un texto que se esperaba en otro idioma. Cubre
+    // tanto un idioma que no existe en VOICE_IDS como uno que existe en el
+    // mapa pero sin su variable de entorno cargada.
+    if (!VOICE_IDS[language]) {
+      return res.status(400).json({
+        error: `Idioma no soportado: "${language}". Disponibles: ${Object.keys(VOICE_IDS).join(", ")}`,
+      });
+    }
 
     if (!withTimestamps) {
       // Camino de siempre — no tocar nada acá.
-      const buffer = await generateVoiceAudio(req.body.text, mode);
+      const buffer = await generateVoiceAudio(req.body.text, mode, false, language);
 
       res.setHeader("Content-Type", "audio/mpeg");
       res.send(buffer);
@@ -245,7 +266,8 @@ app.post("/voice", requireGuiaKey, async (req, res) => {
     const { buffer, alignment } = await generateVoiceAudio(
       req.body.text,
       mode,
-      true
+      true,
+      language
     );
 
     res.json({
