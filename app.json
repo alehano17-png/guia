@@ -46,7 +46,8 @@
       "expo-audio",
       "expo-sqlite",
       "expo-asset",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,
