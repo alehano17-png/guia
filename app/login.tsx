@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "../lib/i18n/useTranslation";
 import {
   TOUR_ACCENT_COLOR,
   TOUR_GRADIENT_COLORS,
@@ -31,6 +32,7 @@ import {
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,7 +41,7 @@ export default function LoginScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim() || !password) {
-      setErrorMessage("Completa correo y contraseña.");
+      setErrorMessage(t.auth.login.missingFields);
       return;
     }
 
@@ -75,17 +77,17 @@ export default function LoginScreen() {
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <View style={styles.content}>
-            <Text style={styles.title}>Inicia sesión</Text>
+            <Text style={styles.title}>{t.auth.login.title}</Text>
             <Text style={styles.subtitle}>
-              Entra para seguir tu recorrido con GUÍA.
+              {t.auth.login.subtitle}
             </Text>
 
             <View style={styles.form}>
               <View style={styles.field}>
-                <Text style={styles.label}>Correo</Text>
+                <Text style={styles.label}>{t.auth.login.emailLabel}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="tucorreo@ejemplo.com"
+                  placeholder={t.auth.login.emailPlaceholder}
                   placeholderTextColor="#9C93B5"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -96,7 +98,7 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Contraseña</Text>
+                <Text style={styles.label}>{t.auth.login.passwordLabel}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
@@ -119,7 +121,7 @@ export default function LoginScreen() {
                 {isSubmitting ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={styles.buttonText}>Iniciar sesión</Text>
+                  <Text style={styles.buttonText}>{t.auth.login.submit}</Text>
                 )}
               </Pressable>
 
@@ -128,8 +130,8 @@ export default function LoginScreen() {
                 onPress={() => router.push("/signup")}
               >
                 <Text style={styles.linkText}>
-                  ¿No tienes cuenta?{" "}
-                  <Text style={styles.linkTextAccent}>Regístrate</Text>
+                  {t.auth.login.noAccount}{" "}
+                  <Text style={styles.linkTextAccent}>{t.auth.login.signUpLink}</Text>
                 </Text>
               </Pressable>
             </View>

@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../hooks/useAuth";
+import { interpolate } from "../lib/i18n/interpolate";
+import { useTranslation } from "../lib/i18n/useTranslation";
 import {
   TOUR_ACCENT_COLOR,
   TOUR_GRADIENT_COLORS,
@@ -33,6 +35,7 @@ const MIN_PASSWORD_LENGTH = 6;
 
 export default function SignupScreen() {
   const { signUp } = useAuth();
+  const { t } = useTranslation();
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,20 +47,20 @@ export default function SignupScreen() {
 
   const handleSubmit = async () => {
     if (!displayName.trim() || !email.trim() || !password || !confirmPassword) {
-      setErrorMessage("Completa todos los campos.");
+      setErrorMessage(t.auth.signup.missingFields);
       setInfoMessage(null);
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMessage("Las contraseñas no coinciden.");
+      setErrorMessage(t.auth.signup.passwordMismatch);
       setInfoMessage(null);
       return;
     }
 
     if (password.length < MIN_PASSWORD_LENGTH) {
       setErrorMessage(
-        `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
+        interpolate(t.auth.signup.passwordTooShort, { minLength: MIN_PASSWORD_LENGTH })
       );
       setInfoMessage(null);
       return;
@@ -89,7 +92,7 @@ export default function SignupScreen() {
       return;
     }
 
-    setInfoMessage("Cuenta creada. Si tu proyecto pide confirmar el correo, revisa tu bandeja de entrada.");
+    setInfoMessage(t.auth.signup.accountCreatedInfo);
   };
 
   return (
@@ -105,17 +108,17 @@ export default function SignupScreen() {
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <View style={styles.content}>
-            <Text style={styles.title}>Crea tu cuenta</Text>
+            <Text style={styles.title}>{t.auth.signup.title}</Text>
             <Text style={styles.subtitle}>
-              Regístrate para guardar tu progreso con GUÍA.
+              {t.auth.signup.subtitle}
             </Text>
 
             <View style={styles.form}>
               <View style={styles.field}>
-                <Text style={styles.label}>¿Cómo te gustaría que te llame?</Text>
+                <Text style={styles.label}>{t.auth.signup.displayNameLabel}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Tu nombre"
+                  placeholder={t.auth.signup.displayNamePlaceholder}
                   placeholderTextColor="#9C93B5"
                   autoCapitalize="words"
                   value={displayName}
@@ -124,10 +127,10 @@ export default function SignupScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Correo</Text>
+                <Text style={styles.label}>{t.auth.signup.emailLabel}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="tucorreo@ejemplo.com"
+                  placeholder={t.auth.signup.emailPlaceholder}
                   placeholderTextColor="#9C93B5"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -138,7 +141,7 @@ export default function SignupScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Contraseña</Text>
+                <Text style={styles.label}>{t.auth.signup.passwordLabel}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
@@ -150,7 +153,7 @@ export default function SignupScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Confirmar contraseña</Text>
+                <Text style={styles.label}>{t.auth.signup.confirmPasswordLabel}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
@@ -177,7 +180,7 @@ export default function SignupScreen() {
                 {isSubmitting ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={styles.buttonText}>Crear cuenta</Text>
+                  <Text style={styles.buttonText}>{t.auth.signup.submit}</Text>
                 )}
               </Pressable>
 
@@ -186,8 +189,8 @@ export default function SignupScreen() {
                 onPress={() => router.back()}
               >
                 <Text style={styles.linkText}>
-                  ¿Ya tienes cuenta?{" "}
-                  <Text style={styles.linkTextAccent}>Inicia sesión</Text>
+                  {t.auth.signup.hasAccount}{" "}
+                  <Text style={styles.linkTextAccent}>{t.auth.signup.loginLink}</Text>
                 </Text>
               </Pressable>
             </View>
