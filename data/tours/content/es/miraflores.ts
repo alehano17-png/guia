@@ -28,45 +28,33 @@ se encuentran frente al Pacífico.`,
     {
       id: "faro",
       title: "Faro de la Marina",
-      voiceText: `Estás en uno de los puntos más simbólicos de Miraflores.
+      voiceText: `Estás en uno de los puntos más fotografiados de Miraflores — pero este faro no nació aquí.
 (pausa)
 
-
-
-Este faro se construyó en 1900, a comienzos del siglo XX, cuando Lima empezó a mirar de verdad hacia el mar.
+Lo construyeron en 1900, y en 1921 empezó a funcionar a cientos de kilómetros de acá, en Punta Coles, un puerto cerca de Ilo, al sur del Perú.
 (micro pausa)
-No es antiguo en términos arqueológicos, pero sí es clave para entender la ciudad moderna.
+Ahí guió barcos durante más de cinco décadas.
 (pausa)
 
-Su función era guiar a las embarcaciones que se acercaban a esta parte de la costa,  en una época en la que el puerto del Callao concentraba el comercio y el tránsito marítimo del país.
-(pausa)
-
-Y hay un detalle bien interesante: el faro no apunta al mar, apunta hacia la ciudad.
+En 1973, la Marina de Guerra lo desarmó pieza por pieza, perno por perno, y lo volvió a levantar exactamente donde estás parado ahora.
 (micro pausa)
-No es un error.
-Su luz servía tanto para orientar barcos como para marcar presencia urbana, como diciendo: “aquí hay ciudad”.
+Hasta hoy, en Ilo todavía hay quien lo reclama como suyo — y Miraflores hace tiempo que lo siente propio.
 (pausa)
 
-Quédate un momento mirando hacia Lima.
+Quédate un momento mirando hacia el mar.
 (silencio 3s)
-Este faro no mira el océano, mira la ciudad.
-(pausa)
-
-Si te das vuelta y miras alrededor, estás justo entre dos tiempos:
-(micro pausa)
-detrás de ti, Lima contemporánea;
-delante, un océano que ha sido ruta, frontera y sustento desde hace miles de años.
+Ese mismo océano conectó, casi sin que nadie lo note, un pequeño puerto del sur con esta esquina de Lima.
 (pausa)
 
 Cuando quieras, caminamos hacia el malecón.`,
-      summary: `Un faro urbano construido en 1990
-que marca el límite entre Lima
-y el océano Pacífico.`,
+      summary: `Un faro construido en 1900 en Ilo,
+trasladado a Miraflores en 1973,
+pieza por pieza.`,
       highlights: [
-        "Construido en 1990",
-        "Faro urbano, no marítimo",
-        "Marca presencia de ciudad",
-        "Límite entre Lima y el oceáno",
+        "Construido en 1900, en Ilo",
+        "Operó 52 años en Punta Coles",
+        "Trasladado a Miraflores en 1973",
+        "Desarmado y reconstruido pieza por pieza",
       ],
       nextStepPreview: { time: "2–4 min a pie" },
     },

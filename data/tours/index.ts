@@ -1,5 +1,7 @@
 import { mergeTourContent } from "./mergeTourContent";
 import type { Tour } from "./types";
+import type { TourContent } from "./content-types";
+import type { TourSkeleton } from "./skeleton-types";
 
 import { mirafloresSkeleton } from "./skeletons/miraflores";
 import { huacaPucllanaSkeleton } from "./skeletons/huaca-pucllana";
@@ -11,22 +13,55 @@ import { huacaPucllanaContentEs } from "./content/es/huaca-pucllana";
 import { barrancoContentEs } from "./content/es/barranco";
 import { centroHistoricoContentEs } from "./content/es/centro-historico";
 
+import { mirafloresContentEn } from "./content/en/miraflores";
+
 export type {
   TourStep
 } from "./types";
 
-const TOURS: Tour[] = [
-  mergeTourContent(mirafloresSkeleton, mirafloresContentEs),
-  mergeTourContent(huacaPucllanaSkeleton, huacaPucllanaContentEs),
-  mergeTourContent(barrancoSkeleton, barrancoContentEs),
-  mergeTourContent(centroHistoricoSkeleton, centroHistoricoContentEs),
+// Independiente del locale de la interfaz (lib/i18n) — usa los mismos
+// códigos ("es"/"en") a propósito, pero sin ningún import compartido
+// entre los dos sistemas: alguien puede tener el celular en inglés
+// mientras el tour sigue solo en español, o viceversa.
+export type TourLocale = "es" | "en";
+
+type TourRegistryEntry = {
+  skeleton: TourSkeleton;
+  // Partial a propósito: un tour puede no tener todavía contenido en
+  // un idioma. getTourById cae a "es" cuando falta el idioma pedido.
+  content: Partial<Record<TourLocale, TourContent>>;
+};
+
+const TOUR_REGISTRY: TourRegistryEntry[] = [
+  {
+    skeleton: mirafloresSkeleton,
+    content: { es: mirafloresContentEs, en: mirafloresContentEn },
+  },
+  {
+    skeleton: huacaPucllanaSkeleton,
+    content: { es: huacaPucllanaContentEs },
+  },
+  {
+    skeleton: barrancoSkeleton,
+    content: { es: barrancoContentEs },
+  },
+  {
+    skeleton: centroHistoricoSkeleton,
+    content: { es: centroHistoricoContentEs },
+  },
 ];
 
-// El parámetro locale queda listo para cuando haya más de un idioma
-// disponible — hoy solo existe contenido "es", así que se ignora a
-// propósito y no cambia el comportamiento de ningún llamado actual
-// (getTourById(tourId), con un solo argumento, en app/tour.tsx).
-export function getTourById(id: string, locale: "es" = "es"): Tour | undefined {
-  void locale;
-  return TOURS.find((tour) => tour.id === id);
+// Agregar un idioma nuevo a un tour = sumar su clave al "content" de
+// ese tour en TOUR_REGISTRY (más el archivo content/xx/tour.ts en
+// sí). Nada más cambia. Si el idioma pedido no existe para ese tour
+// todavía, cae a "es" en vez de romper — mismo criterio de respaldo
+// que ya usa la detección de idioma de lib/i18n.
+export function getTourById(id: string, locale: TourLocale = "es"): Tour | undefined {
+  const entry = TOUR_REGISTRY.find((e) => e.skeleton.id === id);
+  if (!entry) return undefined;
+
+  const content = entry.content[locale] ?? entry.content.es;
+  if (!content) return undefined;
+
+  return mergeTourContent(entry.skeleton, content);
 }
