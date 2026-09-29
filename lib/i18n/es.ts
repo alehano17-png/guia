@@ -14,6 +14,7 @@
 // inventario. La migración de las pantallas es un paso aparte.
 export const es = {
   home: {
+    greeting: "Hola, {{name}}",
     greetingFallback: "Hola, soy",
     tagline: "Compañía a tu modo",
     start: "EMPEZAR",

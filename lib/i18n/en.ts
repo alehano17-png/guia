@@ -5,6 +5,7 @@ import type { TranslationDictionary } from "./es";
 // otra, esto no compila.
 export const en: TranslationDictionary = {
   home: {
+    greeting: "Hi, {{name}}",
     greetingFallback: "Hi, I'm",
     tagline: "Company, your way",
     start: "START",

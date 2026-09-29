@@ -21,6 +21,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getUserDisplayName, useAuth } from "../../hooks/useAuth";
+import { interpolate } from "../../lib/i18n/interpolate";
+import { useTranslation } from "../../lib/i18n/useTranslation";
 import {
   TOUR_ACCENT_COLOR,
   TOUR_GRADIENT_COLORS,
@@ -147,12 +149,15 @@ function AmbientParticles() {
 
 export default function StartScreen() {
   const { user, signOut } = useAuth();
+  const { t } = useTranslation();
 
   // Con sesión y nombre guardado: "Hola, {nombre}". Con sesión pero sin
   // nombre (se registró antes de que existiera el campo, o lo dejó vacío)
   // o sin sesión: se queda el saludo genérico de siempre.
   const displayName = getUserDisplayName(user);
-  const greeting = displayName ? `Hola, ${displayName}` : "Hola, soy";
+  const greeting = displayName
+    ? interpolate(t.home.greeting, { name: displayName })
+    : t.home.greetingFallback;
 
   // 1. Logo flotando: sube 12px y baja, ciclo 4000ms, infinito, ease-in-out
   const logoTranslateY = useSharedValue(0);
@@ -226,7 +231,7 @@ export default function StartScreen() {
       </View>
 
       <Text style={styles.subtitle}>
-        Compañía a tu modo
+        {t.home.tagline}
       </Text>
     </View>
 
@@ -247,7 +252,7 @@ export default function StartScreen() {
       />
 
       <View style={styles.buttonContent}>
-        <Text style={styles.buttonText}>EMPEZAR</Text>
+        <Text style={styles.buttonText}>{t.home.start}</Text>
         <Ionicons name="arrow-forward" size={18} color="#FFF" />
       </View>
     </Pressable>
@@ -256,7 +261,7 @@ export default function StartScreen() {
         desinstalar la app. No es un elemento final de esta pantalla. */}
     {user && (
       <Pressable style={styles.signOutLink} onPress={() => signOut()}>
-        <Text style={styles.signOutText}>Cerrar sesión</Text>
+        <Text style={styles.signOutText}>{t.home.signOut}</Text>
       </Pressable>
     )}
   </View>
