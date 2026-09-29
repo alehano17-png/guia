@@ -6,13 +6,16 @@
 // mano.
 //
 // Sin esto, estimateSentenceStartTimes contaría caracteres que la voz
-// real nunca pronuncia (los marcadores "(pausa)"/"(micro pausa)" se
-// eliminan antes de generar el audio), inflando el conteo y corriendo la
-// estimación de todo lo que sigue.
+// real nunca pronuncia (los marcadores "(pausa)", "(micro pausa)",
+// "(silencio Ns)" y "(confirmación requerida)" se eliminan antes de
+// generar el audio), inflando el conteo y corriendo la estimación de todo
+// lo que sigue.
 export function cleanNarrationText(rawText: string): string {
   return rawText
     .replace(/\(\s*micro\s*pausa\s*\)/gi, "")
     .replace(/\(\s*pausa\s*\)/gi, "")
+    .replace(/\(\s*silencio\s*\d+\s*s\s*\)/gi, "")
+    .replace(/\(\s*confirmación\s*requerida\s*\)/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

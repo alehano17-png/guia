@@ -130,12 +130,15 @@ async function generateVoiceAudio(rawText, mode, withTimestamps = false, languag
   const voiceId = VOICE_IDS[language];
   const voice_settings = VOICE_SETTINGS[mode] ?? VOICE_SETTINGS.narration;
 
-  // El texto de los tours trae marcas de dirección como "(pausa)" y
-  // "(micro pausa)" — no deben sonar en la narración, se convierten en
-  // una pausa natural con puntuación en vez de leerse literal.
+  // El texto de los tours trae marcas de dirección como "(pausa)",
+  // "(micro pausa)", "(silencio Ns)" y "(confirmación requerida)" — no
+  // deben sonar en la narración, se convierten en una pausa natural con
+  // puntuación en vez de leerse literal.
   const text = rawText
     .replace(/\(\s*micro\s*pausa\s*\)/gi, "")
     .replace(/\(\s*pausa\s*\)/gi, "")
+    .replace(/\(\s*silencio\s*\d+\s*s\s*\)/gi, "")
+    .replace(/\(\s*confirmación\s*requerida\s*\)/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
