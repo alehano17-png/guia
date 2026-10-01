@@ -1,5 +1,5 @@
-﻿import type { DiscoveryCatalogItem } from "./catalog";
-import { discoveryCopy } from "./copy";
+import type { DiscoveryCatalogItem } from "./catalog";
+import type { TranslationDictionary } from "../../lib/i18n/es";
 
 function isDiscoveryItemPlayable(
   item: DiscoveryCatalogItem
@@ -15,10 +15,11 @@ export function getDiscoveryItemTourId(
 }
 
 export function getDiscoveryItemStatus(
-  item: DiscoveryCatalogItem
+  item: DiscoveryCatalogItem,
+  t: TranslationDictionary
 ): string | undefined {
   if (item.availability === "coming_soon") {
-    return discoveryCopy.status.comingSoon;
+    return t.status.comingSoon;
   }
 
   return undefined;

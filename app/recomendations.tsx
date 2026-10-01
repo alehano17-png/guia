@@ -11,13 +11,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import LoadingSearchScreen from "../components/tour/LoadingSearchScreen";
-import { discoveryCopy } from "../data/discovery/copy";
 import { getDiscoveryItemImage, hasDiscoveryItemImage } from "../data/discovery/mediaHelpers";
 import { getDiscoveryItemDurationLabel } from "../data/discovery/presentation";
 import { getRecommendationsCopy } from "../data/discovery/recommendationsCopy";
 import { useDiscoveryContent } from "../hooks/useDiscoveryContent";
 import { useDiscoveryNavigation } from "../hooks/useDiscoveryNavigation";
 import { useTourLocation } from "../hooks/useTourLocation";
+import { useTranslation } from "../lib/i18n/useTranslation";
 import {
   TOUR_GRADIENT_COLORS,
   TOUR_TEXT_PRIMARY,
@@ -71,6 +71,7 @@ function TourCard({
 }
 
 export default function Recommendations() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
 
  const { userLocation } = useTourLocation();
@@ -123,7 +124,7 @@ const showDiscoverPlacesEntry =
     };
   }, []);
 
-  const cityName = detectedCity?.name ?? "tu ciudad";
+  const cityName = detectedCity?.name ?? t.recommendations.defaultCityName;
 
   const hasContentInDetectedZone =
   featuredToursInDetectedZone.length > 0 ||
@@ -135,6 +136,7 @@ const zoneName =
     : null;
 
 const { headerSubtitle } = getRecommendationsCopy({
+  t,
   cityName,
   zoneName,
   hasSupportedCity,
@@ -148,7 +150,7 @@ if (loading) {
       <>
         <StatusBar style="dark" />
         <LoadingSearchScreen
-          title={discoveryCopy.recommendations.loadingTitle}
+          title={t.recommendations.loadingTitle}
         />
       </>
     );
@@ -165,7 +167,7 @@ if (loading) {
 
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <Text style={styles.title}>{discoveryCopy.recommendations.title}</Text>
+          <Text style={styles.title}>{t.recommendations.title}</Text>
           <Text style={styles.subtitle}>{headerSubtitle}</Text>
         </View>
 

@@ -1,4 +1,4 @@
-﻿import { discoveryCopy } from "./copy";
+import type { TranslationDictionary } from "../../lib/i18n/es";
 
 export type DiscoverySectionEntry = {
   title: string;
@@ -7,11 +7,15 @@ export type DiscoverySectionEntry = {
   isVisible: boolean;
 };
 
-export const discoverySectionEntries = {
-  discover_places: {
-    title: discoveryCopy.discover.title,
-    subtitle: discoveryCopy.discover.subtitle,
-    route: "/discover",
-    isVisible: true,
-  },
-} satisfies Record<string, DiscoverySectionEntry>;
+export function getDiscoverySectionEntries(
+  t: TranslationDictionary
+): Record<string, DiscoverySectionEntry> {
+  return {
+    discover_places: {
+      title: t.discover.title,
+      subtitle: t.discover.subtitle,
+      route: "/discover",
+      isVisible: true,
+    },
+  };
+}

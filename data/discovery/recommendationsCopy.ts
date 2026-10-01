@@ -1,6 +1,8 @@
-﻿import { discoveryCopy } from "./copy";
+import type { TranslationDictionary } from "../../lib/i18n/es";
+import { interpolate } from "../../lib/i18n/interpolate";
 
 type Params = {
+  t: TranslationDictionary;
   cityName: string;
   zoneName: string | null;
   hasSupportedCity: boolean;
@@ -8,11 +10,8 @@ type Params = {
   hasDiscoverPlaces: boolean;
 };
 
-function interpolate(template: string, cityName: string) {
-  return template.replace("{{cityName}}", cityName);
-}
-
 export function getRecommendationsCopy({
+  t,
   cityName,
   zoneName,
   hasSupportedCity,
@@ -21,34 +20,20 @@ export function getRecommendationsCopy({
 }: Params) {
   const headerSubtitle =
     hasSupportedCity && hasFeaturedTours
-      ? interpolate(
-          discoveryCopy.recommendations.headerSupportedWithTours,
-          cityName
-        )
+      ? interpolate(t.recommendations.headerSupportedWithTours, { cityName })
       : hasSupportedCity && !hasFeaturedTours && hasDiscoverPlaces
-        ? interpolate(
-            discoveryCopy.recommendations.headerSupportedWithPlaces,
-            cityName
-          )
+        ? interpolate(t.recommendations.headerSupportedWithPlaces, { cityName })
         : hasSupportedCity && !hasFeaturedTours && !hasDiscoverPlaces
-          ? interpolate(
-              discoveryCopy.recommendations.headerSupportedEmpty,
-              cityName
-            )
+          ? interpolate(t.recommendations.headerSupportedEmpty, { cityName })
           : hasFeaturedTours || hasDiscoverPlaces
-            ? discoveryCopy.recommendations.unsupportedButAvailable
-            : discoveryCopy.recommendations.unsupportedLocation;
+            ? t.recommendations.unsupportedButAvailable
+            : t.recommendations.unsupportedLocation;
 
   const zoneContext = zoneName
-  ? discoveryCopy.recommendations.detectedZone.replace(
-      "{{zoneName}}",
-      zoneName
-    )
-  : "";
+    ? interpolate(t.recommendations.detectedZone, { zoneName })
+    : "";
 
-return {
-  headerSubtitle: zoneContext
-    ? `${zoneContext} ${headerSubtitle}`
-    : headerSubtitle,
-};
+  return {
+    headerSubtitle: zoneContext ? `${zoneContext} ${headerSubtitle}` : headerSubtitle,
+  };
 }

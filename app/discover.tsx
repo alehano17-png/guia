@@ -13,12 +13,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   getDiscoveryItemStatus
 } from "../data/discovery/behavior";
-import { discoveryCopy } from "../data/discovery/copy";
 import { getDiscoveryItemMetaLabel } from "../data/discovery/presentation";
 import { useDiscoveryNavigation } from "../hooks/useDiscoveryNavigation";
 
 import { useDiscoveryContent } from "../hooks/useDiscoveryContent";
 import { useTourLocation } from "../hooks/useTourLocation";
+import { useTranslation } from "../lib/i18n/useTranslation";
 import { TOUR_GRADIENT_COLORS, TOUR_TEXT_PRIMARY, TOUR_TEXT_SECONDARY } from "../lib/tourTheme";
 import {
   FONT_BOLD,
@@ -63,6 +63,7 @@ function PlaceCard({ title, subtitle, meta, status, onPress }: PlaceCardProps) {
 }
 
 export default function DiscoverScreen() {
+  const { t } = useTranslation();
   const { userLocation } = useTourLocation();
   const { discoverPlaces } = useDiscoveryContent(userLocation);
 
@@ -79,7 +80,7 @@ export default function DiscoverScreen() {
         <View style={styles.topBar}>
           <Pressable style={styles.topAction} onPress={() => router.back()}>
             <Ionicons name="close" size={16} color={TOUR_TEXT_SECONDARY} />
-            <Text style={styles.topActionText}>{discoveryCopy.discover.backLabel}</Text>
+            <Text style={styles.topActionText}>{t.discover.backLabel}</Text>
           </Pressable>
         </View>
 
@@ -87,13 +88,13 @@ export default function DiscoverScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
         >
-          <Text style={styles.title}>{discoveryCopy.discover.title}</Text>
+          <Text style={styles.title}>{t.discover.title}</Text>
           <Text style={styles.subtitle}>
-  {discoveryCopy.discover.subtitle}
+  {t.discover.subtitle}
 </Text>
 
           <View style={styles.sectionPill}>
-            <Text style={styles.sectionPillText}>{discoveryCopy.discover.sectionLabel}</Text>
+            <Text style={styles.sectionPillText}>{t.discover.sectionLabel}</Text>
           </View>
 
           <View style={styles.cards}>
@@ -103,7 +104,7 @@ export default function DiscoverScreen() {
                 title={place.title}
                 subtitle={place.subtitle}
                 meta={getDiscoveryItemMetaLabel(place)}
-                status={getDiscoveryItemStatus(place)}
+                status={getDiscoveryItemStatus(place, t)}
 onPress={
   canOpenDiscoveryItem(place)
     ? () => openDiscoveryItem(place)

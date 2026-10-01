@@ -1,10 +1,12 @@
 ﻿import { useRouter } from "expo-router";
-import { discoverySectionEntries } from "../data/discovery/sections";
+import { getDiscoverySectionEntries } from "../data/discovery/sections";
 import type { DiscoveryCatalogItem } from "../data/discovery/catalog";
 import { getDiscoveryItemRoute } from "../data/discovery/routes";
+import { useTranslation } from "../lib/i18n/useTranslation";
 
 export function useDiscoveryNavigation() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const canOpenDiscoveryItem = (item: DiscoveryCatalogItem) => {
     return !!getDiscoveryItemRoute(item);
@@ -17,7 +19,7 @@ export function useDiscoveryNavigation() {
     router.push(route);
   };
 
-  const discoverPlacesEntry = discoverySectionEntries.discover_places;
+  const discoverPlacesEntry = getDiscoverySectionEntries(t).discover_places;
 
   const canOpenDiscoverPlaces = () => {
     return discoverPlacesEntry.isVisible;
