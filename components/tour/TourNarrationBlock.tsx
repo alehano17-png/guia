@@ -3,6 +3,7 @@ import React from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { SharedValue } from "react-native-reanimated";
 import { GuiaVoiceStatus } from "../../hooks/useGuiaVoiceMode";
+import { useTranslation } from "../../lib/i18n/useTranslation";
 import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
 import { FONT_REGULAR, FONT_SIZE_LG, FONT_SIZE_XS } from "../../lib/typography";
 import VoiceBlob from "./VoiceBlob";
@@ -15,15 +16,6 @@ type Props = {
   onAskGuia: () => void;
 };
 
-// Texto de la píldora según el estado del modo de voz de GUÍA.
-const GUIA_STATUS_LABEL: Record<GuiaVoiceStatus, string> = {
-  idle: "Toca para hablar con GUÍA",
-  listening: "Escuchando...",
-  thinking: "Pensando...",
-  speaking: "Hablando...",
-  error: "No entendí, toca para intentar de nuevo",
-};
-
 export default function TourNarrationBlock({
   pulseAnim,
   voiceEnergy,
@@ -31,6 +23,16 @@ export default function TourNarrationBlock({
   guiaVoiceStatus,
   onAskGuia,
 }: Props) {
+  const { t } = useTranslation();
+  // Texto de la píldora según el estado del modo de voz de GUÍA.
+  const guiaStatusLabel: Record<GuiaVoiceStatus, string> = {
+    idle: t.guia.statusIdle,
+    listening: t.guia.statusListening,
+    thinking: t.guia.statusThinking,
+    speaking: t.guia.statusSpeaking,
+    error: t.guia.statusError,
+  };
+
   // Solo se puede tocar en reposo o tras un error — mientras escucha,
   // piensa o habla, ya hay una pregunta en curso y no debe dispararse otra.
   const isGuiaBusy =
@@ -85,7 +87,7 @@ export default function TourNarrationBlock({
           disabled={isGuiaBusy}
         >
           <Ionicons name="mic" size={16} color={TOUR_ACCENT_COLOR} />
-          <Text style={styles.askTip}>{GUIA_STATUS_LABEL[guiaVoiceStatus]}</Text>
+          <Text style={styles.askTip}>{guiaStatusLabel[guiaVoiceStatus]}</Text>
         </Pressable>
       </View>
     </View>

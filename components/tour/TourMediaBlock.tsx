@@ -16,6 +16,7 @@ import {
   FONT_SIZE_SM,
   FONT_SIZE_XS,
 } from "../../lib/typography";
+import { useTranslation } from "../../lib/i18n/useTranslation";
 
 type ActionCardData = {
   tag: string;
@@ -54,6 +55,8 @@ export default function TourMediaBlock({
   previewDestination,
   previewInfoText,
 }: Props) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.mediaBlock}>
       {showActionCard && actionCardData ? (
@@ -107,7 +110,7 @@ export default function TourMediaBlock({
             >
               <View style={styles.mapPreviewCta}>
                 <Ionicons name="navigate-outline" size={16} color="#FFF" />
-                <Text style={styles.mapPreviewCtaText}>Abrir Maps</Text>
+                <Text style={styles.mapPreviewCtaText}>{t.tour.openMaps}</Text>
               </View>
             </BlurView>
           </Pressable>

@@ -16,6 +16,7 @@ import {
   FONT_SIZE_SM,
   FONT_SIZE_XL,
 } from "../../lib/typography";
+import { useTranslation } from "../../lib/i18n/useTranslation";
 
 type ChoiceOption = {
   label: string;
@@ -37,6 +38,8 @@ export default function TourDecisionModal({
   onSelectChoice,
   onClose,
 }: Props) {
+  const { t } = useTranslation();
+
   if (!visible) return null;
 
   return (
@@ -57,7 +60,7 @@ export default function TourDecisionModal({
           },
         ]}
       >
-        <Text style={styles.title}>Elige cómo continuar</Text>
+        <Text style={styles.title}>{t.tour.decisionTitle}</Text>
 
         {choices?.map((choice) => (
           <Pressable
@@ -82,7 +85,7 @@ export default function TourDecisionModal({
         ))}
 
         <Pressable style={styles.cancel} onPress={onClose}>
-          <Text style={styles.cancelText}>Cancelar</Text>
+          <Text style={styles.cancelText}>{t.tour.cancel}</Text>
         </Pressable>
       </Animated.View>
     </View>

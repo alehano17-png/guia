@@ -69,6 +69,7 @@ export const en: TranslationDictionary = {
   tour: {
     exit: "Exit",
     next: "Next",
+    startWalking: "Start tour",
     stepProgress: "Narrating - Step {{current}} of {{total}}",
     decisionTitle: "Choose how to continue",
     cancel: "Cancel",

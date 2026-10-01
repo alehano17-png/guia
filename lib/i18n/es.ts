@@ -82,6 +82,7 @@ export const es = {
   tour: {
     exit: "Salir",
     next: "Siguiente",
+    startWalking: "Empezar recorrido",
     stepProgress: "Narrando - Paso {{current}} de {{total}}",
     decisionTitle: "Elige cómo continuar",
     cancel: "Cancelar",

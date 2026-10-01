@@ -32,6 +32,7 @@ import {
     FONT_SIZE_SM,
     FONT_SIZE_XL,
 } from "../../lib/typography";
+import { useTranslation } from "../../lib/i18n/useTranslation";
 
 // Duración de la transición de entrada/salida de la hoja (Reanimated).
 const SHEET_ANIM_MS = 280;
@@ -71,6 +72,7 @@ export default function TourChatSheet({
   onSuggestionPress,
   onMicPress,
 }: Props) {
+  const { t } = useTranslation();
   const scrollRef = useAnimatedRef<ReanimatedAnimated.ScrollView>();
 
   const isFirstRun = useRef(true);
@@ -205,7 +207,7 @@ export default function TourChatSheet({
       <View style={[styles.chatOverlay, { paddingTop: insetsTop }]}>
         <View style={styles.chatHeader}>
           <Pressable onPress={onClose} hitSlop={12}>
-            <Text style={styles.chatClose}>Cerrar</Text>
+            <Text style={styles.chatClose}>{t.chat.close}</Text>
           </Pressable>
 
           <Text style={styles.chatTitle}>GUÍA</Text>
@@ -228,16 +230,11 @@ export default function TourChatSheet({
             </View>
 
             <View style={{ flex: 1 }}>
-              <Text style={styles.chatCardLabel}>
-                Estoy narrando el punto:
-              </Text>
+              <Text style={styles.chatCardLabel}>{t.chat.narratingLabel}</Text>
 
               <Text style={styles.chatCardTitle}>{stepTitle}</Text>
 
-              <Text style={styles.chatCardText}>
-                Puedes preguntarme algo sobre este lugar o sobre cualquier parte
-                del tour.
-              </Text>
+              <Text style={styles.chatCardText}>{t.chat.helperText}</Text>
             </View>
           </View>
         </ReanimatedAnimated.View>
@@ -255,32 +252,32 @@ export default function TourChatSheet({
         >
           {messages.length === 0 && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>¿En qué te ayudo?</Text>
+              <Text style={styles.emptyTitle}>{t.chat.emptyTitle}</Text>
 
               <Pressable
                 style={styles.suggestionChip}
-                onPress={() => onSuggestionPress("¿Qué historia tiene este lugar?")}
+                onPress={() => onSuggestionPress(t.chat.suggestionHistory)}
               >
                 <Text style={styles.suggestionText}>
-                  ¿Qué historia tiene este lugar?
+                  {t.chat.suggestionHistory}
                 </Text>
               </Pressable>
 
               <Pressable
                 style={styles.suggestionChip}
-                onPress={() => onSuggestionPress("¿Qué debería ver cerca de aquí?")}
+                onPress={() => onSuggestionPress(t.chat.suggestionNearby)}
               >
                 <Text style={styles.suggestionText}>
-                  ¿Qué debería ver cerca de aquí?
+                  {t.chat.suggestionNearby}
                 </Text>
               </Pressable>
 
               <Pressable
                 style={styles.suggestionChip}
-                onPress={() => onSuggestionPress("¿Cuánto tiempo toma este tour?")}
+                onPress={() => onSuggestionPress(t.chat.suggestionDuration)}
               >
                 <Text style={styles.suggestionText}>
-                  ¿Cuánto tiempo toma este tour?
+                  {t.chat.suggestionDuration}
                 </Text>
               </Pressable>
             </View>
@@ -386,7 +383,7 @@ export default function TourChatSheet({
             </Pressable>
 
             <TextInput
-              placeholder="Haz una pregunta..."
+              placeholder={t.chat.inputPlaceholder}
               placeholderTextColor="#9CA3AF"
               style={styles.chatInput}
               value={input}

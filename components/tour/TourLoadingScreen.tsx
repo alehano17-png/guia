@@ -5,13 +5,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LOADING_ANIMATIONS } from "../loadingAnimations";
 import { FONT_BOLD, FONT_SIZE_TITLE } from "../../lib/typography";
 import { TOUR_GRADIENT_COLORS } from "../../lib/tourTheme";
+import { interpolate } from "../../lib/i18n/interpolate";
+import { useTranslation } from "../../lib/i18n/useTranslation";
 
 type Props = {
   tourTitle: string;
 };
 
 export default function TourLoadingScreen({ tourTitle }: Props) {
-  const headline = `Preparando tu recorrido por ${tourTitle}`;
+  const { t } = useTranslation();
+  const headline = interpolate(t.tour.preparing, { tourTitle });
 
   // Una sola vez por montaje (inicializador perezoso de useState, mismo
   // patrón que ya se usa en el resto de la migración) — no se vuelve a

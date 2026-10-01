@@ -14,6 +14,8 @@ import {
   FONT_SIZE_TITLE,
   FONT_SIZE_XS,
 } from "../../lib/typography";
+import { interpolate } from "../../lib/i18n/interpolate";
+import { useTranslation } from "../../lib/i18n/useTranslation";
 
 type Props = {
   title: string;
@@ -30,12 +32,14 @@ export default function TourHeader({
   onBack,
   onOpenChat,
 }: Props) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.headerBlock}>
       <View style={styles.topBar}>
         <Pressable style={styles.topAction} onPress={onBack}>
           <Ionicons name="close" size={16} color={TOUR_TEXT_SECONDARY} />
-          <Text style={styles.topActionText}>Salir</Text>
+          <Text style={styles.topActionText}>{t.tour.exit}</Text>
         </Pressable>
 
         <Pressable style={styles.chatButton} onPress={onOpenChat}>
@@ -59,7 +63,10 @@ export default function TourHeader({
       <View style={styles.metaPill}>
         <View style={styles.liveDot} />
         <Text style={styles.liveText}>
-          Narrando - Paso {stepIndex + 1} de {totalSteps}
+          {interpolate(t.tour.stepProgress, {
+            current: stepIndex + 1,
+            total: totalSteps,
+          })}
         </Text>
       </View>
     </View>

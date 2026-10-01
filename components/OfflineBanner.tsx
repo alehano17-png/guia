@@ -8,6 +8,7 @@ import {
   FONT_SIZE_MD,
   FONT_SIZE_XL,
 } from "../lib/typography";
+import { useTranslation } from "../lib/i18n/useTranslation";
 
 // Se considera "sin conexión" si el radio (WiFi/datos) está desconectado, O
 // si está conectado pero no llega a internet de verdad (WiFi de un
@@ -26,6 +27,7 @@ function isOfflineState(state: { isConnected: boolean | null; isInternetReachabl
 // centrada animada), pero autónomo: no depende de que ninguna pantalla le
 // pase `visible` ni un Animated.Value — se gestiona solo.
 export default function OfflineBanner() {
+  const { t } = useTranslation();
   const [isOffline, setIsOffline] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   // useState (no useRef) por la misma razón que ya se aplicó en
@@ -95,11 +97,9 @@ export default function OfflineBanner() {
           resizeMode="contain"
         />
 
-        <Text style={styles.title}>Parece que no hay conexión</Text>
+        <Text style={styles.title}>{t.offline.title}</Text>
 
-        <Text style={styles.message}>
-          Revisa tu WiFi o datos móviles, e inténtalo de nuevo.
-        </Text>
+        <Text style={styles.message}>{t.offline.message}</Text>
 
         <Pressable
           style={[styles.retryButton, isRetrying && styles.retryButtonDisabled]}
@@ -107,7 +107,7 @@ export default function OfflineBanner() {
           disabled={isRetrying}
         >
           <Text style={styles.retryText}>
-            {isRetrying ? "Comprobando..." : "Reintentar"}
+            {isRetrying ? t.offline.retrying : t.offline.retry}
           </Text>
         </Pressable>
       </Animated.View>

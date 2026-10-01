@@ -19,7 +19,6 @@ import {
 import { getTourPreviewData } from "../data/tours/preview";
 import {
   GUIA_TRANSITION_AUDIO_STEP_ID,
-  GUIA_TRANSITION_PHRASES,
   useGuiaVoiceMode,
 } from "../hooks/useGuiaVoiceMode";
 import { useTourAudio } from "../hooks/useTourAudio";
@@ -29,6 +28,7 @@ import { getDistanceInMeters } from "../lib/geo";
 import { ChatMessage } from "../lib/chatTypes";
 import { sendTourChatMessage } from "../lib/sendTourChatMessage";
 import { TOUR_GRADIENT_COLORS } from "../lib/tourTheme";
+import { useTranslation } from "../lib/i18n/useTranslation";
 
 // Radio de "llegada" al punto del recorrido, en metros — a partir de acá
 // se dispara el avance automático (solo para pasos de tipo "advance").
@@ -58,7 +58,7 @@ export default function TourScreen() {
 
 function TourScreenContent({ tourId }: { tourId: string }) {
 
-
+const { t } = useTranslation()
 
 
 const insets = useSafeAreaInsets()
@@ -119,8 +119,8 @@ const resumeNarration = useCallback(async () => {
   if (!currentStep) return;
 
   const transitionPhrase =
-    GUIA_TRANSITION_PHRASES[
-      Math.floor(Math.random() * GUIA_TRANSITION_PHRASES.length)
+    t.guia.transitionPhrases[
+      Math.floor(Math.random() * t.guia.transitionPhrases.length)
     ];
   await ensureAudioForStep(GUIA_TRANSITION_AUDIO_STEP_ID, transitionPhrase);
   await playCachedAudioAndWait(GUIA_TRANSITION_AUDIO_STEP_ID, transitionPhrase);
@@ -129,7 +129,7 @@ const resumeNarration = useCallback(async () => {
   // de arriba (que se queda con el camino de siempre, sin este parámetro).
   await ensureAudioForStep(currentStep.id, currentStep.voiceText, true);
   await resumeCachedAudioFromLastPosition(currentStep.id, currentStep.voiceText);
-}, [ensureAudioForStep, playCachedAudioAndWait, resumeCachedAudioFromLastPosition]);
+}, [ensureAudioForStep, playCachedAudioAndWait, resumeCachedAudioFromLastPosition, t]);
 
 // stopCurrentAudio acepta el paso actual como parámetro opcional para
 // redondear la posición guardada hacia atrás, hasta el inicio de la
@@ -272,8 +272,8 @@ const hasChoices = !!step?.choices?.length
 
 const primaryButtonLabel =
   isGuidedStart && startRoute
-    ? (startMapViewed ? "Empezar recorrido" : startRoute.buttonLabel)
-    : "Siguiente"
+    ? (startMapViewed ? t.tour.startWalking : startRoute.buttonLabel)
+    : t.tour.next
 
    
 
@@ -461,7 +461,7 @@ const sendMessage = async (messageOverride?: string) => {
       {
         id: createMessageId(),
         role: "assistant",
-        text: "Tuve un problema al responder. Intenta otra vez."
+        text: t.tour.chatError
       }
     ])
   }
