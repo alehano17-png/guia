@@ -42,7 +42,7 @@ y el mar se encuentran.`,
 
         Busca la fuente del centro. Se llama "La Danaide".
         (micro pausa)
-        En la mitología griega, las Danaides eran 49 hermanas que mataron a sus esposos la misma noche de bodas. No sé por qué alguien eligió justo esa historia para una plaza familiar, pero ahí sigue, sin que nadie la haya movido en más de un siglo.
+        En la mitología griega, las Danaides eran 50 hermanas, y 49 de ellas mataron a sus esposos la misma noche de bodas. No sé por qué alguien eligió justo esa historia para una plaza familiar, pero ahí sigue, sin que nadie la haya movido en más de un siglo.
 
         (pausa)
 

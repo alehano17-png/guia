@@ -42,7 +42,7 @@ and the sea come together.`,
 
         Look for the fountain in the center. It's called "La Danaide."
         (micro pausa)
-        In Greek mythology, the Danaids were 49 sisters who killed their husbands on their wedding night. I don't know why anyone chose that particular story for a family-friendly square, but there it is, and nobody has moved it in over a century.
+        In Greek mythology, the Danaids were 50 sisters, and 49 of them killed their husbands on their wedding night. I don't know why anyone chose that particular story for a family-friendly square, but there it is, and nobody has moved it in over a century.
 
         (pausa)
 
