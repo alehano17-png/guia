@@ -17,6 +17,7 @@ import {
   estimateSentenceStartTimes,
   findSentenceStartAtOrBefore,
 } from "../lib/sentences";
+import type { TourLocale } from "../data/tours/index";
 import { TOUR_API_BASE_URL, TOUR_API_KEY, TOUR_API_KEY_HEADER } from "../lib/tourApiConfig";
 
 const FileSystem = require("expo-file-system/legacy");
@@ -75,7 +76,12 @@ const SMOOTHING = 0.25; // 0 = sin suavizar, 1 = nunca cambia
 // arranque la elegida como punto de retomada.
 const ALIGNMENT_SEEK_BUFFER_SECONDS = 0.15;
 
-export function useTourAudio(pulseAnim?: Animated.Value) {
+export function useTourAudio(
+  pulseAnim?: Animated.Value,
+  // Idioma del tour (no el de la interfaz). "es" por defecto: sin este
+  // parámetro todo suena y se cachea exactamente como antes.
+  language: TourLocale = "es"
+) {
   const audioCacheRef = useRef<Record<string, string>>({});
   // Alignment real de ElevenLabs por cacheKey (mismo cacheKey que
   // audioCacheRef) — solo se llena para narración real (withTimestamps),
@@ -145,17 +151,22 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
     return CryptoJS.MD5(text).toString();
   }, []);
 
+  // El idioma entra en la clave solo cuando no es "es": así el caché nunca
+  // mezcla idiomas, y los archivos en español ya guardados con la clave de
+  // siempre siguen valiendo.
+  const languagePrefix = language === "es" ? "" : `${language}-`;
+
   const getCacheKey = useCallback(
     (stepId: string, text: string) =>
-      `${AUDIO_VERSION}-${stepId}-${getHash(text)}`,
-    [getHash]
+      `${AUDIO_VERSION}-${languagePrefix}${stepId}-${getHash(text)}`,
+    [getHash, languagePrefix]
   );
 
   const getFileUri = useCallback(
     (stepId: string, text: string) =>
       FileSystem.documentDirectory +
-      `${AUDIO_VERSION}-${stepId}-${getHash(text)}.mp3`,
-    [getHash]
+      `${AUDIO_VERSION}-${languagePrefix}${stepId}-${getHash(text)}.mp3`,
+    [getHash, languagePrefix]
   );
 
   // withTimestamps (default false): con false, esta función es idéntica a
@@ -210,7 +221,7 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
               "Content-Type": "application/json",
               [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
             },
-            body: JSON.stringify({ text, mode: "narration" }),
+            body: JSON.stringify({ text, mode: "narration", language }),
           });
 
           if (!res.ok) {
@@ -239,7 +250,12 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
             "Content-Type": "application/json",
             [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
           },
-          body: JSON.stringify({ text, mode: "narration", withTimestamps: true }),
+          body: JSON.stringify({
+            text,
+            mode: "narration",
+            withTimestamps: true,
+            language,
+          }),
         });
 
         if (!res.ok) {
@@ -270,7 +286,7 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
         console.log("Error generando audio", e);
       }
     },
-    [getCacheKey, getFileUri]
+    [getCacheKey, getFileUri, language]
   );
 
   // Reproduce el audio ya cacheado de un paso, siempre desde el inicio.
@@ -437,7 +453,7 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
             "Content-Type": "application/json",
             [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
           },
-          body: JSON.stringify({ text, mode: "chat" }),
+          body: JSON.stringify({ text, mode: "chat", language }),
         });
 
         if (!res.ok) {
@@ -452,7 +468,7 @@ export function useTourAudio(pulseAnim?: Animated.Value) {
         console.log("Error reproduciendo respuesta de chat", e);
       }
     },
-    [playAudioBase64]
+    [playAudioBase64, language]
   );
 
   // currentStep es opcional: si se pasa (y hay una duración real

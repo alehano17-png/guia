@@ -18,6 +18,9 @@ type Params = {
   // Turnos previos de la conversación, más viejo primero. No incluye el
   // `message` de esta llamada — eso ya viaja aparte.
   history?: ConversationMessage[];
+  // Idioma del tour (no el de la interfaz). Sin él, el backend responde
+  // en español, como siempre.
+  language?: "es" | "en";
   // Se llama por cada oración lista mientras la respuesta todavía se está
   // generando (antes de que termine el streaming completo). audioBase64
   // viene en null si ese pedazo puntual falló al generar su audio.
@@ -44,6 +47,7 @@ export async function sendTourChatMessage({
   highlights,
   tourTitle,
   history,
+  language,
   onChunk,
 }: Params): Promise<string> {
   // fetch global de React Native no entrega response.body como stream real
@@ -62,6 +66,7 @@ export async function sendTourChatMessage({
       highlights,
       tourTitle,
       history,
+      language,
     }),
   });
 

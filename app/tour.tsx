@@ -44,19 +44,45 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
+  getAvailableTourLocales,
   getTourById,
+  parseTourLocale,
+  TourLocale,
   TourStep
 } from "../data/tours/index";
 
 export default function TourScreen() {
-  const params = useLocalSearchParams<{ tourId?: string }>()
+  const params = useLocalSearchParams<{ tourId?: string; lang?: string }>()
   const tourId =
     typeof params.tourId === "string" ? params.tourId : "miraflores-completo"
 
-  return <TourScreenContent key={tourId} tourId={tourId} />
+  // Idioma del tour (contenido, voz y chat), independiente del de la
+  // interfaz. Sin `lang`, o si este tour no tiene ese idioma, va en español.
+  const requestedLocale = parseTourLocale(params.lang)
+  const tourLocale: TourLocale = getAvailableTourLocales(tourId).includes(
+    requestedLocale
+  )
+    ? requestedLocale
+    : "es"
+
+  // La key incluye el idioma: cambiar de tour O de idioma remonta la
+  // pantalla con estado fresco.
+  return (
+    <TourScreenContent
+      key={`${tourId}-${tourLocale}`}
+      tourId={tourId}
+      tourLocale={tourLocale}
+    />
+  )
 }
 
-function TourScreenContent({ tourId }: { tourId: string }) {
+function TourScreenContent({
+  tourId,
+  tourLocale,
+}: {
+  tourId: string
+  tourLocale: TourLocale
+}) {
 
 const { t } = useTranslation()
 
@@ -96,7 +122,7 @@ const {
   stopCurrentAudio,
   playAudioBase64,
   voiceEnergy,
-} = useTourAudio(pulseAnim);
+} = useTourAudio(pulseAnim, tourLocale);
 
 // `step` todavía no existe en este punto del componente (se calcula más
 // abajo) — se usa una ref en vez de la variable directa para no reordenar
@@ -158,6 +184,7 @@ const {
   stopCurrentAudio: stopCurrentAudioForGuia,
   playAudioChunk: playAudioBase64,
   resumeNarration,
+  language: tourLocale,
 });
 
 // El ícono de micrófono del chat: dicta y muestra el texto transcrito en
@@ -175,7 +202,7 @@ const isDictating =
 const { userLocation, locationPermissionGranted } = useTourLocation()
 
 
-const tour = useMemo(()=>getTourById(tourId),[tourId])
+const tour = useMemo(()=>getTourById(tourId, tourLocale),[tourId, tourLocale])
 
 const [loadingTour, setLoadingTour] = useState(true);
 
@@ -185,9 +212,10 @@ const [startMapViewed, setStartMapViewed] = useState(false)
 // perezoso (corre una sola vez). Antes esto lo hacía un useEffect que
 // además re-seteaba showDecision/startMapViewed y limpiaba el historial de
 // GUÍA — todo redundante, porque <TourScreenContent> ya se remonta con
-// key={tourId}: un tour nuevo entra siempre con estado fresco.
+// key={`${tourId}-${tourLocale}`}: un tour (o idioma) nuevo entra siempre
+// con estado fresco.
 const [currentStepId, setCurrentStepId] = useState(
-  () => getTourById(tourId)?.steps?.[0]?.id ?? ""
+  () => getTourById(tourId, tourLocale)?.steps?.[0]?.id ?? ""
 )
 
 
@@ -443,6 +471,7 @@ const sendMessage = async (messageOverride?: string) => {
       highlights: step?.highlights,
       tourTitle: tour?.title,
       history: historyForRequest,
+      language: tourLocale,
     })
 
     pushToHistory({ role: "assistant", content: text })

@@ -6,6 +6,7 @@
   useAudioRecorder,
 } from "expo-audio";
 import { useCallback, useRef, useState } from "react";
+import type { TourLocale } from "../data/tours/index";
 import {
   ConversationMessage,
   sendTourChatMessage,
@@ -86,6 +87,9 @@ type UseGuiaVoiceModeParams = {
   // stopCurrentAudio() ya pausó la narración al principio y nada más la
   // reanuda por su cuenta.
   resumeNarration: () => Promise<void>;
+  // Idioma del tour (no el de la interfaz) para el dictado y las respuestas
+  // de GUÍA. "es" por defecto, como siempre.
+  language?: TourLocale;
 };
 
 async function recordUntilSilence(
@@ -198,6 +202,7 @@ export function useGuiaVoiceMode({
   stopCurrentAudio,
   playAudioChunk,
   resumeNarration,
+  language = "es",
 }: UseGuiaVoiceModeParams) {
   const [status, setStatus] = useState<GuiaVoiceStatus>("idle");
   // Instancia única de grabador, con lifecycle atado a este hook (se libera
@@ -243,7 +248,7 @@ export function useGuiaVoiceMode({
           encoding: "base64",
         });
 
-        const question = await transcribeAudio(audioBase64);
+        const question = await transcribeAudio(audioBase64, language);
 
         if (!question.trim()) {
           setStatus("idle");
@@ -265,6 +270,7 @@ export function useGuiaVoiceMode({
           message: question,
           ...tourContext,
           history: historyForRequest,
+          language,
           onChunk: async (chunkText, chunkAudioBase64) => {
             if (!hasStartedSpeaking) {
               hasStartedSpeaking = true;
@@ -300,7 +306,14 @@ export function useGuiaVoiceMode({
         isActiveRef.current = false;
       }
     },
-    [recorder, stopCurrentAudio, playAudioChunk, pushToHistory, resumeNarration]
+    [
+      recorder,
+      stopCurrentAudio,
+      playAudioChunk,
+      pushToHistory,
+      resumeNarration,
+      language,
+    ]
   );
 
   // Vacía el historial de conversación — se llama al arrancar un tour
@@ -334,7 +347,7 @@ export function useGuiaVoiceMode({
         encoding: "base64",
       });
 
-      const text = await transcribeAudio(audioBase64);
+      const text = await transcribeAudio(audioBase64, language);
 
       setStatus("idle");
       return text;
@@ -354,7 +367,7 @@ export function useGuiaVoiceMode({
       }
       isActiveRef.current = false;
     }
-  }, [recorder, stopCurrentAudio, resumeNarration]);
+  }, [recorder, stopCurrentAudio, resumeNarration, language]);
 
   return {
     status,

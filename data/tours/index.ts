@@ -65,3 +65,20 @@ export function getTourById(id: string, locale: TourLocale = "es"): Tour | undef
 
   return mergeTourContent(entry.skeleton, content);
 }
+
+// Idiomas con contenido real para un tour (las claves de su "content" en
+// TOUR_REGISTRY). Para un id inexistente devuelve [].
+export function getAvailableTourLocales(id: string): TourLocale[] {
+  const entry = TOUR_REGISTRY.find((e) => e.skeleton.id === id);
+  if (!entry) return [];
+
+  return (Object.keys(entry.content) as TourLocale[]).filter(
+    (locale) => !!entry.content[locale]
+  );
+}
+
+// Normaliza un valor cualquiera (ej. un parámetro de ruta) a TourLocale:
+// solo "en" exacto es inglés; todo lo demás cae a "es".
+export function parseTourLocale(value: unknown): TourLocale {
+  return value === "en" ? "en" : "es";
+}

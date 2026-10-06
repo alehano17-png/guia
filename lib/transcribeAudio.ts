@@ -1,13 +1,16 @@
 ﻿import { TOUR_API_BASE_URL, TOUR_API_KEY, TOUR_API_KEY_HEADER } from "./tourApiConfig";
 
-export async function transcribeAudio(audioBase64: string): Promise<string> {
+export async function transcribeAudio(
+  audioBase64: string,
+  language: "es" | "en" = "es"
+): Promise<string> {
   const res = await fetch(`${TOUR_API_BASE_URL}/transcribe`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
     },
-    body: JSON.stringify({ audioBase64 }),
+    body: JSON.stringify({ audioBase64, language }),
   });
 
   if (!res.ok) {

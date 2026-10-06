@@ -312,6 +312,9 @@ function extractCompleteSentences(buffer) {
 app.post("/transcribe", requireGuiaKey, async (req, res) => {
   try {
     const { audioBase64 } = req.body;
+    // Idioma del tour: solo "en" exacto cambia el idioma; cualquier otro
+    // valor (o ninguno) sigue en español, como antes.
+    const language = req.body.language === "en" ? "en" : "es";
 
     if (!audioBase64) {
       return res.status(400).json({ error: "Falta audioBase64" });
@@ -322,7 +325,7 @@ app.post("/transcribe", requireGuiaKey, async (req, res) => {
     const transcription = await openai.audio.transcriptions.create({
       file: await toFile(buffer, "pregunta.m4a"),
       model: "gpt-4o-mini-transcribe",
-      language: "es",
+      language,
     });
 
     console.log("🎙️ Transcripción:", transcription.text);
@@ -339,6 +342,8 @@ app.post("/chat", requireGuiaKey, async (req, res) => {
     console.log("📩 Mensaje recibido:", req.body.message);
 
     const { message, context, summary, highlights, tourTitle, history } = req.body;
+    // Mismo criterio que /transcribe: solo "en" exacto cambia el idioma.
+    const language = req.body.language === "en" ? "en" : "es";
 
     // Solo se aceptan turnos con la forma esperada — si algo raro llega en
     // el body, se ignora en vez de mandárselo tal cual a OpenAI.
@@ -406,7 +411,10 @@ const isClearlyOffTopic = blockedTopics.some(word => text.includes(word));
 
 if (!isShortAllowed && isClearlyOffTopic) {
   return res.json({
-    text: "Solo puedo responder preguntas sobre este recorrido y este lugar."
+    text:
+      language === "en"
+        ? "I can only answer questions about this tour and this place."
+        : "Solo puedo responder preguntas sobre este recorrido y este lugar."
   });
 }
 
@@ -429,6 +437,7 @@ Reglas estrictas:
 "Solo puedo responder preguntas sobre este recorrido y este lugar."
 - No respondas temas generales, personales, actualidad, tecnología, deporte, salud ni otros temas externos.
 - Responde breve, claro y natural.
+- ${language === "en" ? "Always answer in English." : "Responde siempre en español."}
 
 Tour actual: ${tourTitle ?? "Tour"}
 Punto actual: ${context ?? "Lugar actual"}
@@ -457,7 +466,7 @@ Datos clave: ${Array.isArray(highlights) ? highlights.join(", ") : "Sin datos cl
       if (!sentence) return;
 
       try {
-        const audioBuffer = await generateVoiceAudio(sentence, "chat");
+        const audioBuffer = await generateVoiceAudio(sentence, "chat", false, language);
         res.write(
           JSON.stringify({
             type: "chunk",
