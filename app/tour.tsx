@@ -28,6 +28,7 @@ import { getDistanceInMeters } from "../lib/geo";
 import { ChatMessage } from "../lib/chatTypes";
 import { sendTourChatMessage } from "../lib/sendTourChatMessage";
 import { TOUR_GRADIENT_COLORS } from "../lib/tourTheme";
+import { translations } from "../lib/i18n";
 import { useTranslation } from "../lib/i18n/useTranslation";
 
 // Radio de "llegada" al punto del recorrido, en metros — a partir de acá
@@ -144,10 +145,11 @@ const resumeNarration = useCallback(async () => {
   const currentStep = stepRef.current;
   if (!currentStep) return;
 
+  // Frases del idioma del TOUR (no el de la interfaz): las lee la misma
+  // voz que narra el tour.
+  const transitionPhrases = translations[tourLocale].guia.transitionPhrases;
   const transitionPhrase =
-    t.guia.transitionPhrases[
-      Math.floor(Math.random() * t.guia.transitionPhrases.length)
-    ];
+    transitionPhrases[Math.floor(Math.random() * transitionPhrases.length)];
   await ensureAudioForStep(GUIA_TRANSITION_AUDIO_STEP_ID, transitionPhrase);
   await playCachedAudioAndWait(GUIA_TRANSITION_AUDIO_STEP_ID, transitionPhrase);
 
@@ -155,7 +157,7 @@ const resumeNarration = useCallback(async () => {
   // de arriba (que se queda con el camino de siempre, sin este parámetro).
   await ensureAudioForStep(currentStep.id, currentStep.voiceText, true);
   await resumeCachedAudioFromLastPosition(currentStep.id, currentStep.voiceText);
-}, [ensureAudioForStep, playCachedAudioAndWait, resumeCachedAudioFromLastPosition, t]);
+}, [ensureAudioForStep, playCachedAudioAndWait, resumeCachedAudioFromLastPosition, tourLocale]);
 
 // stopCurrentAudio acepta el paso actual como parámetro opcional para
 // redondear la posición guardada hacia atrás, hasta el inicio de la

@@ -344,6 +344,12 @@ app.post("/chat", requireGuiaKey, async (req, res) => {
     const { message, context, summary, highlights, tourTitle, history } = req.body;
     // Mismo criterio que /transcribe: solo "en" exacto cambia el idioma.
     const language = req.body.language === "en" ? "en" : "es";
+    // Una sola frase de rechazo por petición, en el idioma del tour: la usan
+    // el filtro de temas de abajo y la regla del prompt de sistema.
+    const offTopicReply =
+      language === "en"
+        ? "I can only answer questions about this tour and this place."
+        : "Solo puedo responder preguntas sobre este recorrido y este lugar.";
 
     // Solo se aceptan turnos con la forma esperada — si algo raro llega en
     // el body, se ignora en vez de mandárselo tal cual a OpenAI.
@@ -410,12 +416,28 @@ const isShortAllowed = shortAllowed.includes(text);
 const isClearlyOffTopic = blockedTopics.some(word => text.includes(word));
 
 if (!isShortAllowed && isClearlyOffTopic) {
-  return res.json({
-    text:
-      language === "en"
-        ? "I can only answer questions about this tour and this place."
-        : "Solo puedo responder preguntas sobre este recorrido y este lugar."
-  });
+  // Mismo formato NDJSON que la respuesta normal (un "chunk" y un "done"):
+  // la app solo entiende ese formato, y con un res.json() suelto mostraba
+  // el error genérico en vez de este rechazo.
+  res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+
+  let offTopicAudioBase64 = null;
+  try {
+    const audioBuffer = await generateVoiceAudio(offTopicReply, "chat", false, language);
+    offTopicAudioBase64 = audioBuffer.toString("base64");
+  } catch (audioError) {
+    console.error("Error generando audio del rechazo de tema:", audioError);
+  }
+
+  res.write(
+    JSON.stringify({
+      type: "chunk",
+      text: offTopicReply,
+      audioBase64: offTopicAudioBase64,
+    }) + "\n"
+  );
+  res.write(JSON.stringify({ type: "done" }) + "\n");
+  return res.end();
 }
 
     const stream = await openai.chat.completions.create({
@@ -434,7 +456,7 @@ Reglas estrictas:
 - Si el usuario escribe algo breve como "sí", "no", "ok", "dale", "continúa" o "siguiente", interprétalo dentro del recorrido actual, no lo rechaces.
 - Si el mensaje breve es ambiguo, asume que el usuario quiere continuar con la explicación del lugar actual.
 - Si la pregunta no tiene relación con el tour, responde exactamente:
-"Solo puedo responder preguntas sobre este recorrido y este lugar."
+"${offTopicReply}"
 - No respondas temas generales, personales, actualidad, tecnología, deporte, salud ni otros temas externos.
 - Responde breve, claro y natural.
 - ${language === "en" ? "Always answer in English." : "Responde siempre en español."}
