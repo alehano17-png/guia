@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Ellipse, Path } from "react-native-svg";
 import {
   TOUR_ACCENT_COLOR,
   TOUR_TEXT_PRIMARY,
@@ -43,8 +44,28 @@ export default function TourHeader({
         </Pressable>
 
         <Pressable style={styles.chatButton} onPress={onOpenChat}>
-          <View style={styles.chatIconCircle}>
-            <View style={styles.chatIconTail} />
+          <View style={styles.chatBubbleBox}>
+            <Svg
+              width={46}
+              height={46}
+              viewBox="0 0 512 512"
+              style={StyleSheet.absoluteFill}
+            >
+              <Ellipse
+                cx={256}
+                cy={212}
+                rx={250}
+                ry={205}
+                fill={TOUR_ACCENT_COLOR}
+              />
+              <Path
+                d="M 285 360 L 285 488 Q 285 502 297 492 L 415 368 Z"
+                fill={TOUR_ACCENT_COLOR}
+                stroke={TOUR_ACCENT_COLOR}
+                strokeWidth={24}
+                strokeLinejoin="round"
+              />
+            </Svg>
             <Image
               source={require("../../assets/images/guia-feliz.png")}
               style={styles.chatIconOverlayImage}
@@ -99,39 +120,25 @@ const styles = StyleSheet.create({
   },
 
   chatButton: {
-    padding: 2,
+    padding: 0,
   },
 
-  chatIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: TOUR_ACCENT_COLOR,
+  // Globo de chat de 46x46 (misma altura que antes: círculo de 42 + 2 de
+  // padding por lado), dibujado con SVG sobre un viewBox de 512.
+  chatBubbleBox: {
+    width: 46,
+    height: 46,
   },
 
-  // Colita de globo de chat (mismo patrón que chatTailGuide). Va antes de
-  // la mascota en el JSX para que la mascota quede encima.
-  chatIconTail: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    backgroundColor: TOUR_ACCENT_COLOR,
-    transform: [{ rotate: "45deg" }],
-  },
-
-  // Sin top/left/right/bottom: RN centra los hijos position:"absolute"
-  // según el alignItems/justifyContent del padre — por eso queda centrada
-  // sobre el ícono sin cálculos de offset a mano. 30x34 conserva la
-  // proporción real de la imagen (960x1112) y deja margen dentro del
-  // círculo de 42px.
+  // Mascota centrada en el óvalo del globo (centro del óvalo: y ~19 de 46),
+  // no en el centro de la caja, porque la colita ocupa la parte de abajo.
+  // 26x30 conserva la proporción real de la imagen (960x1112).
   chatIconOverlayImage: {
     position: "absolute",
-    width: 30,
-    height: 34,
+    width: 26,
+    height: 30,
+    top: 4,
+    left: 10,
   },
 
   // El título de este paso en particular (no el de toda la pantalla) —
