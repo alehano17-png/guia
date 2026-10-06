@@ -327,8 +327,15 @@ export default function TourChatSheet({
               />
 
               <View style={styles.chatBubbleGuideGroup}>
-                <View style={styles.chatBubbleGuide}>
-                  <View style={{ flexDirection: "row", gap: 6 }}>
+                <View style={[styles.chatBubbleGuide, styles.chatBubbleThinking]}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: 6,
+                      alignItems: "center",
+                      alignSelf: "center",
+                    }}
+                  >
                     <Animated.View
                       style={[
                         styles.thinkingDot,
@@ -555,6 +562,17 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignSelf: "flex-start",
     maxWidth: "78%",
+    minHeight: 36,
+  },
+
+  // Ancho fijo solo para el indicador "pensando": el 78% heredado es
+  // circular dentro de chatBubbleGuideGroup (se dimensiona por contenido),
+  // así que la burbuja se encogía y los puntos se desbordaban a la derecha.
+  chatBubbleThinking: {
+    width: 68,
+    maxWidth: 68,
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: 36,
   },
 

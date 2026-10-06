@@ -44,9 +44,7 @@ export default function TourHeader({
 
         <Pressable style={styles.chatButton} onPress={onOpenChat}>
           <View style={styles.chatIconCircle}>
-            <Ionicons name="chatbubble" size={18} color="#FFF" />
-            {/* TEMPORAL: superpuesta sobre el ícono a propósito, para
-                verla antes de decidir si reemplaza al ícono o no. */}
+            <View style={styles.chatIconTail} />
             <Image
               source={require("../../assets/images/guia-feliz.png")}
               style={styles.chatIconOverlayImage}
@@ -111,6 +109,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: TOUR_ACCENT_COLOR,
+  },
+
+  // Colita de globo de chat (mismo patrón que chatTailGuide). Va antes de
+  // la mascota en el JSX para que la mascota quede encima.
+  chatIconTail: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    backgroundColor: TOUR_ACCENT_COLOR,
+    transform: [{ rotate: "45deg" }],
   },
 
   // Sin top/left/right/bottom: RN centra los hijos position:"absolute"
