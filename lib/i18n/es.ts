@@ -14,9 +14,15 @@
 // inventario. La migración de las pantallas es un paso aparte.
 export const es = {
   home: {
-    greeting: "Hola, {{name}}",
-    greetingFallback: "Hola, soy",
-    tagline: "Compañía a tu modo",
+    greeting: {
+      morning: "¡Buenos días, {{name}}!",
+      afternoon: "¡Buenas tardes, {{name}}!",
+      night: "¡Buenas noches, {{name}}!",
+      morningNoName: "¡Buenos días!",
+      afternoonNoName: "¡Buenas tardes!",
+      nightNoName: "¡Buenas noches!",
+    },
+    prompt: "¿Salimos a caminar?",
     start: "EMPEZAR",
     signOut: "Cerrar sesión",
   },

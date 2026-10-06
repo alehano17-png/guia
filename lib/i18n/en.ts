@@ -5,9 +5,15 @@ import type { TranslationDictionary } from "./es";
 // otra, esto no compila.
 export const en: TranslationDictionary = {
   home: {
-    greeting: "Hi, {{name}}",
-    greetingFallback: "Hi, I'm",
-    tagline: "Company, your way",
+    greeting: {
+      morning: "Good morning, {{name}}!",
+      afternoon: "Good afternoon, {{name}}!",
+      night: "Good evening, {{name}}!",
+      morningNoName: "Good morning!",
+      afternoonNoName: "Good afternoon!",
+      nightNoName: "Good evening!",
+    },
+    prompt: "Shall we go for a walk?",
     start: "START",
     signOut: "Sign out",
   },

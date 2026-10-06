@@ -1,169 +1,79 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import {
-  Dimensions,
   Image,
   Pressable,
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { HomeScene } from "../../components/home/HomeScene";
 import { getUserDisplayName, useAuth } from "../../hooks/useAuth";
+import { useTimeOfDay } from "../../hooks/useTimeOfDay";
+import {
+  HOME_BUBBLE_COLOR,
+  HOME_BUTTON_TEXT_COLOR,
+  HOME_MOMENT_THEMES,
+} from "../../lib/homeTheme";
 import { interpolate } from "../../lib/i18n/interpolate";
 import { useTranslation } from "../../lib/i18n/useTranslation";
-import {
-  TOUR_ACCENT_COLOR,
-  TOUR_GRADIENT_COLORS,
-  TOUR_TEXT_PRIMARY,
-  TOUR_TEXT_SECONDARY,
-} from "../../lib/tourTheme";
+import { TOUR_TEXT_PRIMARY, TOUR_TEXT_SECONDARY } from "../../lib/tourTheme";
 import {
   FONT_BOLD,
   FONT_REGULAR,
   FONT_SEMIBOLD,
-  FONT_SIZE_HERO,
+  FONT_SIZE_LG,
   FONT_SIZE_MD,
+  FONT_SIZE_TITLE,
   FONT_SIZE_XL,
 } from "../../lib/typography";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const PARTICLE_COUNT = 6;
-
-type ParticleConfig = {
-  id: number;
-  top: number;
-  left: number;
-  size: number;
-  duration: number;
-  delay: number;
-};
-
-function AmbientParticle({ config }: { config: ParticleConfig }) {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const scale = useSharedValue(1);
-
-  useEffect(() => {
-    opacity.value = withDelay(
-      config.delay,
-      withRepeat(
-        withSequence(
-          withTiming(0.8, {
-            duration: config.duration * 0.25,
-            easing: Easing.linear,
-          }),
-          withTiming(0.8, {
-            duration: config.duration * 0.35,
-            easing: Easing.linear,
-          }),
-          withTiming(0, {
-            duration: config.duration * 0.4,
-            easing: Easing.linear,
-          })
-        ),
-        -1
-      )
-    );
-
-    translateY.value = withDelay(
-      config.delay,
-      withRepeat(
-        withTiming(-100, {
-          duration: config.duration,
-          easing: Easing.linear,
-        }),
-        -1
-      )
-    );
-
-    scale.value = withDelay(
-      config.delay,
-      withRepeat(
-        withTiming(0.5, {
-          duration: config.duration,
-          easing: Easing.linear,
-        }),
-        -1
-      )
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const particleStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }, { scale: scale.value }],
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        styles.particle,
-        {
-          top: `${config.top}%`,
-          left: `${config.left}%`,
-          width: config.size,
-          height: config.size,
-          borderRadius: config.size / 2,
-        },
-        particleStyle,
-      ]}
-    />
-  );
-}
-
-function AmbientParticles() {
-  // useState con inicializador (no useMemo): React garantiza que el
-  // inicializador corre una sola vez, así las posiciones aleatorias de las
-  // partículas nunca se re-generan (useMemo puede descartar y recalcular).
-  const [particles] = useState<ParticleConfig[]>(() =>
-    Array.from({ length: PARTICLE_COUNT }, (_, id) => ({
-      id,
-      top: Math.random() * 90,
-      left: Math.random() * 90,
-      size: 4 + Math.random() * 6, // 4-10px
-      duration: 4000 + Math.random() * 3000, // 4000-7000ms
-      delay: Math.random() * 2000, // hasta 2000ms
-    }))
-  );
-
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {particles.map((config) => (
-        <AmbientParticle key={config.id} config={config} />
-      ))}
-    </View>
-  );
-}
+// La escena se diseñó sobre un lienzo de 390x844 y se ancla abajo; todo lo
+// que se posiciona desde el borde inferior se multiplica por esta escala
+// para que mascota, globo y botón sigan pegados a las mismas colinas en
+// cualquier tamaño de pantalla.
+const DESIGN_WIDTH = 390;
+const DESIGN_HEIGHT = 844;
+const MASCOT_SIZE = 260;
 
 export default function StartScreen() {
   const { user, signOut } = useAuth();
   const { t } = useTranslation();
+  const timeOfDay = useTimeOfDay();
+  const theme = HOME_MOMENT_THEMES[timeOfDay];
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
-  // Con sesión y nombre guardado: "Hola, {nombre}". Con sesión pero sin
-  // nombre (se registró antes de que existiera el campo, o lo dejó vacío)
-  // o sin sesión: se queda el saludo genérico de siempre.
+  const scale = Math.max(width / DESIGN_WIDTH, height / DESIGN_HEIGHT);
+  const mascotSize = MASCOT_SIZE * scale;
+
+  // Saludo según la hora local. Con sesión y nombre guardado lleva el
+  // nombre; sin nombre (cuenta anterior al campo, o sin sesión) va solo.
   const displayName = getUserDisplayName(user);
+  const greetings = t.home.greeting;
   const greeting = displayName
-    ? interpolate(t.home.greeting, { name: displayName })
-    : t.home.greetingFallback;
+    ? interpolate(greetings[timeOfDay], { name: displayName })
+    : greetings[
+        `${timeOfDay}NoName` as "morningNoName" | "afternoonNoName" | "nightNoName"
+      ];
 
-  // 1. Logo flotando: sube 12px y baja, ciclo 4000ms, infinito, ease-in-out
-  const logoTranslateY = useSharedValue(0);
+  // Mascota flotando: sube 12px y baja, ciclo 4000ms, infinito.
+  const mascotTranslateY = useSharedValue(0);
 
   useEffect(() => {
-    logoTranslateY.value = withRepeat(
+    mascotTranslateY.value = withRepeat(
       withSequence(
         withTiming(-12, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
         withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.ease) })
@@ -172,259 +82,195 @@ export default function StartScreen() {
     );
   }, []);
 
-  const logoAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: logoTranslateY.value }],
-  }));
-
-  // 3. Brillo del botón: una sola pasada, al montar la pantalla
-  const shineTranslateX = useSharedValue(-SCREEN_WIDTH);
-
-  useEffect(() => {
-    shineTranslateX.value = withTiming(SCREEN_WIDTH, {
-      duration: 1500,
-      easing: Easing.linear,
-    });
-  }, []);
-
-  const shineAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: shineTranslateX.value },
-      { rotate: "20deg" },
-    ],
+  const mascotAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: mascotTranslateY.value }],
   }));
 
   return (
-    <LinearGradient
-  colors={TOUR_GRADIENT_COLORS}
-  start={{ x: 0, y: 0 }}
-  end={{ x: 1, y: 1 }}
-  style={{ flex: 1 }}
->
-<SafeAreaView style={styles.container}>
+    <View style={styles.root}>
+      <StatusBar style={theme.statusBar} />
+      <HomeScene timeOfDay={timeOfDay} />
 
-  <AmbientParticles />
-
-  <View style={styles.topBlock}>
-
-    <Animated.View style={[styles.logoWrap, logoAnimatedStyle]}>
-      <Image
-        source={require("../../assets/images/guia.png")}
-        style={styles.logo}
-      />
-    </Animated.View>
-
-    <View style={styles.textBlock}>
-      <Text style={styles.title}>
-        {greeting}
+      <Text
+        style={[
+          styles.brand,
+          { top: insets.top + 16, color: theme.brandColor },
+        ]}
+      >
+        GUÍA
       </Text>
 
-      <View>
-        {/* sombra/base */}
-        <Text style={styles.mainTitleShadow}>
-          GUÍA
-        </Text>
-
-        {/* texto principal */}
-        <Text style={styles.mainTitle}>
-          GUÍA
-        </Text>
+      {/* Globo de saludo, con la colita apuntando a la mascota */}
+      <View style={[styles.bubbleWrap, { bottom: 472 * scale }]}>
+        <View style={styles.bubble}>
+          <Text
+            style={styles.bubbleGreeting}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+          >
+            {greeting}
+          </Text>
+          <Text style={styles.bubblePrompt}>{t.home.prompt}</Text>
+        </View>
+        <View style={styles.bubbleTail} />
       </View>
 
-      <Text style={styles.subtitle}>
-        {t.home.tagline}
-      </Text>
-    </View>
-
-  </View>
-
-  <View style={styles.actionsBlock}>
-    <Pressable
-      style={styles.button}
-      onPress={() => router.push(user ? "/recomendations" : "/login")}
-    >
-      {/* brillo/vidrio sutil en la mitad superior */}
-      <View style={styles.buttonShine} />
-
-      {/* brillo animado que cruza el botón una sola vez al aparecer */}
       <Animated.View
-        style={[styles.buttonSweep, shineAnimatedStyle]}
         pointerEvents="none"
-      />
+        style={[
+          styles.mascotWrap,
+          {
+            width: mascotSize,
+            height: mascotSize,
+            left: (width - mascotSize) / 2,
+            bottom: 232 * scale,
+          },
+          mascotAnimatedStyle,
+        ]}
+      >
+        <Image
+          source={require("../../assets/images/guia.png")}
+          style={{ width: mascotSize, height: mascotSize }}
+          resizeMode="contain"
+        />
+      </Animated.View>
 
-      <View style={styles.buttonContent}>
+      <Pressable
+        style={[styles.button, { bottom: 68 * scale }]}
+        accessibilityRole="button"
+        onPress={() => router.push(user ? "/recomendations" : "/login")}
+      >
         <Text style={styles.buttonText}>{t.home.start}</Text>
-        <Ionicons name="arrow-forward" size={18} color="#FFF" />
-      </View>
-    </Pressable>
-
-    {/* Solo de prueba: para poder probar el flujo con/sin sesión sin
-        desinstalar la app. No es un elemento final de esta pantalla. */}
-    {user && (
-      <Pressable style={styles.signOutLink} onPress={() => signOut()}>
-        <Text style={styles.signOutText}>{t.home.signOut}</Text>
+        <Ionicons
+          name="arrow-forward"
+          size={18}
+          color={HOME_BUTTON_TEXT_COLOR}
+        />
       </Pressable>
-    )}
-  </View>
 
-</SafeAreaView>
-</LinearGradient>
+      {/* Solo de prueba: para poder probar el flujo con/sin sesión sin
+          desinstalar la app. No es un elemento final de esta pantalla. */}
+      {user && (
+        <Pressable
+          style={[
+            styles.signOutLink,
+            { bottom: Math.max(30 * scale, insets.bottom) },
+          ]}
+          onPress={() => signOut()}
+        >
+          <Text style={[styles.signOutText, { color: theme.signOutColor }]}>
+            {t.home.signOut}
+          </Text>
+        </Pressable>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
- container: {
-  flex: 1,
-  paddingHorizontal: 24,
-  paddingTop: 20,
-  paddingBottom: 110,
-  alignItems: "center",
-  justifyContent: "center",
+  root: {
+    flex: 1,
+  },
 
-},
+  brand: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    fontFamily: FONT_BOLD,
+    fontWeight: "700",
+    fontSize: FONT_SIZE_TITLE,
+    letterSpacing: 5,
+  },
 
+  bubbleWrap: {
+    position: "absolute",
+    left: 36,
+    right: 36,
+    alignItems: "center",
+  },
+
+  bubble: {
+    backgroundColor: HOME_BUBBLE_COLOR,
+    borderRadius: 28,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    alignSelf: "center",
+    maxWidth: "100%",
+    shadowColor: "#1E145A",
+    shadowOpacity: 0.28,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
+  },
+
+  bubbleGreeting: {
+    fontFamily: FONT_BOLD,
+    fontWeight: "700",
+    fontSize: FONT_SIZE_XL,
+    color: TOUR_TEXT_PRIMARY,
+    textAlign: "center",
+  },
+
+  bubblePrompt: {
+    fontFamily: FONT_SEMIBOLD,
+    fontWeight: "600",
+    fontSize: FONT_SIZE_LG,
+    color: TOUR_TEXT_SECONDARY,
+    marginTop: 6,
+    textAlign: "center",
+  },
+
+  // Rombo blanco que asoma bajo el globo y hace de colita.
+  bubbleTail: {
+    width: 22,
+    height: 22,
+    backgroundColor: HOME_BUBBLE_COLOR,
+    transform: [{ rotate: "45deg" }],
+    marginTop: -11,
+  },
+
+  mascotWrap: {
+    position: "absolute",
+  },
 
   button: {
-  alignSelf: "center",
-  marginTop: 20,
-  backgroundColor: TOUR_ACCENT_COLOR,
-  shadowColor: TOUR_ACCENT_COLOR,
-  shadowOpacity: 0.4,
-  shadowRadius: 20,
-  shadowOffset: { width: 0, height: 10 },
-  paddingVertical: 14,
-  paddingHorizontal: 32,
-  borderRadius: 999,
-  overflow: "hidden",
-},
-
-// Agrupa el botón y "Cerrar sesión" para que el translateY (antes puesto
-// directo en `button`) desplace a los dos juntos. Un transform no mueve el
-// espacio en flujo de los hermanos: si el translateY se quedara solo en
-// `button`, "Cerrar sesión" se ubicaría debajo de la caja *sin desplazar*
-// del botón y terminaría dibujado por encima del botón visible.
-actionsBlock: {
-  alignItems: "center",
-  transform: [{ translateY: 60 }],
-},
-
-buttonContent: {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 8,
-},
-
-buttonShine: {
-  position: "absolute",
-  top: 0,
-  left: 0,
-  right: 0,
-  height: "50%",
-  backgroundColor: "rgba(255,255,255,0)",
-  borderTopLeftRadius: 20,
-  borderTopRightRadius: 20,
-  borderBottomLeftRadius: 4,
-  borderBottomRightRadius: 4,
-},
-
-buttonSweep: {
-  position: "absolute",
-  top: -40,
-  bottom: -40,
-  width: 60,
-  backgroundColor: "rgba(255,255,255,0.45)",
-},
+    position: "absolute",
+    left: 24,
+    right: 24,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: "#0A0532",
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 10,
+  },
 
   buttonText: {
-    textAlign: "center",
     fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
     fontSize: FONT_SIZE_MD,
-    color: "#FFF",
+    color: HOME_BUTTON_TEXT_COLOR,
+    letterSpacing: 1,
   },
-topBlock: {
-  alignItems: "center",
-},
 
-textBlock: {
-  alignItems: "center",
-  transform: [{ translateY: 30 }],
-},
+  signOutLink: {
+    position: "absolute",
+    alignSelf: "center",
+    padding: 8,
+  },
 
-logoWrap: {
-  width: 260,
-  height: 260,
-  alignItems: "center",
-  justifyContent: "center",
-  marginBottom: -30,
-},
-
-logo: {
-  width: 260,
-  height: 260,
-  resizeMode: "contain",
-  transform: [{ translateY: -30 }],
-},
-
-// Frase de entrada antes del wordmark "GUÍA" (42px, justo debajo) — más
-// prominente que un subtítulo plano pero subordinada al foco real de la
-// pantalla, por eso va en XL y no en un tamaño de título propio.
-title: {
-  fontFamily: FONT_REGULAR,
-  fontWeight: "400",
-  fontSize: FONT_SIZE_XL,
-  color: TOUR_TEXT_PRIMARY,
-  marginTop: 10,
-},
-
-subtitle: {
-  fontFamily: FONT_REGULAR,
-  fontWeight: "400",
-  fontSize: FONT_SIZE_MD,
-  color: TOUR_TEXT_SECONDARY,
-  textAlign: "center",
-  maxWidth: 280,
-  lineHeight: 22,
-},
-
-
-// El wordmark de marca — el texto más grande de toda la app. El diseño
-// original pedía fontWeight 900, pero ese peso no existe en la fuente
-// cargada (llega hasta 700/Bold); se corrige a 700 para que coincida con
-// el fontFamily real, en vez de quedar como un valor que ya no significa
-// nada una vez que hay una fuente de verdad puesta.
-mainTitle: {
-  position: "absolute",
-  fontFamily: FONT_BOLD,
-  fontWeight: "700",
-  fontSize: FONT_SIZE_HERO,
-  color: TOUR_ACCENT_COLOR,
-},
-
-mainTitleShadow: {
-  position: "relative",
-  top: 3,
-  left: 3,
-  fontFamily: FONT_BOLD,
-  fontWeight: "700",
-  fontSize: FONT_SIZE_HERO,
-  color: TOUR_ACCENT_COLOR,
-},
-
-particle: {
-  position: "absolute",
-  backgroundColor: "rgba(255,255,255,0.4)",
-},
-
-signOutLink: {
-  marginTop: 16,
-  padding: 8,
-},
-
-signOutText: {
-  fontFamily: FONT_REGULAR,
-  fontWeight: "400",
-  fontSize: FONT_SIZE_MD,
-  color: TOUR_TEXT_SECONDARY,
-},
-
+  signOutText: {
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_MD,
+  },
 });
