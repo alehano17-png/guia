@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import TourLanguageSheet from "../components/tour/TourLanguageSheet";
 import {
   getDiscoveryItemStatus
 } from "../data/discovery/behavior";
@@ -67,7 +68,8 @@ export default function DiscoverScreen() {
   const { userLocation } = useTourLocation();
   const { discoverPlaces } = useDiscoveryContent(userLocation);
 
-  const { canOpenDiscoveryItem, openDiscoveryItem } = useDiscoveryNavigation();
+  const { canOpenDiscoveryItem, openDiscoveryItem, languageSheetProps } =
+    useDiscoveryNavigation();
 
   return (
     <LinearGradient
@@ -115,6 +117,8 @@ onPress={
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      <TourLanguageSheet {...languageSheetProps} />
     </LinearGradient>
   );
 }

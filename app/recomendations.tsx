@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import LoadingSearchScreen from "../components/tour/LoadingSearchScreen";
+import TourLanguageSheet from "../components/tour/TourLanguageSheet";
 import GuiaStateCard from "../components/GuiaStateCard";
 import { getDiscoveryItemImage, hasDiscoveryItemImage } from "../data/discovery/mediaHelpers";
 import { getDiscoveryItemDurationLabel } from "../data/discovery/presentation";
@@ -94,6 +95,7 @@ const {
   openDiscoveryItem,
   openDiscoverPlaces,
   discoverPlacesEntry,
+  languageSheetProps,
 } = useDiscoveryNavigation();
 
 const showDiscoverPlacesEntry =
@@ -216,6 +218,8 @@ if (loading) {
 ) : null}
         </View>
       </SafeAreaView>
+
+      <TourLanguageSheet {...languageSheetProps} />
     </LinearGradient>
   );
 }
