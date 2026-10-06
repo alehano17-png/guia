@@ -64,18 +64,22 @@ const SKIP_HEIGHT = 24;
 // tamaño completo: la tarjeta se achica hasta MIN_CARD_SCALE y la mascota
 // cede el resto del espacio, hasta MIN_MASCOT_SIZE.
 const MASCOT_SIZE = 150;
-const MIN_MASCOT_SIZE = 64;
+// 56 (no 64) para que, con la tarjeta de 222, mascota + tarjeta sigan
+// entrando en 375x667 sin comerse el espacio que las separa del texto.
+const MIN_MASCOT_SIZE = 56;
 const MASCOT_GAP = 8;
 const CARD_WIDTH = 300;
-// Alto fijo para los 3 pasos, así nada salta al cambiar de paso.
-const CARD_HEIGHT = 206;
+// Alto fijo para los 3 pasos, así nada salta al cambiar de paso: el del
+// paso más alto (el 2: etiqueta + título + halo de 86 + píldora, más el
+// padding de 18 arriba y abajo). Los otros dos se centran adentro.
+const CARD_HEIGHT = 222;
 const MIN_CARD_SCALE = 0.85;
 
 // Bola de voz del paso 2: la misma VoiceBlob del tour, en chiquito.
 const BLOB_RADIUS = 30;
 const BLOB_AMPLITUDE = 7;
 const BLOB_BOX = (BLOB_RADIUS + BLOB_AMPLITUDE) * 2;
-const HALO_SIZE = 80;
+const HALO_SIZE = BLOB_BOX + 12;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -312,6 +316,7 @@ export default function TutorialScreen() {
 function LanguageDemo({ demo }: { demo: DemoTexts }) {
   return (
     <View>
+      {/* La caja recorta la foto con sus propias esquinas redondeadas. */}
       <View style={styles.tourRow}>
         <Image
           source={require("../assets/images/barranco.jpg")}
@@ -364,7 +369,7 @@ function VoiceDemo({
       </View>
 
       <View style={styles.nextPill}>
-        <Text style={styles.nextPillText}>{demo.nextPill} →</Text>
+        <Text style={styles.nextPillText}>{`${demo.nextPill}  →`}</Text>
       </View>
     </View>
   );
@@ -375,13 +380,11 @@ function ChatDemo({ demo }: { demo: DemoTexts }) {
   return (
     <View>
       <View style={[styles.bubble, styles.bubbleUser]}>
-        <Text style={[styles.bubbleText, styles.bubbleTextUser]}>
-          {demo.question}
-        </Text>
+        <Text style={styles.bubbleTextUser}>{demo.question}</Text>
       </View>
 
       <View style={[styles.bubble, styles.bubbleGuide]}>
-        <Text style={styles.bubbleText}>{demo.answer}</Text>
+        <Text style={styles.bubbleTextGuide}>{demo.answer}</Text>
       </View>
 
       {/* Copia visual de chatInputBar de TourChatSheet (decorativa, no es
@@ -439,18 +442,21 @@ const styles = StyleSheet.create({
   // Paso 1
   tourRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    backgroundColor: "#F6F2FF",
+    borderRadius: 18,
+    overflow: "hidden",
+    height: 84,
   },
 
   tourImage: {
     width: 84,
     height: 84,
-    borderRadius: 18,
   },
 
   tourTexts: {
     flex: 1,
+    padding: 12,
+    justifyContent: "center",
   },
 
   tourName: {
@@ -473,19 +479,21 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 13,
     color: TOUR_TEXT_MUTED,
+    textAlign: "center",
     marginTop: 14,
+    marginBottom: 10,
   },
 
   chips: {
     flexDirection: "row",
-    gap: 8,
-    marginTop: 8,
+    justifyContent: "center",
+    gap: 10,
   },
 
   chip: {
-    paddingVertical: 7,
-    paddingHorizontal: 16,
-    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 999,
     backgroundColor: "#F1ECFF",
   },
 
@@ -496,7 +504,7 @@ const styles = StyleSheet.create({
   chipText: {
     fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
-    fontSize: 13,
+    fontSize: 14,
     color: "#5B4BC4",
   },
 
@@ -523,13 +531,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: TOUR_TEXT_PRIMARY,
     textAlign: "center",
-    marginTop: 2,
+    marginTop: 4,
   },
 
   voiceStage: {
     width: HALO_SIZE,
     height: HALO_SIZE,
-    marginTop: 6,
+    marginTop: 4,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -550,50 +558,57 @@ const styles = StyleSheet.create({
     left: (HALO_SIZE - BLOB_BOX) / 2,
   },
 
+  // Ancho completo de la tarjeta (stretch pisa el alignItems center del
+  // contenedor).
   nextPill: {
+    alignSelf: "stretch",
     marginTop: 6,
     backgroundColor: TOUR_ACCENT_COLOR,
-    borderRadius: 16,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
+    borderRadius: 999,
+    paddingVertical: 12,
   },
 
   nextPillText: {
-    fontFamily: FONT_SEMIBOLD,
-    fontWeight: "600",
-    fontSize: 13,
+    fontFamily: FONT_BOLD,
+    fontWeight: "700",
+    fontSize: 15,
     color: "#FFFFFF",
+    textAlign: "center",
   },
 
   // Paso 3
   bubble: {
-    maxWidth: "85%",
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    padding: 12,
     borderRadius: 18,
   },
 
   bubbleUser: {
     alignSelf: "flex-end",
+    maxWidth: 220,
+    borderBottomRightRadius: 4,
     backgroundColor: TOUR_ACCENT_COLOR,
   },
 
   bubbleGuide: {
     alignSelf: "flex-start",
+    maxWidth: 240,
+    borderBottomLeftRadius: 4,
     backgroundColor: "#F1ECFF",
-    marginTop: 8,
-  },
-
-  bubbleText: {
-    fontFamily: FONT_REGULAR,
-    fontWeight: "400",
-    fontSize: 13,
-    lineHeight: 18,
-    color: TOUR_TEXT_PRIMARY,
+    marginTop: 10,
   },
 
   bubbleTextUser: {
+    fontFamily: FONT_SEMIBOLD,
+    fontWeight: "600",
+    fontSize: 14,
     color: "#FFFFFF",
+  },
+
+  bubbleTextGuide: {
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: 14,
+    color: TOUR_TEXT_PRIMARY,
   },
 
   chatInputBar: {
@@ -606,7 +621,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
-    marginTop: 12,
+    marginTop: 14,
   },
 
   chatInputPlaceholder: {
