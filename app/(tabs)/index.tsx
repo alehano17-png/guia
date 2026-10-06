@@ -149,21 +149,51 @@ export default function StartScreen() {
         />
       </Pressable>
 
-      {/* Solo de prueba: para poder probar el flujo con/sin sesión sin
-          desinstalar la app. No es un elemento final de esta pantalla. */}
-      {user && (
+      {/* Enlaces bajo el botón, en una sola fila: "Cómo funciona" siempre,
+          y "Cerrar sesión" solo con sesión, separados por un punto medio. */}
+      <View
+        style={[
+          styles.linksRow,
+          { bottom: Math.max(30 * scale, insets.bottom) },
+        ]}
+      >
         <Pressable
-          style={[
-            styles.signOutLink,
-            { bottom: Math.max(30 * scale, insets.bottom) },
-          ]}
-          onPress={() => signOut()}
+          style={styles.link}
+          hitSlop={8}
+          onPress={() =>
+            router.push({ pathname: "/tutorial", params: { from: "home" } })
+          }
         >
-          <Text style={[styles.signOutText, { color: theme.signOutColor }]}>
-            {t.home.signOut}
+          <Text
+            style={[
+              styles.linkText,
+              styles.linkTextUnderlined,
+              { color: theme.signOutColor },
+            ]}
+          >
+            {t.home.howItWorks}
           </Text>
         </Pressable>
-      )}
+
+        {/* Solo de prueba: para poder probar el flujo con/sin sesión sin
+            desinstalar la app. No es un elemento final de esta pantalla. */}
+        {user && (
+          <>
+            <Text style={[styles.linkText, { color: theme.signOutColor }]}>
+              ·
+            </Text>
+            <Pressable
+              style={styles.link}
+              hitSlop={8}
+              onPress={() => signOut()}
+            >
+              <Text style={[styles.linkText, { color: theme.signOutColor }]}>
+                {t.home.signOut}
+              </Text>
+            </Pressable>
+          </>
+        )}
+      </View>
     </View>
   );
 }
@@ -262,15 +292,29 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  signOutLink: {
+  linksRow: {
     position: "absolute",
-    alignSelf: "center",
-    padding: 8,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  signOutText: {
+  // Padding vertical menor que el 8 de antes para que la fila no toque el
+  // botón en pantallas bajas (375x667); hitSlop compensa el área táctil.
+  link: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+
+  linkText: {
     fontFamily: FONT_REGULAR,
     fontWeight: "400",
     fontSize: FONT_SIZE_MD,
+  },
+
+  linkTextUnderlined: {
+    textDecorationLine: "underline",
   },
 });

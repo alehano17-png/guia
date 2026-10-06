@@ -16,6 +16,30 @@ export const en: TranslationDictionary = {
     prompt: "Shall we go for a walk?",
     start: "START",
     signOut: "Sign out",
+    howItWorks: "How it works",
+  },
+
+  tutorial: {
+    skip: "Skip",
+    next: "Next",
+    done: "Let's go!",
+    step1Title: "Pick your tour",
+    step1Body: "Choose a walk through Lima and tell me which language you want to hear it in.",
+    step2Title: "Walk and listen",
+    step2Body: "I'll tell you everything as you walk. When you reach each stop, tap “Next”.",
+    step3Title: "Ask me anything",
+    step3Body: "Talk to me with the microphone or type in the chat. I'll answer about the place you're at.",
+    demo: {
+      tourName: "Barranco",
+      tourDesc: "Art, bohemia and culture.",
+      languageQuestion: "Which language for your tour?",
+      stopLabel: "STOP 3 OF 8",
+      stopTitle: "Bridge of Sighs",
+      nextPill: "Next",
+      question: "Who painted this mural?",
+      answer: "Great question! It was painted by a local artist…",
+      inputPlaceholder: "Type a question…",
+    },
   },
 
   auth: {

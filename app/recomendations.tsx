@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
@@ -26,6 +27,7 @@ import {
   TOUR_TEXT_PRIMARY,
   TOUR_TEXT_SECONDARY,
 } from "../lib/tourTheme";
+import { hasSeenTutorial } from "../lib/tutorialSeen";
 import {
   FONT_BOLD,
   FONT_REGULAR,
@@ -76,6 +78,16 @@ function TourCard({
 export default function Recommendations() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
+  // Primera vez en este celular: se va al tutorial antes de mostrar nada.
+  // Se evalúa una sola vez, al montar, para no pintar Recomendaciones un
+  // instante antes del redirect.
+  const [needsTutorial] = useState(() => !hasSeenTutorial());
+
+  useEffect(() => {
+    if (needsTutorial) {
+      router.replace("/tutorial");
+    }
+  }, [needsTutorial]);
 
  const { userLocation } = useTourLocation();
 
@@ -149,6 +161,10 @@ const { headerSubtitle } = getRecommendationsCopy({
 });
 const isEmpty = featuredTours.length === 0 && !showDiscoverPlacesEntry;
  
+
+if (needsTutorial) {
+  return null;
+}
 
 if (loading) {
     return (

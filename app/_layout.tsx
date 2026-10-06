@@ -64,6 +64,10 @@ function RootNavigator() {
             "Empezar" decide a dónde ir según haya o no usuario. */}
         <Stack.Screen name="(tabs)" />
 
+        {/* Tutorial de primeros usuarios: público, porque también se abre
+            desde "Cómo funciona" en el inicio, con o sin sesión. */}
+        <Stack.Screen name="tutorial" options={{ animation: 'fade' }} />
+
         <Stack.Protected guard={!!user}>
           <Stack.Screen name="discover" />
           <Stack.Screen name="recomendations" />

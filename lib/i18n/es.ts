@@ -25,6 +25,31 @@ export const es = {
     prompt: "¿Salimos a caminar?",
     start: "EMPEZAR",
     signOut: "Cerrar sesión",
+    howItWorks: "Cómo funciona",
+  },
+
+  tutorial: {
+    skip: "Saltar",
+    next: "Siguiente",
+    done: "¡Vamos!",
+    step1Title: "Elige tu tour",
+    step1Body: "Escoge un recorrido por Lima y dime en qué idioma lo quieres escuchar.",
+    step2Title: "Camina y escucha",
+    step2Body: "Yo te voy contando todo mientras caminas. Cuando llegues a cada punto, toca “Siguiente”.",
+    step3Title: "Pregúntame lo que quieras",
+    step3Body: "Háblame con el micrófono o escríbeme en el chat. Te respondo sobre el lugar donde estás.",
+    // Textos de las mini ilustraciones de cada paso (decorativas).
+    demo: {
+      tourName: "Barranco",
+      tourDesc: "Arte, bohemia y cultura.",
+      languageQuestion: "¿En qué idioma quieres el tour?",
+      stopLabel: "PARADA 3 DE 8",
+      stopTitle: "Puente de los Suspiros",
+      nextPill: "Siguiente",
+      question: "¿Quién pintó este mural?",
+      answer: "¡Buena pregunta! Lo pintó un artista local…",
+      inputPlaceholder: "Escribe una pregunta…",
+    },
   },
 
   auth: {
