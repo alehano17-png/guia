@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
+import { TOUR_TEXT_MUTED, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
 import {
   FONT_BOLD,
   FONT_REGULAR,
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   // arriba, quiere verse más discreta: baja a REGULAR (no SEMIBOLD) y a
   // SM (no MD), reforzando que es la acción secundaria del modal.
   cancelText: {
-    color: "#6B7280",
+    color: TOUR_TEXT_MUTED,
     fontFamily: FONT_REGULAR,
     fontWeight: "400",
     fontSize: FONT_SIZE_SM,

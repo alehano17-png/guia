@@ -21,6 +21,7 @@ import { useTourLocation } from "../hooks/useTourLocation";
 import { useTranslation } from "../lib/i18n/useTranslation";
 import {
   TOUR_GRADIENT_COLORS,
+  TOUR_TEXT_MUTED,
   TOUR_TEXT_PRIMARY,
   TOUR_TEXT_SECONDARY,
 } from "../lib/tourTheme";
@@ -298,7 +299,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_REGULAR,
     fontWeight: "400",
     fontSize: FONT_SIZE_SM,
-    color: "#6B7280",
+    color: TOUR_TEXT_MUTED,
   },
 
   exploreArrow: {

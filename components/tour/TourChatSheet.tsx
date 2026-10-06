@@ -23,7 +23,7 @@ import ReanimatedAnimated, {
     withTiming,
 } from "react-native-reanimated";
 import { ChatMessage } from "../../lib/chatTypes";
-import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
+import { TOUR_ACCENT_COLOR, TOUR_TEXT_MUTED, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
 import {
     FONT_BOLD,
     FONT_REGULAR,
@@ -385,7 +385,7 @@ export default function TourChatSheet({
               <Ionicons
                 name="mic"
                 size={18}
-                color={isDictating ? TOUR_ACCENT_COLOR : "#6B7280"}
+                color={isDictating ? TOUR_ACCENT_COLOR : TOUR_TEXT_MUTED}
               />
             </Pressable>
 
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
     fontSize: FONT_SIZE_SM,
-    color: "#6B7280",
+    color: TOUR_TEXT_MUTED,
   },
 
   chatCard: {

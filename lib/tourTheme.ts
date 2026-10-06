@@ -15,3 +15,14 @@ export const TOUR_GRADIENT_COLORS = ["#F3E8FF", "#D8B4FE", "#A78BFA"] as const;
 // verdad. Centralizados acá por la misma razón que los de arriba.
 export const TOUR_TEXT_PRIMARY = "#221B35";
 export const TOUR_TEXT_SECONDARY = "#5D5476";
+
+// Gris de texto atenuado (descripciones largas, mensajes de apoyo, íconos
+// inactivos). Más suave que TOUR_TEXT_SECONDARY; se repetía a mano en 5
+// archivos.
+export const TOUR_TEXT_MUTED = "#6B7280";
+
+// Color de los placeholders de los inputs de login y registro.
+export const TOUR_PLACEHOLDER_COLOR = "#9C93B5";
+
+// Rojo de los mensajes de error en formularios.
+export const TOUR_ERROR_COLOR = "#C0392B";

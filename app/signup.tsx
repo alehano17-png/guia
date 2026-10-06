@@ -17,7 +17,9 @@ import { interpolate } from "../lib/i18n/interpolate";
 import { useTranslation } from "../lib/i18n/useTranslation";
 import {
   TOUR_ACCENT_COLOR,
+  TOUR_ERROR_COLOR,
   TOUR_GRADIENT_COLORS,
+  TOUR_PLACEHOLDER_COLOR,
   TOUR_TEXT_PRIMARY,
   TOUR_TEXT_SECONDARY,
 } from "../lib/tourTheme";
@@ -119,7 +121,7 @@ export default function SignupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder={t.auth.signup.displayNamePlaceholder}
-                  placeholderTextColor="#9C93B5"
+                  placeholderTextColor={TOUR_PLACEHOLDER_COLOR}
                   autoCapitalize="words"
                   value={displayName}
                   onChangeText={setDisplayName}
@@ -131,7 +133,7 @@ export default function SignupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder={t.auth.signup.emailPlaceholder}
-                  placeholderTextColor="#9C93B5"
+                  placeholderTextColor={TOUR_PLACEHOLDER_COLOR}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="email-address"
@@ -145,7 +147,7 @@ export default function SignupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
-                  placeholderTextColor="#9C93B5"
+                  placeholderTextColor={TOUR_PLACEHOLDER_COLOR}
                   secureTextEntry
                   value={password}
                   onChangeText={setPassword}
@@ -157,7 +159,7 @@ export default function SignupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
-                  placeholderTextColor="#9C93B5"
+                  placeholderTextColor={TOUR_PLACEHOLDER_COLOR}
                   secureTextEntry
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -259,7 +261,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: "#C0392B",
+    color: TOUR_ERROR_COLOR,
     fontFamily: FONT_REGULAR,
     fontWeight: "400",
     fontSize: FONT_SIZE_XS,

@@ -1,7 +1,7 @@
 import NetInfo from "@react-native-community/netinfo";
 import React, { useEffect, useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../lib/tourTheme";
+import { TOUR_ACCENT_COLOR, TOUR_TEXT_MUTED, TOUR_TEXT_PRIMARY } from "../lib/tourTheme";
 import {
   FONT_BOLD,
   FONT_REGULAR,
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE_MD,
     lineHeight: 21,
     textAlign: "center",
-    color: "#6B7280",
+    color: TOUR_TEXT_MUTED,
     marginBottom: 20,
   },
 
