@@ -14,6 +14,7 @@ import { barrancoContentEs } from "./content/es/barranco";
 import { centroHistoricoContentEs } from "./content/es/centro-historico";
 
 import { mirafloresContentEn } from "./content/en/miraflores";
+import { barrancoContentEn } from "./content/en/barranco";
 
 export type {
   TourStep
@@ -43,7 +44,7 @@ const TOUR_REGISTRY: TourRegistryEntry[] = [
   },
   {
     skeleton: barrancoSkeleton,
-    content: { es: barrancoContentEs },
+    content: { es: barrancoContentEs, en: barrancoContentEn },
   },
   {
     skeleton: centroHistoricoSkeleton,
