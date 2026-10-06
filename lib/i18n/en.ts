@@ -52,6 +52,7 @@ export const en: TranslationDictionary = {
 
   recommendations: {
     title: "Great, let's go for a walk.",
+    emptyTitle: "No tours here yet",
     detectedZone: "We found you near {{zoneName}}.",
     loadingTitle: "Looking for tours near you...",
     headerSupportedWithTours: "Here are the closest available tours in {{cityName}}:",
@@ -75,6 +76,8 @@ export const en: TranslationDictionary = {
     cancel: "Cancel",
     openMaps: "Open Maps",
     notFound: "Tour not found",
+    notFoundMessage: "We couldn't find this tour. It may no longer be available.",
+    notFoundBack: "Go back",
     preparing: "Getting your {{tourTitle}} tour ready",
     chatError: "I had trouble replying. Please try again.",
   },

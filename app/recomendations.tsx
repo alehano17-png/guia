@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import LoadingSearchScreen from "../components/tour/LoadingSearchScreen";
+import GuiaStateCard from "../components/GuiaStateCard";
 import { getDiscoveryItemImage, hasDiscoveryItemImage } from "../data/discovery/mediaHelpers";
 import { getDiscoveryItemDurationLabel } from "../data/discovery/presentation";
 import { getRecommendationsCopy } from "../data/discovery/recommendationsCopy";
@@ -143,6 +144,7 @@ const { headerSubtitle } = getRecommendationsCopy({
   hasFeaturedTours,
   hasDiscoverPlaces,
 });
+const isEmpty = featuredTours.length === 0 && !showDiscoverPlacesEntry;
  
 
 if (loading) {
@@ -168,10 +170,16 @@ if (loading) {
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <Text style={styles.title}>{t.recommendations.title}</Text>
-          <Text style={styles.subtitle}>{headerSubtitle}</Text>
+          {isEmpty ? null : <Text style={styles.subtitle}>{headerSubtitle}</Text>}
         </View>
 
         <View style={styles.cards}>
+          {isEmpty ? (
+            <GuiaStateCard
+              title={t.recommendations.emptyTitle}
+              message={headerSubtitle}
+            />
+          ) : null}
           {featuredTours.map((tour) => (
   <TourCard
     key={tour.id}

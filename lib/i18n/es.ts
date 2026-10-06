@@ -65,6 +65,7 @@ export const es = {
 
   recommendations: {
     title: "Genial, vamos a pasear.",
+    emptyTitle: "Aún no hay recorridos por aquí",
     detectedZone: "Te ubicamos cerca de {{zoneName}}.",
     loadingTitle: "Buscando tours cerca de ti...",
     headerSupportedWithTours: "Aquí tienes los tours disponibles más cerca de ti en {{cityName}}:",
@@ -88,6 +89,8 @@ export const es = {
     cancel: "Cancelar",
     openMaps: "Abrir Maps",
     notFound: "No se encontró el tour",
+    notFoundMessage: "No pudimos encontrar este recorrido. Puede que ya no esté disponible.",
+    notFoundBack: "Volver",
     preparing: "Preparando tu recorrido por {{tourTitle}}",
     chatError: "Tuve un problema al responder. Intenta otra vez.",
   },
