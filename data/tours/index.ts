@@ -16,6 +16,7 @@ import { centroHistoricoContentEs } from "./content/es/centro-historico";
 import { mirafloresContentEn } from "./content/en/miraflores";
 import { barrancoContentEn } from "./content/en/barranco";
 import { centroHistoricoContentEn } from "./content/en/centro-historico";
+import { huacaPucllanaContentEn } from "./content/en/huaca-pucllana";
 
 export type {
   TourStep
@@ -41,7 +42,7 @@ const TOUR_REGISTRY: TourRegistryEntry[] = [
   },
   {
     skeleton: huacaPucllanaSkeleton,
-    content: { es: huacaPucllanaContentEs },
+    content: { es: huacaPucllanaContentEs, en: huacaPucllanaContentEn },
   },
   {
     skeleton: barrancoSkeleton,
