@@ -151,7 +151,6 @@ export default function TourLanguageSheet({
 
           <Text style={styles.tourTitle}>{tourTitle}</Text>
           <Text style={styles.title}>{t.tour.languageTitle}</Text>
-          <Text style={styles.subtitle}>{t.tour.languageSubtitle}</Text>
 
           {LANGUAGE_OPTIONS.map((option) => {
             const isSelected = option.locale === selected;
@@ -234,16 +233,7 @@ const styles = StyleSheet.create({
     color: TOUR_TEXT_PRIMARY,
     textAlign: "center",
     marginTop: 4,
-  },
-
-  subtitle: {
-    fontFamily: FONT_REGULAR,
-    fontWeight: "400",
-    fontSize: FONT_SIZE_SM,
-    color: TOUR_TEXT_MUTED,
-    textAlign: "center",
-    marginTop: 6,
-    marginBottom: 18,
+    marginBottom: 20,
   },
 
   option: {
