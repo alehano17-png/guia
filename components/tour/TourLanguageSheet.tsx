@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -64,6 +64,18 @@ export default function TourLanguageSheet({
   // recién se desmonta cuando termina.
   const [isMounted, setIsMounted] = useState(visible);
 
+  // Valor de `visible` más reciente, para leerlo dentro del callback de la
+  // animación de cierre — ese callback puede llegar tarde, ya con la hoja
+  // vuelta a abrir. Se actualiza al inicio del efecto, no durante el
+  // render, para no romper las reglas de react-hooks del proyecto.
+  const visibleRef = useRef(visible);
+
+  // Si la hoja nunca se abrió de verdad, el efecto no debe lanzar ninguna
+  // animación de cierre (ver más abajo): lanzarla en el primer montaje era
+  // justo lo que creaba un callback "fantasma" que llegaba apenas después
+  // de abrir la hoja por primera vez y la desmontaba al instante.
+  const hasBeenOpenedRef = useRef(false);
+
   // Cada vez que se abre, arranca con el idioma por defecto (no con lo
   // que se eligió la vez anterior). Se ajusta durante el render, con el
   // patrón de "estado previo" de React, en vez de en un efecto.
@@ -77,7 +89,10 @@ export default function TourLanguageSheet({
   }
 
   useEffect(() => {
+    visibleRef.current = visible;
+
     if (visible) {
+      hasBeenOpenedRef.current = true;
       Animated.timing(progress, {
         toValue: 1,
         duration: 260,
@@ -87,13 +102,19 @@ export default function TourLanguageSheet({
       return;
     }
 
+    // Todavía no se abrió ni una vez: no hay nada que animar cerrando.
+    if (!hasBeenOpenedRef.current) return;
+
     Animated.timing(progress, {
       toValue: 0,
       duration: 200,
       easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
     }).start(({ finished }) => {
-      if (finished) setIsMounted(false);
+      // !visibleRef.current: por si este callback (de un cierre que ya
+      // no corresponde) llega después de que la hoja se volvió a abrir —
+      // así nunca desmonta una apertura real en curso.
+      if (finished && !visibleRef.current) setIsMounted(false);
     });
   }, [visible, progress]);
 
