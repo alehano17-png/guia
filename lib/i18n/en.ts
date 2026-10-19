@@ -99,6 +99,7 @@ export const en: TranslationDictionary = {
 
   tour: {
     exit: "Exit",
+    openChat: "Open chat with GUÍA",
     next: "Next",
     startWalking: "Start tour",
     stepProgress: "Narrating - Step {{current}} of {{total}}",

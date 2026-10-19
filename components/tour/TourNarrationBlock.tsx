@@ -5,13 +5,12 @@ import { SharedValue } from "react-native-reanimated";
 import { GuiaVoiceStatus } from "../../hooks/useGuiaVoiceMode";
 import { useTranslation } from "../../lib/i18n/useTranslation";
 import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
-import { FONT_REGULAR, FONT_SIZE_LG, FONT_SIZE_XS } from "../../lib/typography";
+import { FONT_REGULAR, FONT_SIZE_XS } from "../../lib/typography";
 import VoiceBlob from "./VoiceBlob";
 
 type Props = {
   pulseAnim: Animated.Value;
   voiceEnergy: SharedValue<number>;
-  summary?: string;
   guiaVoiceStatus: GuiaVoiceStatus;
   onAskGuia: () => void;
 };
@@ -19,7 +18,6 @@ type Props = {
 export default function TourNarrationBlock({
   pulseAnim,
   voiceEnergy,
-  summary,
   guiaVoiceStatus,
   onAskGuia,
 }: Props) {
@@ -46,6 +44,8 @@ export default function TourNarrationBlock({
           <VoiceBlob
             energy={voiceEnergy}
             color={TOUR_ACCENT_COLOR}
+            radius={52}
+            amplitude={12}
             style={styles.voiceBlobWrap}
           />
 
@@ -76,39 +76,35 @@ export default function TourNarrationBlock({
         </View>
       </View>
 
-      <View style={styles.summaryBlock}>
-        <Text style={styles.summaryText} numberOfLines={3}>
-          {summary ?? " "}
-        </Text>
-
-        <Pressable
-          style={[styles.askPill, isGuiaBusy && styles.askPillDisabled]}
-          onPress={onAskGuia}
-          disabled={isGuiaBusy}
-        >
-          <Ionicons name="mic" size={16} color={TOUR_ACCENT_COLOR} />
-          <Text style={styles.askTip}>{guiaStatusLabel[guiaVoiceStatus]}</Text>
-        </Pressable>
-      </View>
+      <Pressable
+        style={[styles.askPill, isGuiaBusy && styles.askPillDisabled]}
+        onPress={onAskGuia}
+        disabled={isGuiaBusy}
+      >
+        <Ionicons name="mic" size={16} color={TOUR_ACCENT_COLOR} />
+        <Text style={styles.askTip}>{guiaStatusLabel[guiaVoiceStatus]}</Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // flex: 1 + justifyContent center: el globo y su píldora quedan
+  // centrados en el espacio libre entre el header y lo de abajo.
   centerBlock: {
+    flex: 1,
     alignItems: "center",
-    transform: [{ translateY: 16 }],
+    justifyContent: "center",
   },
 
   voiceContainer: {
     alignItems: "center",
-    marginTop: 9,
   },
 
   voiceOuter: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
@@ -120,15 +116,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
   },
 
-  // El lienzo del VoiceBlob mide (radius + amplitude) * 2 = (55 + 14) * 2 =
-  // 138 con sus valores por defecto, así que se centra igual que el resto
-  // de las capas del globo.
+  // El lienzo del VoiceBlob mide (radius + amplitude) * 2 = (52 + 12) * 2 =
+  // 128, así que se centra igual que el resto de las capas del globo.
   voiceBlobWrap: {
     position: "absolute",
     top: "50%",
     left: "50%",
-    marginLeft: -69,
-    marginTop: -69,
+    marginLeft: -64,
+    marginTop: -64,
     zIndex: 5,
   },
 
@@ -165,11 +160,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: "50%",
     left: "50%",
-    marginLeft: -80,
-    marginTop: -80,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    marginLeft: -100,
+    marginTop: -100,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.40)",
     zIndex: 7,
@@ -179,33 +174,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: "50%",
     left: "50%",
-    marginLeft: -71,
-    marginTop: -71,
-    width: 142,
-    height: 142,
-    borderRadius: 71,
+    marginLeft: -89,
+    marginTop: -89,
+    width: 178,
+    height: 178,
+    borderRadius: 89,
     backgroundColor: "rgba(255,255,255,0.10)",
     zIndex: 3,
-  },
-
-  summaryBlock: {
-    height: 122,
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 10,
-  },
-
-  // Párrafo de lectura potencialmente largo (el resumen del punto actual
-  // del tour) — LG/REGULAR, nunca bold: es prosa, no una etiqueta.
-  summaryText: {
-    textAlign: "center",
-    fontFamily: FONT_REGULAR,
-    fontWeight: "400",
-    fontSize: FONT_SIZE_LG,
-    lineHeight: 24,
-    paddingHorizontal: 18,
-    color: TOUR_TEXT_PRIMARY,
-    height: 72,
   },
 
   askPill: {
@@ -217,6 +192,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
+    marginTop: 20,
   },
 
   askPillDisabled: {

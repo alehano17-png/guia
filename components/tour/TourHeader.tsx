@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Ellipse, Path } from "react-native-svg";
 import {
   TOUR_ACCENT_COLOR,
   TOUR_TEXT_PRIMARY,
@@ -11,8 +10,8 @@ import {
   FONT_BOLD,
   FONT_REGULAR,
   FONT_SEMIBOLD,
+  FONT_SIZE_DISPLAY,
   FONT_SIZE_SM,
-  FONT_SIZE_TITLE,
   FONT_SIZE_XS,
 } from "../../lib/typography";
 import { interpolate } from "../../lib/i18n/interpolate";
@@ -43,39 +42,21 @@ export default function TourHeader({
           <Text style={styles.topActionText}>{t.tour.exit}</Text>
         </Pressable>
 
-        <Pressable style={styles.chatButton} onPress={onOpenChat}>
-          <View style={styles.chatBubbleBox}>
-            <Svg
-              width={46}
-              height={46}
-              viewBox="0 0 512 512"
-              style={StyleSheet.absoluteFill}
-            >
-              <Ellipse
-                cx={256}
-                cy={212}
-                rx={250}
-                ry={205}
-                fill={TOUR_ACCENT_COLOR}
-              />
-              <Path
-                d="M 285 360 L 285 488 Q 285 502 297 492 L 415 368 Z"
-                fill={TOUR_ACCENT_COLOR}
-                stroke={TOUR_ACCENT_COLOR}
-                strokeWidth={24}
-                strokeLinejoin="round"
-              />
-            </Svg>
-            <Image
-              source={require("../../assets/images/guia-feliz.png")}
-              style={styles.chatIconOverlayImage}
-              resizeMode="contain"
-            />
-          </View>
+        <Pressable
+          style={styles.chatButton}
+          onPress={onOpenChat}
+          accessibilityRole="button"
+          accessibilityLabel={t.tour.openChat}
+        >
+          <Image
+            source={require("../../assets/images/guia-feliz.png")}
+            style={styles.chatButtonImage}
+            resizeMode="contain"
+          />
         </Pressable>
       </View>
 
-      <Text style={styles.stepTitle} numberOfLines={1}>
+      <Text style={styles.stepTitle} numberOfLines={2}>
         {title}
       </Text>
 
@@ -94,7 +75,7 @@ export default function TourHeader({
 
 const styles = StyleSheet.create({
   headerBlock: {
-    height: 112,
+    alignItems: "stretch",
   },
 
   topBar: {
@@ -119,44 +100,44 @@ const styles = StyleSheet.create({
     color: TOUR_TEXT_SECONDARY,
   },
 
+  // Botón de chat cuadrado redondeado con la esquina inferior derecha
+  // casi recta, que lo hace leer como globo de diálogo.
   chatButton: {
-    padding: 0,
+    width: 52,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: TOUR_ACCENT_COLOR,
+    borderRadius: 24,
+    borderBottomRightRadius: 5,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
+    shadowColor: "rgba(124,111,224,0.35)",
+    shadowOpacity: 1,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
 
-  // Globo de chat de 46x46 (misma altura que antes: círculo de 42 + 2 de
-  // padding por lado), dibujado con SVG sobre un viewBox de 512.
-  chatBubbleBox: {
-    width: 46,
-    height: 46,
+  // 28x32 conserva la proporción real de la imagen (960x1112).
+  chatButtonImage: {
+    width: 28,
+    height: 32,
   },
 
-  // Mascota centrada en el óvalo del globo (centro del óvalo: y ~19 de 46),
-  // no en el centro de la caja, porque la colita ocupa la parte de abajo.
-  // 26x30 conserva la proporción real de la imagen (960x1112).
-  chatIconOverlayImage: {
-    position: "absolute",
-    width: 26,
-    height: 30,
-    top: 4,
-    left: 10,
-  },
-
-  // El título de este paso en particular (no el de toda la pantalla) —
-  // vive en un header compacto compartiendo lugar con otros dos botones,
-  // así que va en TITLE, no en DISPLAY (reservado para el título dedicado
-  // de una pantalla entera, como discover.tsx o recomendations.tsx).
+  // Título del paso, centrado y en DISPLAY: es el protagonista del header.
   stepTitle: {
     fontFamily: FONT_BOLD,
     fontWeight: "700",
-    fontSize: FONT_SIZE_TITLE,
-    marginTop: 0,
+    fontSize: FONT_SIZE_DISPLAY,
+    textAlign: "center",
+    marginTop: 8,
     marginBottom: 12,
     color: TOUR_TEXT_PRIMARY,
-    height: 42,
   },
 
   metaPill: {
-    alignSelf: "flex-start",
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -164,7 +145,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    marginTop: -10,
     marginBottom: 14,
   },
 

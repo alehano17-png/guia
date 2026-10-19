@@ -639,7 +639,6 @@ return(
   voiceEnergy={voiceEnergy}
   guiaVoiceStatus={guiaVoiceStatus}
   onAskGuia={handleWakeWordDetected}
-  summary={step.summary}
 />
 
 
@@ -738,6 +737,7 @@ const styles = StyleSheet.create({
   },
 
   flowBlock: {
+    flex: 1,
     marginTop: 8,
   },
 

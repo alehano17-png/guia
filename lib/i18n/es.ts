@@ -113,6 +113,7 @@ export const es = {
 
   tour: {
     exit: "Salir",
+    openChat: "Abrir chat con GUÍA",
     next: "Siguiente",
     startWalking: "Empezar recorrido",
     stepProgress: "Narrando - Paso {{current}} de {{total}}",
