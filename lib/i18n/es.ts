@@ -114,6 +114,9 @@ export const es = {
   tour: {
     exit: "Salir",
     openChat: "Abrir chat con GUÍA",
+    nextStopLabel: "Siguiente parada",
+    // Marcador temporal: cada "x" se reemplaza a mano por el tiempo real.
+    walkTimeUnknown: "x min a pie",
     next: "Siguiente",
     startWalking: "Empezar recorrido",
     stepProgress: "Narrando - Paso {{current}} de {{total}}",

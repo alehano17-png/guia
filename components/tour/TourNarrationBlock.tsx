@@ -1,12 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import {
+  Animated,
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SharedValue } from "react-native-reanimated";
 import { GuiaVoiceStatus } from "../../hooks/useGuiaVoiceMode";
 import { useTranslation } from "../../lib/i18n/useTranslation";
 import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
 import { FONT_REGULAR, FONT_SIZE_XS } from "../../lib/typography";
 import VoiceBlob from "./VoiceBlob";
+
+// Alto natural del globo (200) + margen (20) + píldora (~34). Si el espacio
+// libre es menor (pantallas chicas con título en 2 líneas), se escala el
+// conjunto para que no se superponga con el header ni con la tarjeta.
+const CONTENT_HEIGHT = 254;
 
 type Props = {
   pulseAnim: Animated.Value;
@@ -35,55 +47,64 @@ export default function TourNarrationBlock({
   // piensa o habla, ya hay una pregunta en curso y no debe dispararse otra.
   const isGuiaBusy =
     guiaVoiceStatus !== "idle" && guiaVoiceStatus !== "error";
+
+  const [scale, setScale] = useState(1);
+  const handleLayout = (e: LayoutChangeEvent) => {
+    const next = Math.min(1, e.nativeEvent.layout.height / CONTENT_HEIGHT);
+    setScale((prev) => (Math.abs(prev - next) > 0.01 ? next : prev));
+  };
+
   return (
-    <View style={styles.centerBlock}>
-      <View style={styles.voiceContainer}>
-        <View style={styles.voiceOuter}>
-          <View style={styles.voiceAmbientGlow} />
+    <View style={styles.centerBlock} onLayout={handleLayout}>
+      <View style={[styles.scaledContent, { transform: [{ scale }] }]}>
+        <View style={styles.voiceContainer}>
+          <View style={styles.voiceOuter}>
+            <View style={styles.voiceAmbientGlow} />
 
-          <VoiceBlob
-            energy={voiceEnergy}
-            color={TOUR_ACCENT_COLOR}
-            radius={52}
-            amplitude={12}
-            style={styles.voiceBlobWrap}
-          />
+            <VoiceBlob
+              energy={voiceEnergy}
+              color={TOUR_ACCENT_COLOR}
+              radius={52}
+              amplitude={12}
+              style={styles.voiceBlobWrap}
+            />
 
-          <Animated.View
-            style={[
-              styles.voiceInnerGlow,
-              {
-                transform: [
-                  {
-                    scale: pulseAnim.interpolate({
-                      inputRange: [1, 1.3],
-                      outputRange: [1, 1.3],
-                      extrapolate: "clamp",
-                    }),
-                  },
-                ],
-                opacity: pulseAnim.interpolate({
-                  inputRange: [1, 1.3],
-                  outputRange: [0.14, 0.22],
-                  extrapolate: "clamp",
-                }),
-              },
-            ]}
-          />
+            <Animated.View
+              style={[
+                styles.voiceInnerGlow,
+                {
+                  transform: [
+                    {
+                      scale: pulseAnim.interpolate({
+                        inputRange: [1, 1.3],
+                        outputRange: [1, 1.3],
+                        extrapolate: "clamp",
+                      }),
+                    },
+                  ],
+                  opacity: pulseAnim.interpolate({
+                    inputRange: [1, 1.3],
+                    outputRange: [0.14, 0.22],
+                    extrapolate: "clamp",
+                  }),
+                },
+              ]}
+            />
 
-          <View style={styles.voiceShine} />
-          <View style={styles.voiceGlass} />
+            <View style={styles.voiceShine} />
+            <View style={styles.voiceGlass} />
+          </View>
         </View>
-      </View>
 
-      <Pressable
-        style={[styles.askPill, isGuiaBusy && styles.askPillDisabled]}
-        onPress={onAskGuia}
-        disabled={isGuiaBusy}
-      >
-        <Ionicons name="mic" size={16} color={TOUR_ACCENT_COLOR} />
-        <Text style={styles.askTip}>{guiaStatusLabel[guiaVoiceStatus]}</Text>
-      </Pressable>
+        <Pressable
+          style={[styles.askPill, isGuiaBusy && styles.askPillDisabled]}
+          onPress={onAskGuia}
+          disabled={isGuiaBusy}
+        >
+          <Ionicons name="mic" size={16} color={TOUR_ACCENT_COLOR} />
+          <Text style={styles.askTip}>{guiaStatusLabel[guiaVoiceStatus]}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -95,6 +116,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  scaledContent: {
+    alignItems: "center",
   },
 
   voiceContainer: {

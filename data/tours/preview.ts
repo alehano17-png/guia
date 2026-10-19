@@ -8,7 +8,6 @@ type PreviewDestination = {
 
 type PreviewData = {
   previewDestination: PreviewDestination;
-  previewInfoText?: string;
 };
 
 type Input = {
@@ -81,17 +80,7 @@ export function getTourPreviewData({
             }
           : tourAnchor;
 
-  const previewInfoText =
-    isGuidedStart && startRoute
-      ? `Destino: ${startRoute.destinationTitle}`
-      : step?.previewText
-        ? step.previewText
-        : nextStepPreview
-          ? `Próximo punto: ${nextStepPreview.title} · ${nextStepPreview.time}`
-          : undefined;
-
   return {
     previewDestination,
-    previewInfoText,
   };
 }

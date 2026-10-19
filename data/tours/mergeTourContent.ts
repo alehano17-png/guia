@@ -4,7 +4,7 @@ import type { TourContent } from "./content-types";
 
 // Combina esqueleto (estructura, nunca cambia por idioma) + contenido (solo
 // texto, uno por idioma) en el mismo `Tour` que ya consume el resto de la
-// app hoy (TourMediaBlock, TourNarrationBlock, TourChatSheet, preview.ts,
+// app hoy (TourNextStopCard, TourNarrationBlock, TourChatSheet, preview.ts,
 // app/tour.tsx) — ninguno de esos archivos necesita saber que ahora hay 2
 // fuentes en vez de una.
 export function mergeTourContent(

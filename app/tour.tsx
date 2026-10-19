@@ -7,11 +7,9 @@ import TourChatSheet from "../components/tour/TourChatSheet";
 import TourDecisionModal from "../components/tour/TourDecisionModal";
 import TourHeader from "../components/tour/TourHeader";
 import TourLoadingScreen from "../components/tour/TourLoadingScreen";
-import TourMediaBlock from "../components/tour/TourMediaBlock";
 import TourNarrationBlock from "../components/tour/TourNarrationBlock";
+import TourNextStopCard from "../components/tour/TourNextStopCard";
 import TourNotFoundState from "../components/tour/TourNotFoundState";
-import TourPrimaryButton from "../components/tour/TourPrimaryButton";
-import { getTourMapRegion } from "../data/tours/map";
 import {
   getChoiceNextStepId,
   getTourNextAction,
@@ -201,7 +199,7 @@ const handleDictate = useCallback(async () => {
 const isDictating =
   guiaVoiceStatus === "listening" || guiaVoiceStatus === "thinking";
 
-const { userLocation, locationPermissionGranted } = useTourLocation()
+const { userLocation } = useTourLocation()
 
 
 const tour = useMemo(()=>getTourById(tourId, tourLocale),[tourId, tourLocale])
@@ -296,7 +294,6 @@ const startRoute = step?.startRoute
 const isGuidedStart = !!startRoute
 
 const actionCardData = step?.actionCard
-const showActionCard = !!actionCardData
 
 const hasChoices = !!step?.choices?.length
 
@@ -307,7 +304,7 @@ const primaryButtonLabel =
 
    
 
-const { previewDestination, previewInfoText } = useMemo(
+const { previewDestination } = useMemo(
   () =>
     getTourPreviewData({
       steps: tour?.steps,
@@ -326,16 +323,7 @@ const { previewDestination, previewInfoText } = useMemo(
 
     
 
-const { mapLatitude, mapLongitude, mapLatitudeDelta, mapLongitudeDelta } = useMemo(
-  () =>
-    getTourMapRegion({
-      userLocation,
-      previewDestination,
-    }),
-  [userLocation, previewDestination]
-)
-
-const { openStartRoute, openPreviewRoute } = useTourRouteActions({
+const { openStartRoute } = useTourRouteActions({
   startRoute,
   previewDestination,
   isGuidedStart,
@@ -644,24 +632,11 @@ return(
 
 
 
-<TourMediaBlock
-  showActionCard={showActionCard}
-  actionCardData={actionCardData}
-  onOpenPreviewRoute={openPreviewRoute}
-  locationPermissionGranted={locationPermissionGranted}
-  mapLatitude={mapLatitude}
-  mapLongitude={mapLongitude}
-  mapLatitudeDelta={mapLatitudeDelta}
-  mapLongitudeDelta={mapLongitudeDelta}
-  previewDestination={previewDestination}
-  previewInfoText={previewInfoText}
-/>
-
-
-
-  
-<TourPrimaryButton
-  label={primaryButtonLabel}
+<TourNextStopCard
+  destinationTitle={previewDestination.title}
+  walkTime={step.nextStepPreview?.time}
+  actionCard={actionCardData}
+  buttonLabel={primaryButtonLabel}
   onPress={goNext}
 />
 
