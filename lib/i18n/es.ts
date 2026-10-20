@@ -125,6 +125,7 @@ export const es = {
     walkTimeApprox: "~{{minutes}} min a pie",
     next: "Siguiente",
     startWalking: "Empezar recorrido",
+    finish: "Terminar",
     stepProgress: "Narrando - Paso {{current}} de {{total}}",
     decisionTitle: "Elige cómo continuar",
     cancel: "Cancelar",

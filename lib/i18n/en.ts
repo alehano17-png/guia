@@ -111,6 +111,7 @@ export const en: TranslationDictionary = {
     walkTimeApprox: "~{{minutes}} min walk",
     next: "Next",
     startWalking: "Start tour",
+    finish: "Finish",
     stepProgress: "Narrating - Step {{current}} of {{total}}",
     decisionTitle: "Choose how to continue",
     cancel: "Cancel",

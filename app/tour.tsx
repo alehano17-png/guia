@@ -305,7 +305,9 @@ const hasChoices = !!step?.choices?.length
 const primaryButtonLabel =
   isGuidedStart && startRoute
     ? (startMapViewed ? t.tour.startWalking : startRoute.buttonLabel)
-    : t.tour.next
+    : step?.end
+      ? t.tour.finish
+      : t.tour.next
 
    
 
@@ -407,6 +409,11 @@ const goNext = () => {
   if (action.type === "advance") {
     setCurrentStepId(action.nextStepId)
     return
+  }
+
+  // Paso de cierre (end): "Terminar" sale del tour igual que "Salir".
+  if (action.type === "none" && step?.end) {
+    handleBack()
   }
 }
 
