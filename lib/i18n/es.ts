@@ -123,6 +123,7 @@ export const es = {
     decisionTitle: "Elige cómo continuar",
     cancel: "Cancelar",
     openMaps: "Abrir Maps",
+    openMapsLink: "Abrir en Maps",
     notFound: "No se encontró el tour",
     notFoundMessage: "No pudimos encontrar este recorrido. Puede que ya no esté disponible.",
     notFoundBack: "Volver",

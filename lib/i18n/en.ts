@@ -109,6 +109,7 @@ export const en: TranslationDictionary = {
     decisionTitle: "Choose how to continue",
     cancel: "Cancel",
     openMaps: "Open Maps",
+    openMapsLink: "Open in Maps",
     notFound: "Tour not found",
     notFoundMessage: "We couldn't find this tour. It may no longer be available.",
     notFoundBack: "Go back",

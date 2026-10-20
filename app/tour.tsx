@@ -10,6 +10,7 @@ import TourLoadingScreen from "../components/tour/TourLoadingScreen";
 import TourNarrationBlock from "../components/tour/TourNarrationBlock";
 import TourNextStopCard from "../components/tour/TourNextStopCard";
 import TourNotFoundState from "../components/tour/TourNotFoundState";
+import { getTourMapRegion } from "../data/tours/map";
 import {
   getChoiceNextStepId,
   getTourNextAction,
@@ -199,7 +200,7 @@ const handleDictate = useCallback(async () => {
 const isDictating =
   guiaVoiceStatus === "listening" || guiaVoiceStatus === "thinking";
 
-const { userLocation } = useTourLocation()
+const { userLocation, locationPermissionGranted } = useTourLocation()
 
 
 const tour = useMemo(()=>getTourById(tourId, tourLocale),[tourId, tourLocale])
@@ -323,7 +324,16 @@ const { previewDestination } = useMemo(
 
     
 
-const { openStartRoute } = useTourRouteActions({
+const { mapLatitude, mapLongitude, mapLatitudeDelta, mapLongitudeDelta } = useMemo(
+  () =>
+    getTourMapRegion({
+      userLocation,
+      previewDestination,
+    }),
+  [userLocation, previewDestination]
+)
+
+const { openStartRoute, openPreviewRoute } = useTourRouteActions({
   startRoute,
   previewDestination,
   isGuidedStart,
@@ -633,11 +643,17 @@ return(
 
 
 <TourNextStopCard
-  destinationTitle={previewDestination.title}
+  previewDestination={previewDestination}
   walkTime={step.nextStepPreview?.time}
   actionCard={actionCardData}
   buttonLabel={primaryButtonLabel}
   onPress={goNext}
+  onOpenPreviewRoute={openPreviewRoute}
+  locationPermissionGranted={locationPermissionGranted}
+  mapLatitude={mapLatitude}
+  mapLongitude={mapLongitude}
+  mapLatitudeDelta={mapLatitudeDelta}
+  mapLongitudeDelta={mapLongitudeDelta}
 />
 
 
