@@ -4,7 +4,20 @@ export type DiscoveryKind = "tour" | "place";
 export type DiscoveryAvailability = "available" | "coming_soon";
 // Ícono de la tarjeta del tour (ver iconHelpers.ts). Fácil de ampliar:
 // agregar una clave acá y su ícono en iconHelpers.ts.
-export type DiscoveryIconKey = "pin" | "waves" | "landmark" | "bridge";
+export type DiscoveryIconKey =
+  | "pin" // por defecto
+  | "waves" // mar y costa
+  | "landmark" // historia y arquitectura
+  | "art" // arte y bohemia
+  | "archaeology" // arqueología
+  | "church" // iglesias y fe
+  | "sunset" // vistas y atardeceres
+  | "lighthouse" // faro y malecón
+  | "mountain" // acantilados y naturaleza
+  | "food" // gastronomía
+  | "music" // música y cultura
+  | "anchor" // puerto y mar abierto
+  | "city"; // ciudad moderna
 
 export type DiscoveryCatalogItem = {
   id: string;
@@ -71,7 +84,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     subtitle: "Arte, bohemia y cultura.",
     durationMinutes: 75,
     durationMaxMinutes: 90,
-    icon: "bridge",
+    icon: "art",
    cityId: "lima",
     zoneId: "barranco",
     zone: "Barranco",
