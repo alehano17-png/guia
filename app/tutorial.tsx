@@ -48,7 +48,7 @@ import {
 const DESIGN_WIDTH = 390;
 const DESIGN_HEIGHT = 844;
 
-const STEP_COUNT = 3;
+const STEP_COUNT = 4;
 
 const BUTTON_HEIGHT = 60;
 const DOT_SIZE = 8;
@@ -56,7 +56,7 @@ const DOTS_GAP = 20; // entre los puntitos y el botón
 const TEXT_GAP = 20; // entre el texto y los puntitos
 // Alto reservado para el texto: título de hasta 2 líneas (34 c/u) +
 // separación + descripción de hasta 3 líneas (24 c/u). Reservado fijo para
-// que el título arranque a la misma altura en los 3 pasos.
+// que el título arranque a la misma altura en todos los pasos.
 const TEXT_BLOCK_HEIGHT = 34 * 2 + 10 + 24 * 3;
 const SKIP_HEIGHT = 24;
 
@@ -69,9 +69,9 @@ const MASCOT_SIZE = 150;
 const MIN_MASCOT_SIZE = 56;
 const MASCOT_GAP = 8;
 const CARD_WIDTH = 300;
-// Alto fijo para los 3 pasos, así nada salta al cambiar de paso: el del
-// paso más alto (el 2: etiqueta + título + halo de 86 + píldora, más el
-// padding de 18 arriba y abajo). Los otros dos se centran adentro.
+// Alto fijo para todos los pasos, así nada salta al cambiar de paso: el
+// del paso más alto (el 2: etiqueta + título + halo de 86 + píldora, más
+// el padding de 18 arriba y abajo). Los demás se centran adentro.
 const CARD_HEIGHT = 222;
 const MIN_CARD_SCALE = 0.85;
 
@@ -211,6 +211,7 @@ export default function TutorialScreen() {
     { title: t.tutorial.step1Title, body: t.tutorial.step1Body },
     { title: t.tutorial.step2Title, body: t.tutorial.step2Body },
     { title: t.tutorial.step3Title, body: t.tutorial.step3Body },
+    { title: t.tutorial.step4Title, body: t.tutorial.step4Body },
   ];
   const current = steps[step];
   const demo = t.tutorial.demo;
@@ -258,7 +259,8 @@ export default function TutorialScreen() {
           >
             {step === 0 ? <LanguageDemo demo={demo} /> : null}
             {step === 1 ? <VoiceDemo demo={demo} energy={voiceEnergy} /> : null}
-            {step === 2 ? <ChatDemo demo={demo} /> : null}
+            {step === 2 ? <MapDemo demo={demo} /> : null}
+            {step === 3 ? <ChatDemo demo={demo} /> : null}
           </View>
         </View>
       </Animated.View>
@@ -375,7 +377,40 @@ function VoiceDemo({
   );
 }
 
-// Paso 3: una pregunta, la respuesta y la misma barra de entrada del chat.
+// Paso 3: la tarjeta "Siguiente parada" del tour, con un mini mapa
+// dibujado (decorativo: sin MapView ni red).
+function MapDemo({ demo }: { demo: DemoTexts }) {
+  return (
+    <View>
+      <View style={styles.mapRow}>
+        <View style={styles.miniMap}>
+          <View style={styles.miniMapPark} />
+          <View style={styles.miniMapWater} />
+          <View style={styles.miniMapStreetH} />
+          <View style={styles.miniMapStreetV} />
+          <View style={styles.miniMapPin}>
+            <View style={styles.miniMapPinDot} />
+          </View>
+        </View>
+
+        <View style={styles.mapTexts}>
+          <Text style={styles.mapLabel}>{demo.nextStopLabel}</Text>
+          <Text style={styles.mapName} numberOfLines={2}>
+            {demo.nextStopName}
+          </Text>
+          <Text style={styles.mapLink}>{demo.openMap}</Text>
+        </View>
+      </View>
+
+      <View style={styles.mapButton}>
+        <Text style={styles.mapButtonText}>{demo.nextPill}</Text>
+        <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+      </View>
+    </View>
+  );
+}
+
+// Paso 4: una pregunta, la respuesta y la misma barra de entrada del chat.
 function ChatDemo({ demo }: { demo: DemoTexts }) {
   return (
     <View>
@@ -577,6 +612,132 @@ const styles = StyleSheet.create({
   },
 
   // Paso 3
+  mapRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#F6F2FF",
+    borderRadius: 18,
+    padding: 10,
+  },
+
+  miniMap: {
+    width: 64,
+    height: 64,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "#EAE6DD",
+  },
+
+  miniMapPark: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 26,
+    height: 24,
+    backgroundColor: "#CFE5C8",
+  },
+
+  miniMapWater: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 14,
+    backgroundColor: "#BFD9EE",
+  },
+
+  miniMapStreetH: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 28,
+    height: 5,
+    backgroundColor: "#FFFFFF",
+  },
+
+  miniMapStreetV: {
+    position: "absolute",
+    top: 0,
+    bottom: 14,
+    left: 30,
+    width: 5,
+    backgroundColor: "#FFFFFF",
+  },
+
+  // Gota: cuadrado con tres esquinas redondas, girado 45° para que la
+  // esquina recta apunte hacia abajo.
+  miniMapPin: {
+    position: "absolute",
+    top: 10,
+    left: 37,
+    width: 18,
+    height: 18,
+    borderTopLeftRadius: 9,
+    borderTopRightRadius: 9,
+    borderBottomLeftRadius: 9,
+    backgroundColor: TOUR_ACCENT_COLOR,
+    alignItems: "center",
+    justifyContent: "center",
+    transform: [{ rotate: "45deg" }],
+  },
+
+  miniMapPinDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#FFFFFF",
+  },
+
+  mapTexts: {
+    flex: 1,
+  },
+
+  mapLabel: {
+    fontFamily: FONT_BOLD,
+    fontWeight: "700",
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: TOUR_ACCENT_COLOR,
+  },
+
+  mapName: {
+    fontFamily: FONT_BOLD,
+    fontWeight: "700",
+    fontSize: 15,
+    color: TOUR_TEXT_PRIMARY,
+    marginTop: 2,
+  },
+
+  mapLink: {
+    fontFamily: FONT_SEMIBOLD,
+    fontWeight: "600",
+    fontSize: 12,
+    color: HOME_BUTTON_TEXT_COLOR,
+    textDecorationLine: "underline",
+    marginTop: 4,
+  },
+
+  mapButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 10,
+    backgroundColor: TOUR_ACCENT_COLOR,
+    borderRadius: 999,
+    paddingVertical: 11,
+  },
+
+  mapButtonText: {
+    fontFamily: FONT_BOLD,
+    fontWeight: "700",
+    fontSize: 15,
+    color: "#FFFFFF",
+  },
+
+  // Paso 4
   bubble: {
     padding: 12,
     borderRadius: 18,

@@ -36,8 +36,10 @@ export const es = {
     step1Body: "Escoge un recorrido y dime en qué idioma lo quieres escuchar.",
     step2Title: "Camina y escucha",
     step2Body: "Yo te voy contando todo mientras caminas. Cuando llegues a cada punto, toca “Siguiente”.",
-    step3Title: "Pregúntame lo que quieras",
-    step3Body: "Háblame con el micrófono o escríbeme en el chat. Te respondo sobre el lugar donde estás.",
+    step3Title: "Sigue el mapa",
+    step3Body: "Toca el mapa para abrirlo y ver cómo llegar a la siguiente parada. Al llegar, toca “Siguiente” y sigo con la historia.",
+    step4Title: "Pregúntame lo que quieras",
+    step4Body: "Háblame con el micrófono o escríbeme en el chat. Te respondo sobre el lugar donde estás.",
     // Textos de las mini ilustraciones de cada paso (decorativas).
     demo: {
       tourName: "Barranco",
@@ -49,6 +51,9 @@ export const es = {
       question: "¿Quién pintó este mural?",
       answer: "¡Buena pregunta! Lo pintó un artista local…",
       inputPlaceholder: "Escribe una pregunta…",
+      nextStopLabel: "Siguiente parada",
+      nextStopName: "Faro de la Marina",
+      openMap: "Abrir mapa",
     },
   },
 

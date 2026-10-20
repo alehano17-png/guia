@@ -27,8 +27,10 @@ export const en: TranslationDictionary = {
     step1Body: "Choose a walk and tell me which language you want to hear it in.",
     step2Title: "Walk and listen",
     step2Body: "I'll tell you everything as you walk. When you reach each stop, tap “Next”.",
-    step3Title: "Ask me anything",
-    step3Body: "Talk to me with the microphone or type in the chat. I'll answer about the place you're at.",
+    step3Title: "Follow the map",
+    step3Body: "Tap the map to open it and see how to get to the next stop. When you arrive, tap “Next” and I'll continue the story.",
+    step4Title: "Ask me anything",
+    step4Body: "Talk to me with the microphone or type in the chat. I'll answer about the place you're at.",
     demo: {
       tourName: "Barranco",
       tourDesc: "Art, bohemia and culture.",
@@ -39,6 +41,9 @@ export const en: TranslationDictionary = {
       question: "Who painted this mural?",
       answer: "Great question! It was painted by a local artist…",
       inputPlaceholder: "Type a question…",
+      nextStopLabel: "Next stop",
+      nextStopName: "Faro de la Marina",
+      openMap: "Open map",
     },
   },
 
