@@ -121,6 +121,7 @@ export const es = {
     openChat: "Abrir chat con GUÍA",
     nextStopLabel: "Siguiente parada",
     lastStopLabel: "Última parada",
+    routePointFallback: "Punto del recorrido",
     // Tiempo a pie aproximado, calculado cuando no viene escrito a mano.
     walkTimeApprox: "~{{minutes}} min a pie",
     next: "Siguiente",

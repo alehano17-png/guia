@@ -107,6 +107,7 @@ export const en: TranslationDictionary = {
     openChat: "Open chat with GUÍA",
     nextStopLabel: "Next stop",
     lastStopLabel: "Last stop",
+    routePointFallback: "Tour stop",
     // Tiempo a pie aproximado, calculado cuando no viene escrito a mano.
     walkTimeApprox: "~{{minutes}} min walk",
     next: "Next",

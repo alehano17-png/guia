@@ -17,6 +17,9 @@ type Input = {
   step?: TourStep;
   isGuidedStart: boolean;
   startRoute?: TourStep["startRoute"];
+  // Nombre a mostrar si el tour no tiene ningún punto con coordenadas
+  // (i18n tour.routePointFallback).
+  fallbackTitle: string;
 };
 
 export function getTourPreviewData({
@@ -24,6 +27,7 @@ export function getTourPreviewData({
   step,
   isGuidedStart,
   startRoute,
+  fallbackTitle,
 }: Input): PreviewData {
   const nextStep =
     step?.nextId && steps
@@ -56,7 +60,7 @@ export function getTourPreviewData({
         longitude: firstWithStartRoute.startRoute.longitude,
       }
     : {
-        title: firstWithCoords?.title ?? "Punto del recorrido",
+        title: firstWithCoords?.title ?? fallbackTitle,
         latitude: firstWithCoords?.latitude ?? -12.1205,
         longitude: firstWithCoords?.longitude ?? -77.034,
       };

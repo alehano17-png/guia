@@ -1,4 +1,10 @@
-import { useSyncExternalStore } from "react";
+import {
+  createContext,
+  createElement,
+  useContext,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import {
   getLocale,
   setLocale,
@@ -17,8 +23,25 @@ import {
 // string ("auth.login.title") — un typo en una ruta de objeto es un error
 // de compilación con autocompletado; un typo en un string-key sería un bug
 // silencioso que recién se nota en pantalla.
+// Idioma forzado para un subárbol (ej. la pantalla del tour, que va en el
+// idioma elegido para el tour y no en el del celular). null = sin forzar:
+// se usa el idioma global de la app.
+const LocaleOverrideContext = createContext<Locale | null>(null);
+
+export function LocaleOverride({
+  locale,
+  children,
+}: {
+  locale: Locale;
+  children: ReactNode;
+}) {
+  return createElement(LocaleOverrideContext.Provider, { value: locale }, children);
+}
+
 export function useTranslation() {
-  const locale = useSyncExternalStore(subscribeToLocaleChanges, getLocale);
+  const globalLocale = useSyncExternalStore(subscribeToLocaleChanges, getLocale);
+  const overrideLocale = useContext(LocaleOverrideContext);
+  const locale = overrideLocale ?? globalLocale;
 
   return {
     t: translations[locale],

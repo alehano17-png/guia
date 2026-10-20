@@ -32,7 +32,7 @@ import { ChatMessage } from "../lib/chatTypes";
 import { sendTourChatMessage } from "../lib/sendTourChatMessage";
 import { TOUR_GRADIENT_COLORS } from "../lib/tourTheme";
 import { translations } from "../lib/i18n";
-import { useTranslation } from "../lib/i18n/useTranslation";
+import { LocaleOverride, useTranslation } from "../lib/i18n/useTranslation";
 
 // Radio de "llegada" al punto del recorrido, en metros — a partir de acá
 // se dispara el avance automático (solo para pasos de tipo "advance").
@@ -70,13 +70,17 @@ export default function TourScreen() {
     : "es"
 
   // La key incluye el idioma: cambiar de tour O de idioma remonta la
-  // pantalla con estado fresco.
+  // pantalla con estado fresco. LocaleOverride: toda la interfaz del tour
+  // (carga, header, tarjeta, chat, modal) va en el idioma del tour, no en
+  // el del celular.
   return (
-    <TourScreenContent
-      key={`${tourId}-${tourLocale}`}
-      tourId={tourId}
-      tourLocale={tourLocale}
-    />
+    <LocaleOverride locale={tourLocale}>
+      <TourScreenContent
+        key={`${tourId}-${tourLocale}`}
+        tourId={tourId}
+        tourLocale={tourLocale}
+      />
+    </LocaleOverride>
   )
 }
 
@@ -318,8 +322,9 @@ const { previewDestination } = useMemo(
       step,
       isGuidedStart,
       startRoute,
+      fallbackTitle: t.tour.routePointFallback,
     }),
-  [tour?.steps, step, isGuidedStart, startRoute]
+  [tour?.steps, step, isGuidedStart, startRoute, t.tour.routePointFallback]
 )
 
 

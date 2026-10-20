@@ -48,16 +48,6 @@ const RECORDING_OPTIONS = {
 // sin encarecer ni alentar cada turno más a medida que la charla crece.
 const MAX_HISTORY_MESSAGES = 10;
 
-// Frases cortas de transición antes de retomar el punto del tour, para
-// que la vuelta a la narración no se sienta como una interrupción
-// silenciosa. Se elige una al azar cada vez (en app/tour.tsx).
-export const GUIA_TRANSITION_PHRASES = [
-  "Continuemos con el recorrido.",
-  "Sigamos donde estábamos.",
-  "Retomemos la historia.",
-  "Volvamos al recorrido.",
-];
-
 // No es el id de ningún paso real del tour — es fijo a propósito, para
 // que las 4 frases de transición se cacheen (por ensureAudioForStep) bajo
 // este mismo prefijo, cada una diferenciada por el hash de su propio
