@@ -15,7 +15,7 @@ import {
   getChoiceNextStepId,
   getTourNextAction,
 } from "../data/tours/navigation";
-import { getTourPreviewData } from "../data/tours/preview";
+import { getTourCardMode, getTourPreviewData } from "../data/tours/preview";
 import {
   GUIA_TRANSITION_AUDIO_STEP_ID,
   useGuiaVoiceMode,
@@ -323,6 +323,11 @@ const { previewDestination } = useMemo(
 
 
     
+
+const cardMode = useMemo(
+  () => getTourCardMode({ steps: tour?.steps, step }),
+  [tour?.steps, step]
+)
 
 const { mapLatitude, mapLongitude, mapLatitudeDelta, mapLongitudeDelta } = useMemo(
   () =>
@@ -643,6 +648,7 @@ return(
 
 
 <TourNextStopCard
+  mode={cardMode}
   previewDestination={previewDestination}
   walkTime={step.nextStepPreview?.time}
   actionCard={actionCardData}

@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import type { TourCardMode } from "../../data/tours/preview";
 import { HOME_BUTTON_TEXT_COLOR } from "../../lib/homeTheme";
 import { useTranslation } from "../../lib/i18n/useTranslation";
 import {
@@ -32,6 +33,7 @@ type PreviewDestination = {
 };
 
 type Props = {
+  mode: TourCardMode;
   previewDestination: PreviewDestination;
   walkTime?: string;
   actionCard?: ActionCardData;
@@ -48,7 +50,10 @@ type Props = {
 // Tarjeta "Siguiente parada" pegada abajo de la pantalla del tour. En los
 // pasos de confirmación (actionCard) muestra su título y subtítulo en vez
 // del destino y el tiempo a pie; la etiqueta, el mapa y el botón no cambian.
+// En "last" la etiqueta pasa a "Última parada" y no hay tiempo a pie (el
+// destino ya es la propia parada); en "closing" solo queda el botón.
 export default function TourNextStopCard({
+  mode,
   previewDestination,
   walkTime,
   actionCard,
@@ -62,6 +67,16 @@ export default function TourNextStopCard({
   mapLongitudeDelta,
 }: Props) {
   const { t } = useTranslation();
+  const isLast = mode === "last";
+
+  const button = (
+    <Pressable style={styles.button} onPress={onPress}>
+      <Text style={styles.buttonText}>{buttonLabel}</Text>
+      <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+    </Pressable>
+  );
+
+  if (mode === "closing") return button;
 
   return (
     <View style={styles.card}>
@@ -102,7 +117,9 @@ export default function TourNextStopCard({
         </Pressable>
 
         <View style={styles.textColumn}>
-          <Text style={styles.label}>{t.tour.nextStopLabel}</Text>
+          <Text style={styles.label}>
+            {isLast ? t.tour.lastStopLabel : t.tour.nextStopLabel}
+          </Text>
 
           <Text style={styles.title} numberOfLines={2}>
             {actionCard ? actionCard.title : previewDestination.title}
@@ -110,7 +127,7 @@ export default function TourNextStopCard({
 
           {actionCard ? (
             <Text style={styles.secondaryText}>{actionCard.subtitle}</Text>
-          ) : (
+          ) : isLast ? null : (
             <View style={styles.walkRow}>
               <Ionicons name="walk-outline" size={16} color={TOUR_TEXT_MUTED} />
               <Text style={styles.secondaryText}>
@@ -125,10 +142,7 @@ export default function TourNextStopCard({
         </View>
       </View>
 
-      <Pressable style={styles.button} onPress={onPress}>
-        <Text style={styles.buttonText}>{buttonLabel}</Text>
-        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-      </Pressable>
+      <View style={styles.buttonSpacer}>{button}</View>
     </View>
   );
 }
@@ -210,6 +224,9 @@ const styles = StyleSheet.create({
     backgroundColor: TOUR_ACCENT_COLOR,
     borderRadius: 999,
     paddingVertical: 16,
+  },
+
+  buttonSpacer: {
     marginTop: 12,
   },
 

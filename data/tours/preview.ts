@@ -84,3 +84,32 @@ export function getTourPreviewData({
     previewDestination,
   };
 }
+
+export type TourCardMode = "next" | "last" | "closing";
+
+type CardModeInput = {
+  steps?: TourStep[];
+  step?: TourStep;
+};
+
+// Qué muestra la tarjeta de abajo del tour:
+// - "next": siguiente parada (caso normal, inicio guiado y pasos con
+//   choices, cuyo siguiente real lo decide la elección).
+// - "last": el paso tiene coordenadas y lo que sigue es el cierre.
+// - "closing": paso de cierre (end) o tramo sin coordenadas que lleva al
+//   cierre; solo se muestra el botón.
+export function getTourCardMode({ steps, step }: CardModeInput): TourCardMode {
+  if (!step || step.startRoute || step.choices?.length) return "next";
+  if (step.end) return "closing";
+
+  const nextStep = step.nextId
+    ? steps?.find((s) => s.id === step.nextId)
+    : undefined;
+
+  if (!nextStep || nextStep.end) {
+    const hasCoords = step.latitude != null && step.longitude != null;
+    return hasCoords ? "last" : "closing";
+  }
+
+  return "next";
+}

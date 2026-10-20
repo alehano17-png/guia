@@ -115,6 +115,7 @@ export const es = {
     exit: "Salir",
     openChat: "Abrir chat con GUÍA",
     nextStopLabel: "Siguiente parada",
+    lastStopLabel: "Última parada",
     // Marcador temporal: cada "x" se reemplaza a mano por el tiempo real.
     walkTimeUnknown: "x min a pie",
     next: "Siguiente",
