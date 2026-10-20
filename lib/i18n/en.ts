@@ -26,7 +26,7 @@ export const en: TranslationDictionary = {
     step1Title: "Pick your tour",
     step1Body: "Choose a walk and tell me which language you want to hear it in.",
     step2Title: "Walk and listen",
-    step2Body: "I'll tell you everything as you walk. When you reach each stop, tap “Next”.",
+    step2Body: "I'll tell you everything as you walk.",
     step3Title: "Follow the map",
     step3Body: "Tap the map to open it and see how to get to the next stop. When you arrive, tap “Next” and I'll continue the story.",
     step4Title: "Ask me anything",

@@ -35,7 +35,7 @@ export const es = {
     step1Title: "Elige tu tour",
     step1Body: "Escoge un recorrido y dime en qué idioma lo quieres escuchar.",
     step2Title: "Camina y escucha",
-    step2Body: "Yo te voy contando todo mientras caminas. Cuando llegues a cada punto, toca “Siguiente”.",
+    step2Body: "Yo te voy contando todo mientras caminas.",
     step3Title: "Sigue el mapa",
     step3Body: "Toca el mapa para abrirlo y ver cómo llegar a la siguiente parada. Al llegar, toca “Siguiente” y sigo con la historia.",
     step4Title: "Pregúntame lo que quieras",
