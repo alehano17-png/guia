@@ -121,8 +121,8 @@ export const es = {
     openChat: "Abrir chat con GUÍA",
     nextStopLabel: "Siguiente parada",
     lastStopLabel: "Última parada",
-    // Marcador temporal: cada "x" se reemplaza a mano por el tiempo real.
-    walkTimeUnknown: "x min a pie",
+    // Tiempo a pie aproximado, calculado cuando no viene escrito a mano.
+    walkTimeApprox: "~{{minutes}} min a pie",
     next: "Siguiente",
     startWalking: "Empezar recorrido",
     stepProgress: "Narrando - Paso {{current}} de {{total}}",

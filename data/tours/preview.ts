@@ -1,4 +1,6 @@
-﻿import type { TourStep } from "./index";
+﻿import { getDistanceInMeters } from "../../lib/geo";
+import { interpolate } from "../../lib/i18n/interpolate";
+import type { TourStep } from "./index";
 
 type PreviewDestination = {
   title: string;
@@ -112,4 +114,46 @@ export function getTourCardMode({ steps, step }: CardModeInput): TourCardMode {
   }
 
   return "next";
+}
+
+// Velocidad de caminata (m/min) y factor de rodeo: la distancia en línea
+// recta se alarga un 30% para aproximar el recorrido real por las calles.
+const WALK_METERS_PER_MINUTE = 80;
+const WALK_DETOUR_FACTOR = 1.3;
+
+type WalkTimeInput = {
+  steps?: TourStep[];
+  step?: TourStep;
+  previewDestination: PreviewDestination;
+  // Plantilla i18n con {{minutes}} (tour.walkTimeApprox).
+  approxTemplate: string;
+};
+
+// Tiempo a pie que muestra la tarjeta: el escrito a mano en el contenido
+// (nextStepPreview.time) si existe; si no, uno aproximado desde el paso
+// actual hasta el destino de la tarjeta, solo cuando el paso actual y el
+// siguiente tienen coordenadas. Sin forma de calcularlo, undefined.
+export function getTourWalkTime({
+  steps,
+  step,
+  previewDestination,
+  approxTemplate,
+}: WalkTimeInput): string | undefined {
+  if (step?.nextStepPreview?.time) return step.nextStepPreview.time;
+  if (step?.latitude == null || step.longitude == null) return undefined;
+
+  const nextStep = step.nextId
+    ? steps?.find((s) => s.id === step.nextId)
+    : undefined;
+  if (nextStep?.latitude == null || nextStep.longitude == null) return undefined;
+
+  const meters = getDistanceInMeters(
+    { latitude: step.latitude, longitude: step.longitude },
+    previewDestination
+  );
+  const minutes = Math.max(
+    1,
+    Math.ceil((meters * WALK_DETOUR_FACTOR) / WALK_METERS_PER_MINUTE)
+  );
+  return interpolate(approxTemplate, { minutes });
 }

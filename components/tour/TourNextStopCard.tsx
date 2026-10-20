@@ -127,12 +127,10 @@ export default function TourNextStopCard({
 
           {actionCard ? (
             <Text style={styles.secondaryText}>{actionCard.subtitle}</Text>
-          ) : isLast ? null : (
+          ) : isLast || !walkTime ? null : (
             <View style={styles.walkRow}>
               <Ionicons name="walk-outline" size={16} color={TOUR_TEXT_MUTED} />
-              <Text style={styles.secondaryText}>
-                {walkTime ?? t.tour.walkTimeUnknown}
-              </Text>
+              <Text style={styles.secondaryText}>{walkTime}</Text>
             </View>
           )}
 

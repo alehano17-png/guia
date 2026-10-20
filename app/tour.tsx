@@ -15,7 +15,11 @@ import {
   getChoiceNextStepId,
   getTourNextAction,
 } from "../data/tours/navigation";
-import { getTourCardMode, getTourPreviewData } from "../data/tours/preview";
+import {
+  getTourCardMode,
+  getTourPreviewData,
+  getTourWalkTime,
+} from "../data/tours/preview";
 import {
   GUIA_TRANSITION_AUDIO_STEP_ID,
   useGuiaVoiceMode,
@@ -323,6 +327,17 @@ const { previewDestination } = useMemo(
 
 
     
+
+const walkTime = useMemo(
+  () =>
+    getTourWalkTime({
+      steps: tour?.steps,
+      step,
+      previewDestination,
+      approxTemplate: t.tour.walkTimeApprox,
+    }),
+  [tour?.steps, step, previewDestination, t.tour.walkTimeApprox]
+)
 
 const cardMode = useMemo(
   () => getTourCardMode({ steps: tour?.steps, step }),
@@ -654,7 +669,7 @@ return(
 <TourNextStopCard
   mode={cardMode}
   previewDestination={previewDestination}
-  walkTime={step.nextStepPreview?.time}
+  walkTime={walkTime}
   actionCard={actionCardData}
   buttonLabel={primaryButtonLabel}
   onPress={goNext}

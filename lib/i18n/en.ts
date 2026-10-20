@@ -107,8 +107,8 @@ export const en: TranslationDictionary = {
     openChat: "Open chat with GUÍA",
     nextStopLabel: "Next stop",
     lastStopLabel: "Last stop",
-    // Marcador temporal: cada "x" se reemplaza a mano por el tiempo real.
-    walkTimeUnknown: "x min walk",
+    // Tiempo a pie aproximado, calculado cuando no viene escrito a mano.
+    walkTimeApprox: "~{{minutes}} min walk",
     next: "Next",
     startWalking: "Start tour",
     stepProgress: "Narrating - Step {{current}} of {{total}}",
