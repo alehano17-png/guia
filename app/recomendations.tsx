@@ -132,9 +132,14 @@ const {
 } = useDiscoveryNavigation();
 
 // Tours y lugares van en la misma lista, con la misma tarjeta: primero los
-// tours, después los lugares. Los que no se pueden abrir (próximamente) se
-// ven atenuados y muestran su estado en vez de la duración.
-const listItems: DiscoveryCatalogItem[] = [...featuredTours, ...discoverPlaces];
+// tours, después los lugares disponibles y al final los próximamente
+// (atenuados, con su estado en vez de la duración). Cada grupo conserva
+// su orden.
+const listItems: DiscoveryCatalogItem[] = [
+  ...featuredTours,
+  ...discoverPlaces.filter((place) => canOpenDiscoveryItem(place)),
+  ...discoverPlaces.filter((place) => !canOpenDiscoveryItem(place)),
+];
 
 
 
