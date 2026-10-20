@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
+  Animated,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import LoadingSearchScreen from "../components/tour/LoadingSearchScreen";
 import TourLanguageSheet from "../components/tour/TourLanguageSheet";
 import GuiaStateCard from "../components/GuiaStateCard";
+import ScrollIndicator from "../components/ScrollIndicator";
 import { getDiscoveryItemStatus } from "../data/discovery/behavior";
 import type { DiscoveryCatalogItem } from "../data/discovery/catalog";
 import {
@@ -94,6 +96,10 @@ export default function Recommendations() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
+  // Medidas para la barra de scroll propia (ScrollIndicator).
+  const scrollY = useState(() => new Animated.Value(0))[0];
+  const [contentHeight, setContentHeight] = useState(0);
+  const [viewHeight, setViewHeight] = useState(0);
   // Primera vez en este celular: se va al tutorial antes de mostrar nada.
   // Se evalúa una sola vez, al montar, para no pintar Recomendaciones un
   // instante antes del redirect.
@@ -207,6 +213,13 @@ if (loading) {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          onContentSizeChange={(_, height) => setContentHeight(height)}
+          onLayout={(e) => setViewHeight(e.nativeEvent.layout.height)}
         >
         <View style={styles.header}>
           <Text style={styles.title}>{t.recommendations.title}</Text>
@@ -242,6 +255,15 @@ if (loading) {
           })}
         </View>
         </ScrollView>
+
+        {/* Encima del ScrollView, a la derecha; termina antes del home
+            indicator. */}
+        <ScrollIndicator
+          scrollY={scrollY}
+          contentHeight={contentHeight}
+          viewHeight={viewHeight}
+          style={{ top: 8, bottom: insets.bottom + 8 }}
+        />
       </SafeAreaView>
 
       <TourLanguageSheet {...languageSheetProps} />

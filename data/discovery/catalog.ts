@@ -25,7 +25,6 @@ export type DiscoveryCatalogItem = {
   subtitle: string;
   durationMinutes: number;
   durationMaxMinutes?: number;
-  experienceLabel?: string;
   // Sin uso desde que las tarjetas no llevan foto (ver mediaHelpers.ts).
   imageKey?: DiscoveryMediaKey;
   icon?: DiscoveryIconKey;
@@ -103,7 +102,6 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     durationMinutes: 45,
     durationMaxMinutes: 60,
     icon: "archaeology",
-    experienceLabel: "Historia y recorrido",
    cityId: "lima",
     zoneId: "miraflores",
     zone: "Miraflores",
@@ -122,7 +120,6 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     durationMinutes: 15,
     durationMaxMinutes: 25,
     icon: "sunset",
-    experienceLabel: "Vista y pausa breve",
     cityId: "lima",
     zoneId: "miraflores",
     zone: "Miraflores",
@@ -140,7 +137,6 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     durationMinutes: 10,
     durationMaxMinutes: 20,
     icon: "lighthouse",
-    experienceLabel: "Vista y contexto",
     cityId: "lima",
     zoneId: "miraflores",
     zone: "Miraflores",
@@ -158,7 +154,6 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     durationMinutes: 20,
     durationMaxMinutes: 35,
     icon: "city",
-    experienceLabel: "Ciudad y océano",
     cityId: "lima",
     zoneId: "miraflores",
     zone: "Miraflores",

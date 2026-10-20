@@ -10,13 +10,3 @@ export function getDiscoveryItemDurationLabel(item: DiscoveryCatalogItem): strin
 
   return `${item.durationMinutes} min`;
 }
-
-export function getDiscoveryItemMetaLabel(item: DiscoveryCatalogItem): string {
-  const durationLabel = getDiscoveryItemDurationLabel(item);
-
-  if (item.experienceLabel) {
-    return `${durationLabel} · ${item.experienceLabel}`;
-  }
-
-  return durationLabel;
-}
