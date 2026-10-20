@@ -261,13 +261,16 @@ if (loading) {
         </View>
         </ScrollView>
 
-        {/* Encima del ScrollView, a la derecha; termina antes del home
-            indicator. */}
+        {/* Encima del ScrollView, a la derecha. Es hijo absoluto del
+            SafeAreaView, así que top/bottom se miden desde el borde de la
+            pantalla: se suman los insets para que empiece debajo de la
+            barra de estado (donde empieza el ScrollView) y termine antes
+            del home indicator. */}
         <ScrollIndicator
           scrollY={scrollY}
           contentHeight={contentHeight}
           viewHeight={viewHeight}
-          style={{ top: 8, bottom: insets.bottom + 8 }}
+          style={{ top: insets.top + 8, bottom: insets.bottom + 8 }}
         />
       </SafeAreaView>
 
