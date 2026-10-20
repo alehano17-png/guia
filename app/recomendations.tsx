@@ -20,11 +20,11 @@ import { getRecommendationsCopy } from "../data/discovery/recommendationsCopy";
 import { useDiscoveryContent } from "../hooks/useDiscoveryContent";
 import { useDiscoveryNavigation } from "../hooks/useDiscoveryNavigation";
 import { useTourLocation } from "../hooks/useTourLocation";
+import { HOME_BUTTON_TEXT_COLOR } from "../lib/homeTheme";
 import { useTranslation } from "../lib/i18n/useTranslation";
 import {
   TOUR_ACCENT_COLOR,
   TOUR_GRADIENT_COLORS,
-  TOUR_TEXT_MUTED,
   TOUR_TEXT_PRIMARY,
   TOUR_TEXT_SECONDARY,
 } from "../lib/tourTheme";
@@ -40,6 +40,10 @@ import {
   FONT_SIZE_XL,
 } from "../lib/typography";
 
+// Ícono de fondo de la tarjeta de tour: grande, tenue y cortado por el
+// borde derecho.
+const TOUR_ICON_SIZE = 120;
+
 type TourCardProps = {
   icon: ComponentProps<typeof Ionicons>["name"];
   title: string;
@@ -50,22 +54,27 @@ type TourCardProps = {
 
 function TourCard({ icon, title, desc, duration, onPress }: TourCardProps) {
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <View style={styles.cardTopRow}>
-        <View style={styles.cardIconBox}>
-          <Ionicons name={icon} size={24} color="#FFFFFF" />
-        </View>
-
-        <View style={styles.cardHeading}>
-          <Text style={styles.cardTitle}>{title}</Text>
-          <View style={styles.cardTimeRow}>
-            <Ionicons name="time-outline" size={14} color={TOUR_TEXT_MUTED} />
-            <Text style={styles.cardTime}>{duration}</Text>
-          </View>
-        </View>
+    <Pressable style={[styles.card, styles.tourCard]} onPress={onPress}>
+      {/* Marca de agua: va primero para quedar detrás del texto. El recorte
+          va en esta capa y no en la tarjeta, porque en iOS overflow hidden
+          en la vista con sombra la hace desaparecer. */}
+      <View style={styles.tourIconClip} pointerEvents="none">
+        <Ionicons
+          name={icon}
+          size={TOUR_ICON_SIZE}
+          color={TOUR_ACCENT_COLOR}
+          style={styles.tourIcon}
+        />
       </View>
 
-      <Text style={styles.cardDesc}>{desc}</Text>
+      <View style={styles.tourTexts}>
+        <Text style={styles.tourTitle}>{title}</Text>
+        <Text style={styles.tourDesc}>{desc}</Text>
+        <View style={styles.tourTimeRow}>
+          <Ionicons name="time-outline" size={14} color={HOME_BUTTON_TEXT_COLOR} />
+          <Text style={styles.tourTime}>{duration}</Text>
+        </View>
+      </View>
     </Pressable>
   );
 }
@@ -286,25 +295,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  cardTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-
-  cardIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 15,
-    backgroundColor: TOUR_ACCENT_COLOR,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  cardHeading: {
-    flex: 1,
-  },
-
   cardTitle: {
     fontFamily: FONT_BOLD,
     fontWeight: "700",
@@ -312,26 +302,59 @@ const styles = StyleSheet.create({
     color: TOUR_TEXT_PRIMARY,
   },
 
-  cardTimeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 3,
+  tourCard: {
+    padding: 18,
+    minHeight: 112,
+    justifyContent: "center",
   },
 
-  cardTime: {
-    fontFamily: FONT_SEMIBOLD,
-    fontWeight: "600",
-    fontSize: FONT_SIZE_SM,
-    color: TOUR_TEXT_MUTED,
+  tourIconClip: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 24,
+    overflow: "hidden",
   },
 
-  cardDesc: {
-    marginTop: 12,
+  // Centrado vertical y subido 6px; right -18 lo recorta con el borde.
+  tourIcon: {
+    position: "absolute",
+    right: -18,
+    top: "50%",
+    marginTop: -TOUR_ICON_SIZE / 2 - 6,
+    opacity: 0.22,
+  },
+
+  // paddingRight 70: el texto no llega a la zona visible del ícono.
+  tourTexts: {
+    paddingRight: 70,
+  },
+
+  tourTitle: {
+    fontFamily: FONT_BOLD,
+    fontWeight: "700",
+    fontSize: 22,
+    color: TOUR_TEXT_PRIMARY,
+  },
+
+  tourDesc: {
+    marginTop: 4,
     fontFamily: FONT_REGULAR,
     fontWeight: "400",
     fontSize: FONT_SIZE_MD,
     color: TOUR_TEXT_SECONDARY,
+  },
+
+  tourTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 10,
+  },
+
+  tourTime: {
+    fontFamily: FONT_SEMIBOLD,
+    fontWeight: "600",
+    fontSize: FONT_SIZE_SM,
+    color: HOME_BUTTON_TEXT_COLOR,
   },
 
   // "Descubre lugares": misma tarjeta, con el chevron a la derecha.
