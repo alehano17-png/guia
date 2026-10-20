@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState, type ComponentProps } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -14,7 +14,10 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import LoadingSearchScreen from "../components/tour/LoadingSearchScreen";
 import TourLanguageSheet from "../components/tour/TourLanguageSheet";
 import GuiaStateCard from "../components/GuiaStateCard";
-import { getDiscoveryItemIcon } from "../data/discovery/iconHelpers";
+import {
+  getDiscoveryItemIcon,
+  type DiscoveryIcon,
+} from "../data/discovery/iconHelpers";
 import { getDiscoveryItemDurationLabel } from "../data/discovery/presentation";
 import { getRecommendationsCopy } from "../data/discovery/recommendationsCopy";
 import { useDiscoveryContent } from "../hooks/useDiscoveryContent";
@@ -45,26 +48,23 @@ import {
 const TOUR_ICON_SIZE = 120;
 
 type TourCardProps = {
-  icon: ComponentProps<typeof Ionicons>["name"];
+  icon: DiscoveryIcon;
   title: string;
   desc: string;
   duration: string;
   onPress?: () => void;
 };
 
-function TourCard({ icon, title, desc, duration, onPress }: TourCardProps) {
+function TourCard({ icon: Icon, title, desc, duration, onPress }: TourCardProps) {
   return (
     <Pressable style={[styles.card, styles.tourCard]} onPress={onPress}>
       {/* Marca de agua: va primero para quedar detrás del texto. El recorte
           va en esta capa y no en la tarjeta, porque en iOS overflow hidden
           en la vista con sombra la hace desaparecer. */}
       <View style={styles.tourIconClip} pointerEvents="none">
-        <Ionicons
-          name={icon}
-          size={TOUR_ICON_SIZE}
-          color={TOUR_ACCENT_COLOR}
-          style={styles.tourIcon}
-        />
+        <View style={styles.tourIcon}>
+          <Icon size={TOUR_ICON_SIZE} color={TOUR_ACCENT_COLOR} />
+        </View>
       </View>
 
       <View style={styles.tourTexts}>
@@ -314,12 +314,13 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  // Centrado vertical y subido 6px; right -18 lo recorta con el borde.
+  // Centrado vertical y subido 10px; right -14 lo recorta solo con el
+  // borde derecho.
   tourIcon: {
     position: "absolute",
-    right: -18,
+    right: -14,
     top: "50%",
-    marginTop: -TOUR_ICON_SIZE / 2 - 6,
+    marginTop: -TOUR_ICON_SIZE / 2 - 10,
     opacity: 0.22,
   },
 
