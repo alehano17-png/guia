@@ -2,6 +2,9 @@
 export type DiscoverySection = "featured_tours" | "discover_places";
 export type DiscoveryKind = "tour" | "place";
 export type DiscoveryAvailability = "available" | "coming_soon";
+// Ícono de la tarjeta del tour (ver iconHelpers.ts). Fácil de ampliar:
+// agregar una clave acá y su ícono en iconHelpers.ts.
+export type DiscoveryIconKey = "pin" | "landmark" | "palette";
 
 export type DiscoveryCatalogItem = {
   id: string;
@@ -10,7 +13,9 @@ export type DiscoveryCatalogItem = {
   durationMinutes: number;
   durationMaxMinutes?: number;
   experienceLabel?: string;
+  // Sin uso desde que las tarjetas no llevan foto (ver mediaHelpers.ts).
   imageKey?: DiscoveryMediaKey;
+  icon?: DiscoveryIconKey;
  cityId: string;
   zoneId: string;
   zone: string;
@@ -30,7 +35,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     subtitle: "Mar, caminatas y vistas únicas.",
     durationMinutes: 75,
     durationMaxMinutes: 90,
-    imageKey: "miraflores",
+    icon: "pin",
     cityId: "lima",
     zoneId: "miraflores",
     zone: "Miraflores",
@@ -48,7 +53,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     subtitle: "Historia, plazas y arquitectura.",
     durationMinutes: 75,
     durationMaxMinutes: 90,
-    imageKey: "centro",
+    icon: "landmark",
     cityId: "lima",
     zoneId: "centro-historico",
     zone: "Centro Histórico",
@@ -66,7 +71,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     subtitle: "Arte, bohemia y cultura.",
     durationMinutes: 75,
     durationMaxMinutes: 90,
-    imageKey: "barranco",
+    icon: "palette",
    cityId: "lima",
     zoneId: "barranco",
     zone: "Barranco",
