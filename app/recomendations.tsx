@@ -100,6 +100,12 @@ export default function Recommendations() {
   const scrollY = useState(() => new Animated.Value(0))[0];
   const [contentHeight, setContentHeight] = useState(0);
   const [viewHeight, setViewHeight] = useState(0);
+  // Posición del contenedor de tarjetas dentro del contenido del scroll, y
+  // de cada tarjeta dentro de ese contenedor (por id), para ubicar la pista.
+  const [cardsY, setCardsY] = useState<number | null>(null);
+  const [cardLayouts, setCardLayouts] = useState<
+    Record<string, { y: number; height: number }>
+  >({});
   // Primera vez en este celular: se va al tutorial antes de mostrar nada.
   // Se evalúa una sola vez, al montar, para no pintar Recomendaciones un
   // instante antes del redirect.
@@ -188,6 +194,34 @@ const { headerSubtitle } = getRecommendationsCopy({
   hasDiscoverPlaces,
 });
 const isEmpty = listItems.length === 0;
+
+// Pista de la barra de scroll: va del borde superior de la primera tarjeta
+// al borde inferior de la última que se ve completa con el scroll en 0.
+// Las medidas son relativas al ScrollView, que empieza debajo de
+// insets.top; la pista es hijo absoluto del SafeAreaView (se mide desde el
+// borde de la pantalla), así que se le suma insets.top.
+const measuredCards =
+  cardsY == null
+    ? []
+    : listItems.map((item) => cardLayouts[item.id]).filter(Boolean);
+const allCardsMeasured =
+  viewHeight > 0 &&
+  measuredCards.length > 0 &&
+  measuredCards.length === listItems.length;
+
+let trackTop = 0;
+let trackHeight = 0;
+if (allCardsMeasured && cardsY != null) {
+  const firstTop = cardsY + measuredCards[0].y;
+  const visibleLimit = viewHeight - insets.bottom - 8;
+  let lastBottom = firstTop + measuredCards[0].height;
+  for (const card of measuredCards) {
+    const bottom = cardsY + card.y + card.height;
+    if (bottom <= visibleLimit) lastBottom = bottom;
+  }
+  trackTop = insets.top + firstTop;
+  trackHeight = lastBottom - firstTop;
+}
  
 
 if (needsTutorial) {
@@ -231,7 +265,10 @@ if (loading) {
           {isEmpty ? null : <Text style={styles.subtitle}>{headerSubtitle}</Text>}
         </View>
 
-        <View style={styles.cards}>
+        <View
+          style={styles.cards}
+          onLayout={(e) => setCardsY(e.nativeEvent.layout.y)}
+        >
           {isEmpty ? (
             <GuiaStateCard
               title={t.recommendations.emptyTitle}
@@ -241,37 +278,48 @@ if (loading) {
           {listItems.map((item) => {
             const canOpen = canOpenDiscoveryItem(item);
             return (
-              <TourCard
+              <View
                 key={item.id}
-                icon={getDiscoveryItemIcon(item)}
-                gradient={getDiscoveryItemGradient(item)}
-                title={item.title}
-                desc={item.subtitle}
-                duration={
-                  canOpen
-                    ? getDiscoveryItemDurationLabel(item)
-                    : getDiscoveryItemStatus(item, t) ??
-                      getDiscoveryItemDurationLabel(item)
-                }
-                dimmed={!canOpen}
-                onPress={canOpen ? () => openDiscoveryItem(item) : undefined}
-              />
+                onLayout={(e) => {
+                  const { y, height } = e.nativeEvent.layout;
+                  setCardLayouts((prev) =>
+                    prev[item.id]?.y === y && prev[item.id]?.height === height
+                      ? prev
+                      : { ...prev, [item.id]: { y, height } }
+                  );
+                }}
+              >
+                <TourCard
+                  icon={getDiscoveryItemIcon(item)}
+                  gradient={getDiscoveryItemGradient(item)}
+                  title={item.title}
+                  desc={item.subtitle}
+                  duration={
+                    canOpen
+                      ? getDiscoveryItemDurationLabel(item)
+                      : getDiscoveryItemStatus(item, t) ??
+                        getDiscoveryItemDurationLabel(item)
+                  }
+                  dimmed={!canOpen}
+                  onPress={canOpen ? () => openDiscoveryItem(item) : undefined}
+                />
+              </View>
             );
           })}
         </View>
         </ScrollView>
 
-        {/* Encima del ScrollView, a la derecha. Es hijo absoluto del
-            SafeAreaView, así que top/bottom se miden desde el borde de la
-            pantalla: se suman los insets para que empiece debajo de la
-            barra de estado (donde empieza el ScrollView) y termine antes
-            del home indicator. */}
-        <ScrollIndicator
-          scrollY={scrollY}
-          contentHeight={contentHeight}
-          viewHeight={viewHeight}
-          style={{ top: insets.top + 8, bottom: insets.bottom + 8 }}
-        />
+        {/* Encima del ScrollView, a la derecha; solo cuando ya están
+            medidas todas las tarjetas. */}
+        {allCardsMeasured ? (
+          <ScrollIndicator
+            scrollY={scrollY}
+            contentHeight={contentHeight}
+            viewHeight={viewHeight}
+            trackTop={trackTop}
+            trackHeight={trackHeight}
+          />
+        ) : null}
       </SafeAreaView>
 
       <TourLanguageSheet {...languageSheetProps} />
