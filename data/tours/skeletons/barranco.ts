@@ -38,12 +38,16 @@ export const barrancoSkeleton: TourSkeleton = {
     {
       id: "ermita",
       nextId: "mirador",
+      latitude: -12.14918,
+      longitude: -77.02318,
       hasActionCard: true,
     },
 
     {
       id: "mirador",
       nextId: "bajada-banos",
+      latitude: -12.15039,
+      longitude: -77.02414,
       hasActionCard: true,
     },
 

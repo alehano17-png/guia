@@ -31,24 +31,32 @@ export const centroHistoricoSkeleton: TourSkeleton = {
     {
       id: "casa-aliaga",
       nextId: "catedral",
+      latitude: -12.044411,
+      longitude: -77.030288,
       hasActionCard: true,
     },
 
     {
       id: "catedral",
       nextId: "pasaje-santa-rosa",
+      latitude: -12.04675,
+      longitude: -77.02968,
       hasActionCard: true,
     },
 
     {
       id: "pasaje-santa-rosa",
       nextId: "san-francisco",
+      latitude: -12.045688,
+      longitude: -77.031078,
       hasActionCard: true,
     },
 
     {
       id: "san-francisco",
       nextId: "parque-muralla",
+      latitude: -12.045478,
+      longitude: -77.027173,
       hasActionCard: true,
     },
 

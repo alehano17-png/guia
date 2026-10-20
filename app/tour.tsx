@@ -408,8 +408,12 @@ useEffect(() => {
 // Solo avanza sola cuando la acción correspondiente es "advance" — si
 // haría falta abrir una app externa (openStartRoute) o mostrar una
 // decisión (openDecision), se deja que el usuario toque el botón.
+// Tampoco en pasos con actionCard ("Camina hacia…"): su destino es su
+// propia ubicación, la misma a la que llevó el paso anterior, así que
+// avanzaría dos pasos seguidos; ahí se confirma tocando "Siguiente".
 useEffect(() => {
   if (!userLocation || !previewDestination) return
+  if (step?.actionCard) return
   if (hasAutoAdvancedRef.current) return
 
   const distance = getDistanceInMeters(userLocation, previewDestination)
