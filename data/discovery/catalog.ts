@@ -4,7 +4,7 @@ export type DiscoveryKind = "tour" | "place";
 export type DiscoveryAvailability = "available" | "coming_soon";
 // Ícono de la tarjeta del tour (ver iconHelpers.ts). Fácil de ampliar:
 // agregar una clave acá y su ícono en iconHelpers.ts.
-export type DiscoveryIconKey = "pin" | "landmark" | "palette";
+export type DiscoveryIconKey = "pin" | "waves" | "landmark" | "bridge";
 
 export type DiscoveryCatalogItem = {
   id: string;
@@ -35,7 +35,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     subtitle: "Mar, caminatas y vistas únicas.",
     durationMinutes: 75,
     durationMaxMinutes: 90,
-    icon: "pin",
+    icon: "waves",
     cityId: "lima",
     zoneId: "miraflores",
     zone: "Miraflores",
@@ -71,7 +71,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     subtitle: "Arte, bohemia y cultura.",
     durationMinutes: 75,
     durationMaxMinutes: 90,
-    icon: "palette",
+    icon: "bridge",
    cityId: "lima",
     zoneId: "barranco",
     zone: "Barranco",

@@ -15,7 +15,9 @@ import LoadingSearchScreen from "../components/tour/LoadingSearchScreen";
 import TourLanguageSheet from "../components/tour/TourLanguageSheet";
 import GuiaStateCard from "../components/GuiaStateCard";
 import {
+  getDiscoveryItemGradient,
   getDiscoveryItemIcon,
+  type DiscoveryGradient,
   type DiscoveryIcon,
 } from "../data/discovery/iconHelpers";
 import { getDiscoveryItemDurationLabel } from "../data/discovery/presentation";
@@ -26,7 +28,6 @@ import { useTourLocation } from "../hooks/useTourLocation";
 import { HOME_BUTTON_TEXT_COLOR } from "../lib/homeTheme";
 import { useTranslation } from "../lib/i18n/useTranslation";
 import {
-  TOUR_ACCENT_COLOR,
   TOUR_GRADIENT_COLORS,
   TOUR_TEXT_PRIMARY,
   TOUR_TEXT_SECONDARY,
@@ -43,37 +44,42 @@ import {
   FONT_SIZE_XL,
 } from "../lib/typography";
 
-// Ícono de fondo de la tarjeta de tour: grande, tenue y cortado por el
-// borde derecho.
-const TOUR_ICON_SIZE = 120;
-
 type TourCardProps = {
   icon: DiscoveryIcon;
+  gradient: DiscoveryGradient;
   title: string;
   desc: string;
   duration: string;
   onPress?: () => void;
 };
 
-function TourCard({ icon: Icon, title, desc, duration, onPress }: TourCardProps) {
+function TourCard({
+  icon: Icon,
+  gradient,
+  title,
+  desc,
+  duration,
+  onPress,
+}: TourCardProps) {
   return (
     <Pressable style={[styles.card, styles.tourCard]} onPress={onPress}>
-      {/* Marca de agua: va primero para quedar detrás del texto. El recorte
-          va en esta capa y no en la tarjeta, porque en iOS overflow hidden
-          en la vista con sombra la hace desaparecer. */}
-      <View style={styles.tourIconClip} pointerEvents="none">
-        <View style={styles.tourIcon}>
-          <Icon size={TOUR_ICON_SIZE} color={TOUR_ACCENT_COLOR} />
-        </View>
+      {/* La sombra va en este View y no en el degradado: en iOS el
+          LinearGradient recortado pierde la sombra. */}
+      <View style={styles.tourIconShadow}>
+        <LinearGradient
+          colors={gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.tourIconBox}
+        >
+          <Icon size={36} color="#FFFFFF" strokeWidth={1.75} />
+        </LinearGradient>
       </View>
 
       <View style={styles.tourTexts}>
         <Text style={styles.tourTitle}>{title}</Text>
         <Text style={styles.tourDesc}>{desc}</Text>
-        <View style={styles.tourTimeRow}>
-          <Ionicons name="time-outline" size={14} color={HOME_BUTTON_TEXT_COLOR} />
-          <Text style={styles.tourTime}>{duration}</Text>
-        </View>
+        <Text style={styles.tourTime}>{duration}</Text>
       </View>
     </Pressable>
   );
@@ -212,6 +218,7 @@ if (loading) {
   <TourCard
     key={tour.id}
     icon={getDiscoveryItemIcon(tour)}
+    gradient={getDiscoveryItemGradient(tour)}
     title={tour.title}
     desc={tour.subtitle}
     duration={getDiscoveryItemDurationLabel(tour)}
@@ -303,55 +310,49 @@ const styles = StyleSheet.create({
   },
 
   tourCard: {
-    padding: 18,
-    minHeight: 112,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+
+  tourIconShadow: {
+    borderRadius: 22,
+    shadowColor: "#6957DF",
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+
+  tourIconBox: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    alignItems: "center",
     justifyContent: "center",
   },
 
-  tourIconClip: {
-    ...StyleSheet.absoluteFill,
-    borderRadius: 24,
-    overflow: "hidden",
-  },
-
-  // Centrado vertical y subido 10px; right -14 lo recorta solo con el
-  // borde derecho.
-  tourIcon: {
-    position: "absolute",
-    right: -14,
-    top: "50%",
-    marginTop: -TOUR_ICON_SIZE / 2 - 10,
-    opacity: 0.22,
-  },
-
-  // paddingRight 70: el texto no llega a la zona visible del ícono.
   tourTexts: {
-    paddingRight: 70,
+    flex: 1,
   },
 
   tourTitle: {
     fontFamily: FONT_BOLD,
     fontWeight: "700",
-    fontSize: 22,
+    fontSize: 21,
     color: TOUR_TEXT_PRIMARY,
   },
 
   tourDesc: {
-    marginTop: 4,
+    marginTop: 2,
     fontFamily: FONT_REGULAR,
     fontWeight: "400",
-    fontSize: FONT_SIZE_MD,
+    fontSize: 15,
     color: TOUR_TEXT_SECONDARY,
   },
 
-  tourTimeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 10,
-  },
-
   tourTime: {
+    marginTop: 6,
     fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
     fontSize: FONT_SIZE_SM,
