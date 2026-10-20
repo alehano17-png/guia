@@ -88,17 +88,7 @@ export const es = {
     },
   },
 
-  // Absorbe data/discovery/copy.ts (discover + recommendations + status) —
-  // mismas claves, mismo texto. copy.ts sigue viviendo y usándose tal cual
-  // hasta que discover.tsx/recomendations.tsx migren a este diccionario;
-  // por ahora hay contenido duplicado a propósito.
-  discover: {
-    title: "Descubre lugares",
-    subtitle: "Elige un lugar puntual y descúbrelo a tu ritmo.",
-    sectionLabel: "Cerca de ti",
-    backLabel: "Salir",
-  },
-
+  // Pantalla de tours (recomendations.tsx) y estados de sus tarjetas.
   recommendations: {
     title: "Genial, vamos a pasear.",
     emptyTitle: "Aún no hay recorridos por aquí",

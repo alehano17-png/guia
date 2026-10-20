@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -14,6 +13,8 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import LoadingSearchScreen from "../components/tour/LoadingSearchScreen";
 import TourLanguageSheet from "../components/tour/TourLanguageSheet";
 import GuiaStateCard from "../components/GuiaStateCard";
+import { getDiscoveryItemStatus } from "../data/discovery/behavior";
+import type { DiscoveryCatalogItem } from "../data/discovery/catalog";
 import {
   getDiscoveryItemGradient,
   getDiscoveryItemIcon,
@@ -39,9 +40,7 @@ import {
   FONT_SEMIBOLD,
   FONT_SIZE_DISPLAY,
   FONT_SIZE_LG,
-  FONT_SIZE_MD,
   FONT_SIZE_SM,
-  FONT_SIZE_XL,
 } from "../lib/typography";
 
 type TourCardProps = {
@@ -50,6 +49,8 @@ type TourCardProps = {
   title: string;
   desc: string;
   duration: string;
+  // Lugares "próximamente": la tarjeta se ve atenuada.
+  dimmed?: boolean;
   onPress?: () => void;
 };
 
@@ -59,10 +60,14 @@ function TourCard({
   title,
   desc,
   duration,
+  dimmed,
   onPress,
 }: TourCardProps) {
   return (
-    <Pressable style={[styles.card, styles.tourCard]} onPress={onPress}>
+    <Pressable
+      style={[styles.card, styles.tourCard, dimmed && styles.tourCardDimmed]}
+      onPress={onPress}
+    >
       {/* La sombra va en este View y no en el degradado: en iOS el
           LinearGradient recortado pierde la sombra. */}
       <View style={styles.tourIconShadow}>
@@ -107,6 +112,7 @@ const {
   detectedZone,
   hasSupportedCity,
   featuredTours,
+  discoverPlaces,
   featuredToursInDetectedZone,
   discoverPlacesInDetectedZone,
   hasFeaturedTours,
@@ -116,13 +122,13 @@ const {
 const {
   canOpenDiscoveryItem,
   openDiscoveryItem,
-  openDiscoverPlaces,
-  discoverPlacesEntry,
   languageSheetProps,
 } = useDiscoveryNavigation();
 
-const showDiscoverPlacesEntry =
-  hasDiscoverPlaces && discoverPlacesEntry.isVisible;
+// Tours y lugares van en la misma lista, con la misma tarjeta: primero los
+// tours, después los lugares. Los que no se pueden abrir (próximamente) se
+// ven atenuados y muestran su estado en vez de la duración.
+const listItems: DiscoveryCatalogItem[] = [...featuredTours, ...discoverPlaces];
 
 
 
@@ -170,7 +176,7 @@ const { headerSubtitle } = getRecommendationsCopy({
   hasFeaturedTours,
   hasDiscoverPlaces,
 });
-const isEmpty = featuredTours.length === 0 && !showDiscoverPlacesEntry;
+const isEmpty = listItems.length === 0;
  
 
 if (needsTutorial) {
@@ -214,39 +220,26 @@ if (loading) {
               message={headerSubtitle}
             />
           ) : null}
-          {featuredTours.map((tour) => (
-  <TourCard
-    key={tour.id}
-    icon={getDiscoveryItemIcon(tour)}
-    gradient={getDiscoveryItemGradient(tour)}
-    title={tour.title}
-    desc={tour.subtitle}
-    duration={getDiscoveryItemDurationLabel(tour)}
-    onPress={
-      canOpenDiscoveryItem(tour)
-        ? () => openDiscoveryItem(tour)
-        : undefined
-    }
-  />
-))}
-
-          {showDiscoverPlacesEntry ? (
-  <Pressable
-    style={[styles.card, styles.exploreCard]}
-    onPress={openDiscoverPlaces}
-  >
-    <View style={styles.exploreContent}>
-      <Text style={styles.cardTitle}>{discoverPlacesEntry.title}</Text>
-<Text style={styles.exploreDesc}>
-  {discoverPlacesEntry.subtitle}
-</Text>
-    </View>
-
-    <View style={styles.exploreArrow}>
-      <Ionicons name="chevron-forward" size={20} color={TOUR_TEXT_PRIMARY} />
-    </View>
-  </Pressable>
-) : null}
+          {listItems.map((item) => {
+            const canOpen = canOpenDiscoveryItem(item);
+            return (
+              <TourCard
+                key={item.id}
+                icon={getDiscoveryItemIcon(item)}
+                gradient={getDiscoveryItemGradient(item)}
+                title={item.title}
+                desc={item.subtitle}
+                duration={
+                  canOpen
+                    ? getDiscoveryItemDurationLabel(item)
+                    : getDiscoveryItemStatus(item, t) ??
+                      getDiscoveryItemDurationLabel(item)
+                }
+                dimmed={!canOpen}
+                onPress={canOpen ? () => openDiscoveryItem(item) : undefined}
+              />
+            );
+          })}
         </View>
         </ScrollView>
       </SafeAreaView>
@@ -302,17 +295,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  cardTitle: {
-    fontFamily: FONT_BOLD,
-    fontWeight: "700",
-    fontSize: FONT_SIZE_XL,
-    color: TOUR_TEXT_PRIMARY,
-  },
-
   tourCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
+  },
+
+  tourCardDimmed: {
+    opacity: 0.6,
   },
 
   tourIconShadow: {
@@ -357,29 +347,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: FONT_SIZE_SM,
     color: HOME_BUTTON_TEXT_COLOR,
-  },
-
-  // "Descubre lugares": misma tarjeta, con el chevron a la derecha.
-  exploreCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 18,
-  },
-
-  exploreContent: {
-    flex: 1,
-  },
-
-  exploreDesc: {
-    marginTop: 4,
-    fontFamily: FONT_REGULAR,
-    fontWeight: "400",
-    fontSize: FONT_SIZE_MD,
-    color: TOUR_TEXT_SECONDARY,
-  },
-
-  exploreArrow: {
-    paddingLeft: 12,
   },
 
 });

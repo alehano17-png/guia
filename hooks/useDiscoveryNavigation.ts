@@ -1,11 +1,9 @@
 ﻿import { useRouter } from "expo-router";
 import { useState } from "react";
-import { getDiscoverySectionEntries } from "../data/discovery/sections";
 import type { DiscoveryCatalogItem } from "../data/discovery/catalog";
 import { getDiscoveryItemRoute } from "../data/discovery/routes";
 import { parseTourLocale, type TourLocale } from "../data/tours/index";
 import { getLocale } from "../lib/i18n";
-import { useTranslation } from "../lib/i18n/useTranslation";
 
 type PendingTour = {
   route: NonNullable<ReturnType<typeof getDiscoveryItemRoute>>;
@@ -14,7 +12,6 @@ type PendingTour = {
 
 export function useDiscoveryNavigation() {
   const router = useRouter();
-  const { t } = useTranslation();
 
   // Tour que la persona tocó y que espera la elección de idioma. Se
   // guarda aparte de la visibilidad para que el título siga en la hoja
@@ -59,24 +56,9 @@ export function useDiscoveryNavigation() {
     onClose: closeLanguageSheet,
   };
 
-  const discoverPlacesEntry = getDiscoverySectionEntries(t).discover_places;
-
-  const canOpenDiscoverPlaces = () => {
-    return discoverPlacesEntry.isVisible;
-  };
-
-  const openDiscoverPlaces = () => {
-    if (!canOpenDiscoverPlaces()) return;
-
-    router.push(discoverPlacesEntry.route);
-  };
-
   return {
     canOpenDiscoveryItem,
     openDiscoveryItem,
-    canOpenDiscoverPlaces,
-    openDiscoverPlaces,
-    discoverPlacesEntry,
     languageSheetProps,
   };
 }

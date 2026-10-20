@@ -69,7 +69,6 @@ function RootNavigator() {
         <Stack.Screen name="tutorial" options={{ animation: 'fade' }} />
 
         <Stack.Protected guard={!!user}>
-          <Stack.Screen name="discover" />
           <Stack.Screen name="recomendations" />
           <Stack.Screen name="tour" />
         </Stack.Protected>

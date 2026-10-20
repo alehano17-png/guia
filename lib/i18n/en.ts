@@ -78,13 +78,6 @@ export const en: TranslationDictionary = {
     },
   },
 
-  discover: {
-    title: "Discover places",
-    subtitle: "Pick a specific spot and explore it at your own pace.",
-    sectionLabel: "Near you",
-    backLabel: "Exit",
-  },
-
   recommendations: {
     title: "Great, let's go for a walk.",
     emptyTitle: "No tours here yet",
