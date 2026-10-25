@@ -13,7 +13,9 @@ Hoy no vamos a recorrer un distrito completo,
 vamos a entrar directo a un lugar que existía muchos siglos antes de la ciudad moderna.
 
 Primero te llevo hasta el punto correcto
-y cuando estés listo, comenzamos el recorrido.`,
+y cuando estés listo, comenzamos el recorrido.
+
+Ten en cuenta que para entrar necesitas una entrada, que se compra en la boletería.`,
       summary: `Un sitio arqueológico de Lima
 levantado por la cultura Lima
 en pleno corazón de Miraflores.`,
@@ -26,7 +28,7 @@ en pleno corazón de Miraflores.`,
 
     {
       id: "huaca-exterior",
-      title: "Huaca Pucllana (Exterior)",
+      title: "Antes de entrar",
       voiceText: `Lo que ves frente a ti no pertenece a la Lima moderna.
 (pausa)
 
@@ -47,9 +49,9 @@ Esa técnica está pensada para resistir terremotos, algo clave en esta costa s�
 Cuando aquí se levantaban estos muros, en Europa aún existía el Imperio Romano y pueblos como los francos o visigodos recién comenzaban a organizarse.
 (pausa)
 
-Desde aquí tienes dos opciones, y ambas valen la pena:
-– recorrer la huaca desde fuera
-– o entrar y conocerla por dentro, paso a paso`,
+Antes de seguir, un detalle importante: el ingreso a la Huaca es con entrada, y se compra en la boletería.
+(pausa)
+Cuando ya tengas tu entrada, toca "Siguiente" y entramos juntos.`,
       summary: `Un complejo ceremonial de Lima 
   construido entre los años 200 y 700 d.C. en el corazón de Miraflores.`,
       highlights: [
@@ -58,255 +60,17 @@ Desde aquí tienes dos opciones, y ambas valen la pena:
         "Adobes antisísmicos",
         "Más antigua que los incas",
       ],
-      previewText: "Siguiente paso: elige si recorres por fuera o entras",
-      choices: [
-        { id: "recorrer-por-fuera", label: "Recorrer por fuera" },
-        { id: "entrar", label: "Entrar" },
-      ],
-    },
-
-    {
-      id: "huaca-exterior-recorrido",
-      title: "Huaca Pucllana — Recorrido Exterior",
-      voiceText: `Perfecto.
-La recorremos desde afuera.
-(pausa)
-
-Quédate con esto mientras la observas con calma.
-(pausa)
-
-Esta huaca no fue pensada para ser admirada desde lejos.
-Fue pensada para imponer presencia.
-(pausa)
-
-Los niveles escalonados, los muros altos y la forma del conjunto marcan jerarquía y control.
-Nada aquí es casual.
-(pausa)
-
-La técnica de adobes verticales —como libros parados— permitía que los muros absorbieran la energía de los sismos sin colapsar.
-(pausa)
-
-Eso explica por qué esta estructura sigue en pie después de más de mil quinientos años.
-(pausa)
-
-Desde afuera se entiende algo clave:
-esto no era una casa.
-No era un barrio.
-Era un centro de poder.
-(pausa)
-
-Aquí se decidía.
-Aquí se ritualizaba.
-Aquí se gobernaba.
-(pausa)
-
-Cuando quieras, seguimos con el recorrido.`,
-      summary: `Una pirámide ceremonial prehispánica
-levantada como centro de poder
-en la antigua Lima.`,
-      highlights: [
-        "Arquitectura de poder",
-        "Estructura jerárquica",
-        "Técnica en librero",
-        "Presencia ritual dominante",
-      ],
-      previewText: "Siguiente paso: cierre del recorrido",
-    },
-
-    {
-      id: "huaca-interior-decision",
-      title: "Huaca Pucllana — Interior",
-      voiceText: `Si decides entrar, seguimos con un recorrido guiado por confirmación.
-
-Y dime algo antes de empezar:
-¿Quieres solo la historia base bien clara
-o prefieres que profundicemos más en el contexto histórico?`,
-      summary: `Un complejo ceremonial
-que puede recorrerse paso a paso
-para entender su historia.`,
-      highlights: [],
-      previewText: "Siguiente paso: elige historia base o profunda",
-      choices: [
-        { id: "historia-base", label: "Historia base" },
-        { id: "historia-profunda", label: "Historia profunda" },
-      ],
-    },
-
-    {
-      id: "huaca-base-1",
-      title: "Entrada — Base",
-      voiceText: `Estás entrando a la Huaca Pucllana, un centro ceremonial construido entre los años 200 y 700 d.C., mucho antes de los incas.
-(pausa)
-
-Fue levantado por la cultura Lima, cuando en Europa aún existía el Imperio Romano.
-(pausa)
-
-No era una ciudad ni una fortaleza.
-Era un espacio ritual y administrativo donde religión y poder estaban completamente conectados.
-(pausa)
-
-Desde aquí puedes notar algo importante: los muros están hechos con adobes colocados verticalmente.
-(micro pausa)
-Esa técnica permitía que las estructuras resistieran los terremotos sin colapsar.
-(pausa)
-
-Cuando estés listo, avanza hacia la rampa principal.
-(confirmación requerida)`,
-      summary: `La entrada a un complejo ceremonial
-construido hace más de 1500 años
-por la cultura Lima.`,
-      highlights: [
-        "Ingreso ceremonial",
-        "Cultura Lima",
-        "Religión y poder unidos",
-        "Arquitectura antisísmica",
-      ],
+      previewText: "Siguiente paso: entrar a la Huaca",
       actionCard: {
         tag: "Recorrido por confirmación",
-        title: "Avanza hacia la rampa principal",
-        subtitle: "Cuando llegues, toca \"Siguiente\".",
-      },
-    },
-
-    {
-      id: "huaca-base-2",
-      title: "Rampa — Base",
-      voiceText: `Esta rampa marca un cambio real de jerarquía y de función.
-(pausa)
-
-Mientras subes, dejas atrás espacios más abiertos y te acercas a zonas donde se concentraba el poder ritual.
-No cualquiera podía estar aquí.
-(pausa)
-
-La Huaca Pucllana fue levantada por etapas, entre los años 200 y 700 d.C.
-Cada ampliación elevaba físicamente el poder de quienes la controlaban.
-(pausa)
-
-Subir no era solo caminar.
-Era entrar en otro nivel de autoridad, donde el acceso estaba regulado.
-(pausa)
-
-Tómalo con calma.
-Avísame cuando llegues arriba.
-(confirmación requerida)`,
-      summary: `Una rampa ceremonial
-que marcaba el ascenso
-hacia zonas de mayor jerarquía.`,
-      highlights: [
-        "Ascenso jerárquico",
-        "Acceso restringido",
-        "Construcción por etapas",
-        "Control del espacio",
-      ],
-      actionCard: {
-        tag: "Recorrido por confirmación",
-        title: "Sube con calma hasta la parte alta",
-        subtitle: "Cuando estés arriba, toca \"Siguiente\".",
-      },
-    },
-
-    {
-      id: "huaca-base-3",
-      title: "Zona ceremonial — Base",
-      voiceText: `Aquí se realizaban los rituales más importantes.
-(pausa)
-
-Se han encontrado ofrendas marinas, cerámica fina y evidencia de sacrificios humanos, fechados entre los siglos V y VII d.C.
-(pausa)
-
-Estos rituales estaban ligados al mar, a la fertilidad y al equilibrio natural.
-(pausa)
-
-Para la cultura Lima, el océano no era solo recurso.
-Era una fuerza viva e impredecible.
-(pausa)
-
-Nada aquí era improvisado.
-Todo estaba pensado para rituales que involucraban a la comunidad, aunque no todos pudieran presenciarlos.
-(pausa)
-
-Estás en el centro ceremonial de la huaca.`,
-      summary: `El espacio donde se realizaban
-los principales rituales
-de la cultura Lima.`,
-      highlights: [
-        "Rituales principales",
-        "Ofrendas marinas",
-        "Relación con el océano",
-        "Espacio sagrado",
-      ],
-      actionCard: {
-        tag: "Recorrido por confirmación",
-        title: "Detente en la zona ceremonial",
-        subtitle: "Cuando estés listo, toca \"Siguiente\".",
-      },
-    },
-
-    {
-      id: "huaca-base-4",
-      title: "Zona central — Base",
-      voiceText: `Aquí se conectaba lo sagrado con lo cotidiano.
-(pausa)
-
-Se preparaban alimentos rituales, se organizaban ofrendas y se almacenaban elementos necesarios para las ceremonias superiores.
-(pausa)
-
-Sin este espacio, la huaca no funcionaba.
-(pausa)
-
-Es el engranaje del complejo.`,
-      summary: `Un área de soporte
-donde se preparaban ofrendas
-para la actividad ritual.`,
-      highlights: [
-        "Soporte del ritual",
-        "Preparación de ofrendas",
-        "Organización interna",
-        "Función logística",
-      ],
-      actionCard: {
-        tag: "Recorrido por confirmación",
-        title: "Avanza hacia la zona central",
-        subtitle: "Cuando llegues, toca \"Siguiente\".",
-      },
-    },
-
-    {
-      id: "huaca-base-5",
-      title: "Cierre — Base",
-      voiceText: `Antes de salir, quédate con esta idea.
-(pausa)
-
-Este lugar ya estaba aquí muchos siglos antes de que existiera la Lima actual.
-(pausa)
-
-Durante generaciones, funcionó como un centro ceremonial y administrativo,
-organizado, activo y conectado con su entorno.
-(pausa)
-
-No era un espacio aislado.
-Formaba parte de una red de asentamientos en la costa central,
-con reglas, jerarquías y continuidad en el tiempo.
-(pausa)`,
-      summary: `Un sitio ceremonial activo
-durante siglos antes
-de la Lima colonial.`,
-      highlights: [
-        "Anterior a los incas",
-        "Centro de poder duradero",
-        "Continuidad cultural",
-        "Lima prehispánica",
-      ],
-      actionCard: {
-        tag: "Recorrido por confirmación",
-        title: "Este tramo está por terminar",
-        subtitle: "Cuando quieras continuar, toca \"Siguiente\".",
+        title: "Compra tu entrada en boletería",
+        subtitle: "Cuando la tengas, toca \"Siguiente\".",
       },
     },
 
     {
       id: "huaca-power-1",
-      title: "Entrada — Profunda",
+      title: "Entrada",
       voiceText: `Estás entrando a un complejo construido entre los años 200 y 700 d.C., durante el periodo conocido como Intermedio Temprano en los Andes Centrales.
 (pausa)
 
@@ -349,7 +113,7 @@ en la costa central del Perú.`,
 
     {
       id: "huaca-power-2",
-      title: "Rampa — Profunda",
+      title: "Rampa",
       voiceText: `Entre los siglos III y VII d.C., la arquitectura monumental en la costa central del Perú adoptó una organización piramidal escalonada.
 (pausa)
 
@@ -390,7 +154,7 @@ y poder ritual.`,
 
     {
       id: "huaca-power-3",
-      title: "Zona ceremonial — Profunda",
+      title: "Zona ceremonial",
       voiceText: `Las excavaciones realizadas desde la década de 1980 han fechado sacrificios humanos entre los años 450 y 650 d.C.
 (pausa)
 
@@ -436,7 +200,7 @@ y sacrificios humanos.`,
 
     {
       id: "huaca-power-4",
-      title: "Zona central — Profunda",
+      title: "Zona central",
       voiceText: `Hay evidencia de actividad constante entre los siglos IV y VII d.C.
 (pausa)
 
@@ -472,7 +236,7 @@ del complejo ceremonial.`,
 
     {
       id: "huaca-power-5",
-      title: "Cierre — Profunda",
+      title: "Cierre",
       voiceText: `Antes de salir, vale la pena ordenar el tiempo.
 (pausa)
 
