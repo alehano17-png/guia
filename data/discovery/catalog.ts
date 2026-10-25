@@ -1,5 +1,4 @@
-﻿import type { DiscoveryMediaKey } from "./media";
-export type DiscoverySection = "featured_tours" | "discover_places";
+﻿export type DiscoverySection = "featured_tours" | "discover_places";
 export type DiscoveryKind = "tour" | "place";
 export type DiscoveryAvailability = "available" | "coming_soon";
 // Ícono de la tarjeta del tour (ver iconHelpers.ts). Fácil de ampliar:
@@ -28,8 +27,6 @@ export type DiscoveryCatalogItem = {
   en?: { title: string; subtitle: string };
   durationMinutes: number;
   durationMaxMinutes?: number;
-  // Sin uso desde que las tarjetas no llevan foto (ver mediaHelpers.ts).
-  imageKey?: DiscoveryMediaKey;
   icon?: DiscoveryIconKey;
  cityId: string;
   zoneId: string;
