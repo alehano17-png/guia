@@ -15,13 +15,18 @@ import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
 import { FONT_REGULAR, FONT_SIZE_XS } from "../../lib/typography";
 import VoiceBlob from "./VoiceBlob";
 
-// Alto natural del globo (200) + margen (20) + píldora (~34). El globo va
-// siempre a tamaño completo; la escala es solo un respaldo de emergencia
-// para cuando físicamente no cabe (pantallas muy chicas).
-const CONTENT_HEIGHT = 254;
-// Respiro mínimo arriba y abajo del globo + píldora (16 c/u), para que la
-// tarjeta de abajo nunca quede pegada a la píldora. Escala mínima: el globo
-// no llega a desaparecer.
+// El globo va siempre a tamaño completo (GLOBE_SIZE, = voiceOuter); la
+// escala es solo un respaldo de emergencia para cuando físicamente no cabe
+// (pantallas muy chicas), y se aplica SOLO al globo: la píldora queda
+// siempre a tamaño normal para que se lea y se pueda tocar.
+const GLOBE_SIZE = 200;
+// Alto de la píldora "Toca para hablar": paddingVertical 8 + 8 más una
+// línea de texto XS (~18). Margen entre globo y píldora = askPill.marginTop.
+const ASK_PILL_HEIGHT = 34;
+const ASK_PILL_GAP = 20;
+// Respiro mínimo arriba y abajo del bloque (16 c/u), para que la tarjeta
+// de abajo nunca quede pegada a la píldora. Escala mínima: el globo no
+// llega a desaparecer.
 const BREATHING_SPACE = 16;
 const MIN_SCALE = 0.5;
 
@@ -55,65 +60,79 @@ export default function TourNarrationBlock({
 
   const [scale, setScale] = useState(1);
   const handleLayout = (e: LayoutChangeEvent) => {
-    const available = e.nativeEvent.layout.height - BREATHING_SPACE * 2;
+    const availableForGlobe =
+      e.nativeEvent.layout.height -
+      BREATHING_SPACE * 2 -
+      ASK_PILL_HEIGHT -
+      ASK_PILL_GAP;
     const next = Math.max(
       MIN_SCALE,
-      Math.min(1, available / CONTENT_HEIGHT)
+      Math.min(1, availableForGlobe / GLOBE_SIZE)
     );
     setScale((prev) => (Math.abs(prev - next) > 0.01 ? next : prev));
   };
 
   return (
     <View style={styles.centerBlock} onLayout={handleLayout}>
-      <View style={[styles.scaledContent, { transform: [{ scale }] }]}>
-        <View style={styles.voiceContainer}>
-          <View style={styles.voiceOuter}>
-            <View style={styles.voiceAmbientGlow} />
+      {/* transform no cambia el espacio que ocupa: esta caja toma el tamaño
+          ya escalado, y el globo (a tamaño natural) se achica centrado
+          adentro. Así la píldora queda pegada al globo con su margen. */}
+      <View
+        style={[
+          styles.globeBox,
+          { width: GLOBE_SIZE * scale, height: GLOBE_SIZE * scale },
+        ]}
+      >
+        <View style={{ transform: [{ scale }] }}>
+          <View style={styles.voiceContainer}>
+            <View style={styles.voiceOuter}>
+              <View style={styles.voiceAmbientGlow} />
 
-            <VoiceBlob
-              energy={voiceEnergy}
-              color={TOUR_ACCENT_COLOR}
-              radius={52}
-              amplitude={12}
-              style={styles.voiceBlobWrap}
-            />
+              <VoiceBlob
+                energy={voiceEnergy}
+                color={TOUR_ACCENT_COLOR}
+                radius={52}
+                amplitude={12}
+                style={styles.voiceBlobWrap}
+              />
 
-            <Animated.View
-              style={[
-                styles.voiceInnerGlow,
-                {
-                  transform: [
-                    {
-                      scale: pulseAnim.interpolate({
-                        inputRange: [1, 1.3],
-                        outputRange: [1, 1.3],
-                        extrapolate: "clamp",
-                      }),
-                    },
-                  ],
-                  opacity: pulseAnim.interpolate({
-                    inputRange: [1, 1.3],
-                    outputRange: [0.14, 0.22],
-                    extrapolate: "clamp",
-                  }),
-                },
-              ]}
-            />
+              <Animated.View
+                style={[
+                  styles.voiceInnerGlow,
+                  {
+                    transform: [
+                      {
+                        scale: pulseAnim.interpolate({
+                          inputRange: [1, 1.3],
+                          outputRange: [1, 1.3],
+                          extrapolate: "clamp",
+                        }),
+                      },
+                    ],
+                    opacity: pulseAnim.interpolate({
+                      inputRange: [1, 1.3],
+                      outputRange: [0.14, 0.22],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                ]}
+              />
 
-            <View style={styles.voiceShine} />
-            <View style={styles.voiceGlass} />
+              <View style={styles.voiceShine} />
+              <View style={styles.voiceGlass} />
+            </View>
           </View>
         </View>
-
-        <Pressable
-          style={[styles.askPill, isGuiaBusy && styles.askPillDisabled]}
-          onPress={onAskGuia}
-          disabled={isGuiaBusy}
-        >
-          <Ionicons name="mic" size={16} color={TOUR_ACCENT_COLOR} />
-          <Text style={styles.askTip}>{guiaStatusLabel[guiaVoiceStatus]}</Text>
-        </Pressable>
       </View>
+
+      <Pressable
+        style={[styles.askPill, isGuiaBusy && styles.askPillDisabled]}
+        onPress={onAskGuia}
+        disabled={isGuiaBusy}
+      >
+        <Ionicons name="mic" size={16} color={TOUR_ACCENT_COLOR} />
+        <Text style={styles.askTip}>{guiaStatusLabel[guiaVoiceStatus]}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -127,8 +146,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  scaledContent: {
+  globeBox: {
     alignItems: "center",
+    justifyContent: "center",
   },
 
   voiceContainer: {
