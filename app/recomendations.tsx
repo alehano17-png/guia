@@ -23,7 +23,11 @@ import {
   type DiscoveryGradient,
   type DiscoveryIcon,
 } from "../data/discovery/iconHelpers";
-import { getDiscoveryItemDurationLabel } from "../data/discovery/presentation";
+import {
+  getDiscoveryItemDurationLabel,
+  getDiscoveryItemTexts,
+} from "../data/discovery/presentation";
+import { getDiscoveryZoneName } from "../data/discovery/zones";
 import { getRecommendationsCopy } from "../data/discovery/recommendationsCopy";
 import { useDiscoveryContent } from "../hooks/useDiscoveryContent";
 import { useDiscoveryNavigation } from "../hooks/useDiscoveryNavigation";
@@ -93,7 +97,7 @@ function TourCard({
 }
 
 export default function Recommendations() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   // Medidas para la barra de scroll propia (ScrollIndicator).
@@ -182,7 +186,7 @@ const listItems: DiscoveryCatalogItem[] = [
 
 const zoneName =
   hasContentInDetectedZone && detectedZone
-    ? detectedZone.name
+    ? getDiscoveryZoneName(detectedZone, locale)
     : null;
 
 const { headerSubtitle } = getRecommendationsCopy({
@@ -277,6 +281,7 @@ if (loading) {
           ) : null}
           {listItems.map((item) => {
             const canOpen = canOpenDiscoveryItem(item);
+            const texts = getDiscoveryItemTexts(item, locale);
             return (
               <View
                 key={item.id}
@@ -292,8 +297,8 @@ if (loading) {
                 <TourCard
                   icon={getDiscoveryItemIcon(item)}
                   gradient={getDiscoveryItemGradient(item)}
-                  title={item.title}
-                  desc={item.subtitle}
+                  title={texts.title}
+                  desc={texts.subtitle}
                   duration={
                     canOpen
                       ? getDiscoveryItemDurationLabel(item)

@@ -113,7 +113,7 @@ since January 18, 1535.`,
         "Independence proclaimed (1821)",
       ],
       previewText: "Next step: walk to the Casa de Aliaga",
-      nextStepPreview: { time: "1–2 min walk" },
+      nextStepPreview: { time: "2–4 min walk" },
     },
 
     {

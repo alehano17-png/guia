@@ -1,6 +1,7 @@
 ﻿import { useRouter } from "expo-router";
 import { useState } from "react";
 import type { DiscoveryCatalogItem } from "../data/discovery/catalog";
+import { getDiscoveryItemTexts } from "../data/discovery/presentation";
 import { getDiscoveryItemRoute } from "../data/discovery/routes";
 import { parseTourLocale, type TourLocale } from "../data/tours/index";
 import { getLocale } from "../lib/i18n";
@@ -28,7 +29,8 @@ export function useDiscoveryNavigation() {
     const route = getDiscoveryItemRoute(item);
     if (!route) return;
 
-    setPendingTour({ route, title: item.title });
+    // Título en el idioma de la interfaz, igual que en la tarjeta.
+    setPendingTour({ route, title: getDiscoveryItemTexts(item, getLocale()).title });
     setIsLanguageSheetVisible(true);
   };
 

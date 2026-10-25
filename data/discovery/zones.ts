@@ -1,7 +1,12 @@
+import type { Locale } from "../../lib/i18n";
+
 export type DiscoveryZone = {
   id: string;
   cityId: string;
+  // Nombre en español; otros idiomas, opcionales (si faltan, cae al
+  // español; ver getDiscoveryZoneName).
   name: string;
+  en?: { name: string };
   bounds: {
     minLatitude: number;
     maxLatitude: number;
@@ -37,6 +42,7 @@ export const discoveryZones: DiscoveryZone[] = [
     id: "centro-historico",
     cityId: "lima",
     name: "Centro Histórico",
+    en: { name: "Historic Center" },
     bounds: {
       minLatitude: -12.065,
       maxLatitude: -12.035,
@@ -52,4 +58,9 @@ export function getDiscoveryZoneById(
   if (!zoneId) return null;
 
   return discoveryZones.find((zone) => zone.id === zoneId) ?? null;
+}
+
+export function getDiscoveryZoneName(zone: DiscoveryZone, locale: Locale): string {
+  if (locale !== "es" && zone[locale]) return zone[locale].name;
+  return zone.name;
 }

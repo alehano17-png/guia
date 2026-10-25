@@ -113,7 +113,7 @@ desde el 18 de enero de 1535.`,
         "Independencia proclamada (1821)",
       ],
       previewText: "Siguiente paso: camina hacia la Casa de Aliaga",
-      nextStepPreview: { time: "1–2 min a pie" },
+      nextStepPreview: { time: "2–4 min a pie" },
     },
 
     {

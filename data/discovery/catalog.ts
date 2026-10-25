@@ -21,8 +21,11 @@ export type DiscoveryIconKey =
 
 export type DiscoveryCatalogItem = {
   id: string;
+  // Español: title/subtitle. Otros idiomas, opcionales (si faltan, cae al
+  // español; ver getDiscoveryItemTexts).
   title: string;
   subtitle: string;
+  en?: { title: string; subtitle: string };
   durationMinutes: number;
   durationMaxMinutes?: number;
   // Sin uso desde que las tarjetas no llevan foto (ver mediaHelpers.ts).
@@ -45,6 +48,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     id: "miraflores-card",
     title: "Miraflores",
     subtitle: "Mar, caminatas y vistas únicas.",
+    en: { title: "Miraflores", subtitle: "Sea, walks and unique views." },
     durationMinutes: 75,
     durationMaxMinutes: 90,
     icon: "waves",
@@ -63,6 +67,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     id: "centro-card",
     title: "Centro Histórico",
     subtitle: "Historia, plazas y arquitectura.",
+    en: { title: "Historic Center", subtitle: "History, squares and architecture." },
     durationMinutes: 75,
     durationMaxMinutes: 90,
     icon: "landmark",
@@ -81,6 +86,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     id: "barranco-card",
     title: "Barranco",
     subtitle: "Arte, bohemia y cultura.",
+    en: { title: "Barranco", subtitle: "Art, bohemia and culture." },
     durationMinutes: 75,
     durationMaxMinutes: 90,
     icon: "art",
@@ -99,6 +105,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     id: "parque-del-amor-card",
     title: "Parque del Amor",
     subtitle: "Mirador frente al mar",
+    en: { title: "Parque del Amor", subtitle: "Viewpoint facing the sea" },
     durationMinutes: 15,
     durationMaxMinutes: 25,
     icon: "sunset",
@@ -116,6 +123,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     id: "faro-de-la-marina-card",
     title: "Faro de la Marina",
     subtitle: "Punto icónico del malecón",
+    en: { title: "La Marina Lighthouse", subtitle: "An iconic spot on the Malecón" },
     durationMinutes: 10,
     durationMaxMinutes: 20,
     icon: "lighthouse",
@@ -133,6 +141,7 @@ export const discoveryCatalog: DiscoveryCatalogItem[] = [
     id: "larcomar-card",
     title: "Larcomar",
     subtitle: "Spot urbano frente al acantilado",
+    en: { title: "Larcomar", subtitle: "Urban spot on the cliffs" },
     durationMinutes: 20,
     durationMaxMinutes: 35,
     icon: "city",
