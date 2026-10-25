@@ -43,6 +43,10 @@ export type TourStep = {
 export type Tour = {
   id: string;
   title: string;
+  // Tour dentro de un recinto cerrado: el GPS no distingue zonas ni pisos.
+  // La tarjeta solo muestra el mapa en el inicio guiado (para llegar); en
+  // el resto de pasos no hay mapa ni 'Abrir mapa'.
+  enclosed?: boolean;
   steps: TourStep[];
 };
 

@@ -130,7 +130,7 @@ export default function TourNextStopCard({
 
           <Text
             style={[styles.title, actionCard && styles.titleCompact]}
-            numberOfLines={2}
+            numberOfLines={actionCard ? 3 : 2}
           >
             {actionCard ? actionCard.title : previewDestination.title}
           </Text>

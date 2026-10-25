@@ -335,9 +335,11 @@ const { previewDestination, hasPreciseLocation } = useMemo(
 
     
 
-// Mapa solo con una ubicación real: ni puntos marcados como dentro de un
-// recinto (noMap) ni destinos que caen al respaldo del tour.
-const showMap = !step?.noMap && hasPreciseLocation
+// Mapa solo con una ubicación real: ni destinos que caen al respaldo del
+// tour, ni puntos dentro de un recinto. En un tour cerrado (enclosed) el
+// mapa solo sirve para llegar: se muestra únicamente en el inicio guiado.
+const showMap =
+  (tour?.enclosed ? isGuidedStart : !step?.noMap) && hasPreciseLocation
 
 const walkTime = useMemo(
   () =>
@@ -442,9 +444,12 @@ useEffect(() => {
 // Tampoco en pasos con actionCard ("Camina hacia…"): su destino es su
 // propia ubicación, la misma a la que llevó el paso anterior, así que
 // avanzaría dos pasos seguidos; ahí se confirma tocando "Siguiente".
+// En un tour cerrado (enclosed) solo actúa en el inicio guiado: dentro del
+// recinto el GPS no distingue zonas ni pisos.
 useEffect(() => {
   if (!userLocation || !previewDestination) return
   if (step?.actionCard) return
+  if (tour?.enclosed && !isGuidedStart) return
   if (hasAutoAdvancedRef.current) return
 
   const distance = getDistanceInMeters(userLocation, previewDestination)
@@ -473,6 +478,7 @@ useEffect(() => {
   startRoute,
   hasChoices,
   step,
+  tour?.enclosed,
 ])
 
 // messageOverride: para las sugerencias del estado vacío del chat, que
@@ -651,9 +657,13 @@ return(
   style={styles.container}
 >
 
-<SafeAreaView style={styles.safe}>
+{/* Sin el borde inferior: el inset de abajo ya va en el paddingBottom
+    del contenido (si no, se sumaba dos veces). */}
+<SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
 
-<View style={[styles.content,{paddingBottom:insets.bottom + 40}]}>
+{/* Margen inferior corto: la tarjeta baja y el globo queda a tamaño
+    completo (Math.max: en iPhone sin home indicator, igual 12 + 8). */}
+<View style={[styles.content,{paddingBottom:Math.max(insets.bottom, 12) + 8}]}>
 
 
 

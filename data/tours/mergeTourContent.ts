@@ -77,5 +77,7 @@ export function mergeTourContent(
     return merged;
   });
 
-  return { id: skeleton.id, title: content.title, steps };
+  const tour: Tour = { id: skeleton.id, title: content.title, steps };
+  if (skeleton.enclosed !== undefined) tour.enclosed = skeleton.enclosed;
+  return tour;
 }

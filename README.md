@@ -5,13 +5,14 @@ GUÍA es una app turística con IA pensada para acompañar al usuario durante un
 ## Flujo actual
 
 - Pantalla inicial
-- Recomendaciones
-- Descubre lugares
+- Recomendaciones (tours y lugares en una sola lista)
 - Tour guiado
 
 ## Tours activos
 
 - Miraflores
+- Barranco
+- Centro Histórico
 
 ## Tecnologías principales
 

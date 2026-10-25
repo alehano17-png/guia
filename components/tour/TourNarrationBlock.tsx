@@ -15,15 +15,15 @@ import { TOUR_ACCENT_COLOR, TOUR_TEXT_PRIMARY } from "../../lib/tourTheme";
 import { FONT_REGULAR, FONT_SIZE_XS } from "../../lib/typography";
 import VoiceBlob from "./VoiceBlob";
 
-// Alto natural del globo (200) + margen (20) + píldora (~34). Si el espacio
-// libre es menor (pantallas chicas con título en 2 líneas), se escala el
-// conjunto para que no se superponga con el header ni con la tarjeta.
+// Alto natural del globo (200) + margen (20) + píldora (~34). El globo va
+// siempre a tamaño completo; la escala es solo un respaldo de emergencia
+// para cuando físicamente no cabe (pantallas muy chicas).
 const CONTENT_HEIGHT = 254;
 // Respiro mínimo arriba y abajo del globo + píldora (16 c/u), para que la
 // tarjeta de abajo nunca quede pegada a la píldora. Escala mínima: el globo
 // no llega a desaparecer.
 const BREATHING_SPACE = 16;
-const MIN_SCALE = 0.6;
+const MIN_SCALE = 0.5;
 
 type Props = {
   pulseAnim: Animated.Value;
