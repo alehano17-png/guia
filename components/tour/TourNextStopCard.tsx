@@ -14,6 +14,7 @@ import {
   FONT_BOLD,
   FONT_REGULAR,
   FONT_SEMIBOLD,
+  FONT_SIZE_LG,
   FONT_SIZE_MD,
   FONT_SIZE_SM,
   FONT_SIZE_XL,
@@ -34,6 +35,9 @@ type PreviewDestination = {
 
 type Props = {
   mode: TourCardMode;
+  // false: sin el cuadro del mapa ni el enlace "Abrir mapa"; el texto
+  // ocupa todo el ancho.
+  showMap: boolean;
   previewDestination: PreviewDestination;
   walkTime?: string;
   actionCard?: ActionCardData;
@@ -54,6 +58,7 @@ type Props = {
 // destino ya es la propia parada); en "closing" solo queda el botón.
 export default function TourNextStopCard({
   mode,
+  showMap,
   previewDestination,
   walkTime,
   actionCard,
@@ -81,52 +86,59 @@ export default function TourNextStopCard({
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
-        <Pressable
-          style={styles.mapBox}
-          onPress={onOpenPreviewRoute}
-          accessibilityRole="button"
-          accessibilityLabel={t.tour.openMaps}
-        >
-          {/* pointerEvents "none": el toque lo recibe el Pressable, no el mapa. */}
-          <MapView
-            pointerEvents="none"
-            mapType="standard"
-            userInterfaceStyle="light"
-            showsUserLocation={locationPermissionGranted}
-            showsMyLocationButton={false}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            rotateEnabled={false}
-            pitchEnabled={false}
-            style={StyleSheet.absoluteFill}
-            region={{
-              latitude: mapLatitude,
-              longitude: mapLongitude,
-              latitudeDelta: mapLatitudeDelta,
-              longitudeDelta: mapLongitudeDelta,
-            }}
+        {showMap ? (
+          <Pressable
+            style={styles.mapBox}
+            onPress={onOpenPreviewRoute}
+            accessibilityRole="button"
+            accessibilityLabel={t.tour.openMaps}
           >
-            <Marker
-              coordinate={{
-                latitude: previewDestination.latitude,
-                longitude: previewDestination.longitude,
+            {/* pointerEvents "none": el toque lo recibe el Pressable, no el mapa. */}
+            <MapView
+              pointerEvents="none"
+              mapType="standard"
+              userInterfaceStyle="light"
+              showsUserLocation={locationPermissionGranted}
+              showsMyLocationButton={false}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              style={StyleSheet.absoluteFill}
+              region={{
+                latitude: mapLatitude,
+                longitude: mapLongitude,
+                latitudeDelta: mapLatitudeDelta,
+                longitudeDelta: mapLongitudeDelta,
               }}
-              title={previewDestination.title}
-            />
-          </MapView>
-        </Pressable>
+            >
+              <Marker
+                coordinate={{
+                  latitude: previewDestination.latitude,
+                  longitude: previewDestination.longitude,
+                }}
+                title={previewDestination.title}
+              />
+            </MapView>
+          </Pressable>
+        ) : null}
 
         <View style={styles.textColumn}>
           <Text style={styles.label}>
             {isLast ? t.tour.lastStopLabel : t.tour.nextStopLabel}
           </Text>
 
-          <Text style={styles.title} numberOfLines={2}>
+          <Text
+            style={[styles.title, actionCard && styles.titleCompact]}
+            numberOfLines={2}
+          >
             {actionCard ? actionCard.title : previewDestination.title}
           </Text>
 
           {actionCard ? (
-            <Text style={styles.secondaryText}>{actionCard.subtitle}</Text>
+            <Text style={styles.secondaryText} numberOfLines={2}>
+              {actionCard.subtitle}
+            </Text>
           ) : isLast || !walkTime ? null : (
             <View style={styles.walkRow}>
               <Ionicons name="walk-outline" size={16} color={TOUR_TEXT_MUTED} />
@@ -134,9 +146,11 @@ export default function TourNextStopCard({
             </View>
           )}
 
-          <Pressable onPress={onOpenPreviewRoute} hitSlop={8}>
-            <Text style={styles.mapsLink}>{t.tour.openMapsLink}</Text>
-          </Pressable>
+          {showMap ? (
+            <Pressable onPress={onOpenPreviewRoute} hitSlop={8}>
+              <Text style={styles.mapsLink}>{t.tour.openMapsLink}</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
@@ -190,6 +204,11 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE_XL,
     color: TOUR_TEXT_PRIMARY,
     marginBottom: 4,
+  },
+
+  // Indicaciones (actionCard): textos más largos, un paso más chico.
+  titleCompact: {
+    fontSize: FONT_SIZE_LG,
   },
 
   walkRow: {

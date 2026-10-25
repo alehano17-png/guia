@@ -12,7 +12,6 @@ GUÍA es una app turística con IA pensada para acompañar al usuario durante un
 ## Tours activos
 
 - Miraflores
-- Huaca Pucllana
 
 ## Tecnologías principales
 

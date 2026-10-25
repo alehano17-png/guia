@@ -61,6 +61,7 @@ export function mergeTourContent(
     if (sk.end !== undefined) merged.end = sk.end;
     if (sk.latitude !== undefined) merged.latitude = sk.latitude;
     if (sk.longitude !== undefined) merged.longitude = sk.longitude;
+    if (sk.noMap !== undefined) merged.noMap = sk.noMap;
     if (choices !== undefined) merged.choices = choices;
     if (sk.hasActionCard) merged.actionCard = c.actionCard;
     if (sk.startRoute && c.startRoute) {

@@ -4,19 +4,16 @@ import type { TourContent } from "./content-types";
 import type { TourSkeleton } from "./skeleton-types";
 
 import { mirafloresSkeleton } from "./skeletons/miraflores";
-import { huacaPucllanaSkeleton } from "./skeletons/huaca-pucllana";
 import { barrancoSkeleton } from "./skeletons/barranco";
 import { centroHistoricoSkeleton } from "./skeletons/centro-historico";
 
 import { mirafloresContentEs } from "./content/es/miraflores";
-import { huacaPucllanaContentEs } from "./content/es/huaca-pucllana";
 import { barrancoContentEs } from "./content/es/barranco";
 import { centroHistoricoContentEs } from "./content/es/centro-historico";
 
 import { mirafloresContentEn } from "./content/en/miraflores";
 import { barrancoContentEn } from "./content/en/barranco";
 import { centroHistoricoContentEn } from "./content/en/centro-historico";
-import { huacaPucllanaContentEn } from "./content/en/huaca-pucllana";
 
 export type {
   TourStep
@@ -39,10 +36,6 @@ const TOUR_REGISTRY: TourRegistryEntry[] = [
   {
     skeleton: mirafloresSkeleton,
     content: { es: mirafloresContentEs, en: mirafloresContentEn },
-  },
-  {
-    skeleton: huacaPucllanaSkeleton,
-    content: { es: huacaPucllanaContentEs, en: huacaPucllanaContentEn },
   },
   {
     skeleton: barrancoSkeleton,

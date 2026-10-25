@@ -14,6 +14,9 @@ export type TourStep = {
   
   latitude?: number
   longitude?: number
+  // Punto dentro de un recinto (ubicación poco precisa): la tarjeta no
+  // muestra mapa ni 'Abrir mapa'.
+  noMap?: boolean
   choices?: TourChoice[]
 
   startRoute?: {

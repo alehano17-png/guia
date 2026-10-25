@@ -315,7 +315,7 @@ const primaryButtonLabel =
 
    
 
-const { previewDestination } = useMemo(
+const { previewDestination, hasPreciseLocation } = useMemo(
   () =>
     getTourPreviewData({
       steps: tour?.steps,
@@ -334,6 +334,10 @@ const { previewDestination } = useMemo(
 
 
     
+
+// Mapa solo con una ubicación real: ni puntos marcados como dentro de un
+// recinto (noMap) ni destinos que caen al respaldo del tour.
+const showMap = !step?.noMap && hasPreciseLocation
 
 const walkTime = useMemo(
   () =>
@@ -680,6 +684,7 @@ return(
 
 <TourNextStopCard
   mode={cardMode}
+  showMap={showMap}
   previewDestination={previewDestination}
   walkTime={walkTime}
   actionCard={actionCardData}

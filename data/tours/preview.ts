@@ -10,6 +10,9 @@ type PreviewDestination = {
 
 type PreviewData = {
   previewDestination: PreviewDestination;
+  // false cuando el destino sale del respaldo del tour (tourAnchor): no hay
+  // una ubicación real para este paso, así que no se muestra mapa.
+  hasPreciseLocation: boolean;
 };
 
 type Input = {
@@ -65,6 +68,11 @@ export function getTourPreviewData({
         longitude: firstWithCoords?.longitude ?? -77.034,
       };
 
+  const hasPreciseLocation =
+    (isGuidedStart && !!startRoute) ||
+    !!nextStepPreview ||
+    (step?.latitude != null && step?.longitude != null);
+
   const previewDestination: PreviewDestination =
     isGuidedStart && startRoute
       ? {
@@ -88,6 +96,7 @@ export function getTourPreviewData({
 
   return {
     previewDestination,
+    hasPreciseLocation,
   };
 }
 

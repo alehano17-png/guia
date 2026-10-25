@@ -120,13 +120,23 @@ const discoveryIcons: Record<
   },
 };
 
+// Por clave, para usar un ícono fuera de una tarjeta del catálogo (ej. el
+// tutorial).
+export function getDiscoveryIcon(key: DiscoveryIconKey): DiscoveryIcon {
+  return discoveryIcons[key].icon;
+}
+
+export function getDiscoveryGradient(key: DiscoveryIconKey): DiscoveryGradient {
+  return discoveryIcons[key].gradient;
+}
+
 // Sin `icon` en el catálogo, la tarjeta usa el pin.
 export function getDiscoveryItemIcon(item: DiscoveryCatalogItem): DiscoveryIcon {
-  return discoveryIcons[item.icon ?? "pin"].icon;
+  return getDiscoveryIcon(item.icon ?? "pin");
 }
 
 export function getDiscoveryItemGradient(
   item: DiscoveryCatalogItem
 ): DiscoveryGradient {
-  return discoveryIcons[item.icon ?? "pin"].gradient;
+  return getDiscoveryGradient(item.icon ?? "pin");
 }

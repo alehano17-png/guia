@@ -24,6 +24,10 @@ import {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import VoiceBlob from "../components/tour/VoiceBlob";
+import {
+  getDiscoveryGradient,
+  getDiscoveryIcon,
+} from "../data/discovery/iconHelpers";
 import { HOME_BUTTON_TEXT_COLOR } from "../lib/homeTheme";
 import type { TranslationDictionary } from "../lib/i18n";
 import { useTranslation } from "../lib/i18n/useTranslation";
@@ -314,16 +318,27 @@ export default function TutorialScreen() {
   );
 }
 
+// Ícono de Barranco en la lista de tours (catalog.ts).
+const BARRANCO_ICON = "art";
+const BarrancoIcon = getDiscoveryIcon(BARRANCO_ICON);
+
 // Paso 1: el tour elegido y la elección de idioma, como en la hoja real.
 function LanguageDemo({ demo }: { demo: DemoTexts }) {
   return (
     <View>
-      {/* La caja recorta la foto con sus propias esquinas redondeadas. */}
       <View style={styles.tourRow}>
-        <Image
-          source={require("../assets/images/barranco.jpg")}
-          style={styles.tourImage}
-        />
+        {/* Mismo cuadro con degradado e ícono que Barranco en la lista de
+            tours; la sombra va en el View, no en el degradado. */}
+        <View style={styles.tourIconShadow}>
+          <LinearGradient
+            colors={getDiscoveryGradient(BARRANCO_ICON)}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tourIconBox}
+          >
+            <BarrancoIcon size={44} color="#FFFFFF" strokeWidth={1.75} />
+          </LinearGradient>
+        </View>
         <View style={styles.tourTexts}>
           <Text style={styles.tourName}>{demo.tourName}</Text>
           <Text style={styles.tourDesc}>{demo.tourDesc}</Text>
@@ -475,17 +490,32 @@ const styles = StyleSheet.create({
   },
 
   // Paso 1
+  // Sin overflow hidden: recortaría la sombra del cuadro del ícono.
   tourRow: {
     flexDirection: "row",
     backgroundColor: "#F6F2FF",
     borderRadius: 18,
-    overflow: "hidden",
     height: 84,
   },
 
-  tourImage: {
+  // Misma sombra que el cuadro de ícono de app/recomendations.tsx.
+  tourIconShadow: {
+    borderRadius: 18,
+    shadowColor: "#6957DF",
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+
+  // Del tamaño de la foto que reemplaza; mismo radio que la fila para
+  // calzar en su esquina.
+  tourIconBox: {
     width: 84,
     height: 84,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   tourTexts: {

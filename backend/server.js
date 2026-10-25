@@ -372,12 +372,7 @@ const shortAllowed = [
   "dale",
   "continua",
   "continúa",
-  "siguiente",
-  "entrar",
-  "afuera",
-  "fuera",
-  "base",
-  "profunda"
+  "siguiente"
 ];
 
 const blockedTopics = [

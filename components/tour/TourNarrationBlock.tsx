@@ -19,6 +19,11 @@ import VoiceBlob from "./VoiceBlob";
 // libre es menor (pantallas chicas con título en 2 líneas), se escala el
 // conjunto para que no se superponga con el header ni con la tarjeta.
 const CONTENT_HEIGHT = 254;
+// Respiro mínimo arriba y abajo del globo + píldora (16 c/u), para que la
+// tarjeta de abajo nunca quede pegada a la píldora. Escala mínima: el globo
+// no llega a desaparecer.
+const BREATHING_SPACE = 16;
+const MIN_SCALE = 0.6;
 
 type Props = {
   pulseAnim: Animated.Value;
@@ -50,7 +55,11 @@ export default function TourNarrationBlock({
 
   const [scale, setScale] = useState(1);
   const handleLayout = (e: LayoutChangeEvent) => {
-    const next = Math.min(1, e.nativeEvent.layout.height / CONTENT_HEIGHT);
+    const available = e.nativeEvent.layout.height - BREATHING_SPACE * 2;
+    const next = Math.max(
+      MIN_SCALE,
+      Math.min(1, available / CONTENT_HEIGHT)
+    );
     setScale((prev) => (Math.abs(prev - next) > 0.01 ? next : prev));
   };
 
