@@ -59,18 +59,25 @@ export default function ScrollIndicator({
 }
 
 const styles = StyleSheet.create({
+  // right 10: en el pasillo entre las tarjetas (a 20 del borde) y el borde
+  // de la pantalla. Sin overflow hidden, para no recortar la sombra del
+  // pulgar.
   track: {
     position: "absolute",
-    right: 4,
+    right: 10,
     width: 4,
-    borderRadius: 2,
+    borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.35)",
   },
 
+  // Sólido con un brillo suave del mismo color.
   thumb: {
     width: 4,
-    borderRadius: 2,
+    borderRadius: 999,
     backgroundColor: TOUR_ACCENT_COLOR,
-    opacity: 0.8,
+    shadowColor: TOUR_ACCENT_COLOR,
+    shadowOpacity: 0.45,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
   },
 });
