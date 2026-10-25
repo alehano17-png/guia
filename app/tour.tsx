@@ -661,9 +661,10 @@ return(
     del contenido (si no, se sumaba dos veces). */}
 <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
 
-{/* Margen inferior corto: la tarjeta baja y el globo queda a tamaño
-    completo (Math.max: en iPhone sin home indicator, igual 12 + 8). */}
-<View style={[styles.content,{paddingBottom:Math.max(insets.bottom, 12) + 8}]}>
+{/* Margen inferior: con barra de home 34 + 22 = 56; sin barra (Math.max)
+    12 + 22 = 34. Deja la tarjeta un poco arriba del borde y el globo a
+    tamaño completo. */}
+<View style={[styles.content,{paddingBottom:Math.max(insets.bottom, 12) + 22}]}>
 
 
 

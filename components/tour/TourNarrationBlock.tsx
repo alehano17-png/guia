@@ -24,11 +24,11 @@ const GLOBE_SIZE = 200;
 // línea de texto XS (~18). Margen entre globo y píldora = askPill.marginTop.
 const ASK_PILL_HEIGHT = 34;
 const ASK_PILL_GAP = 20;
-// Respiro mínimo arriba y abajo del bloque (16 c/u), para que la tarjeta
-// de abajo nunca quede pegada a la píldora. Escala mínima: el globo no
-// llega a desaparecer.
+// Respiro mínimo arriba y abajo del bloque (16 c/u, minHeight de los
+// espaciadores), para que la tarjeta de abajo nunca quede pegada a la
+// píldora. Escala mínima (0.35): el globo no llega a desaparecer.
 const BREATHING_SPACE = 16;
-const MIN_SCALE = 0.5;
+const MIN_SCALE = 0.35;
 
 type Props = {
   pulseAnim: Animated.Value;
@@ -74,6 +74,10 @@ export default function TourNarrationBlock({
 
   return (
     <View style={styles.centerBlock} onLayout={handleLayout}>
+      {/* Reparto 40/60 del espacio libre: el globo queda más cerca del
+          header ("Narrando") que de la tarjeta. */}
+      <View style={styles.spacerTop} />
+
       {/* transform no cambia el espacio que ocupa: esta caja toma el tamaño
           ya escalado, y el globo (a tamaño natural) se achica centrado
           adentro. Así la píldora queda pegada al globo con su margen. */}
@@ -133,17 +137,28 @@ export default function TourNarrationBlock({
         <Ionicons name="mic" size={16} color={TOUR_ACCENT_COLOR} />
         <Text style={styles.askTip}>{guiaStatusLabel[guiaVoiceStatus]}</Text>
       </Pressable>
+
+      <View style={styles.spacerBottom} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // flex: 1 + justifyContent center: el globo y su píldora quedan
-  // centrados en el espacio libre entre el header y lo de abajo.
+  // flex: 1 ocupa el espacio entre el header y la tarjeta; los dos
+  // espaciadores (flex 2 / 3) reparten el sobrante 40% arriba y 60% abajo.
   centerBlock: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
+  },
+
+  spacerTop: {
+    flex: 2,
+    minHeight: BREATHING_SPACE,
+  },
+
+  spacerBottom: {
+    flex: 3,
+    minHeight: BREATHING_SPACE,
   },
 
   globeBox: {
