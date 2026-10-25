@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import type { TourCardMode } from "../../data/tours/preview";
-import { HOME_BUTTON_TEXT_COLOR } from "../../lib/homeTheme";
 import { useTranslation } from "../../lib/i18n/useTranslation";
 import {
   TOUR_ACCENT_COLOR,
@@ -13,7 +13,6 @@ import {
 import {
   FONT_BOLD,
   FONT_REGULAR,
-  FONT_SEMIBOLD,
   FONT_SIZE_LG,
   FONT_SIZE_MD,
   FONT_SIZE_SM,
@@ -120,6 +119,27 @@ export default function TourNextStopCard({
                 title={previewDestination.title}
               />
             </MapView>
+
+            {/* Blur + tinte blanco para que la píldora contraste; en Android,
+                si el blur no difumina, queda al menos el tinte. */}
+            <BlurView
+              intensity={15}
+              tint="light"
+              style={[StyleSheet.absoluteFill, styles.mapTint]}
+              pointerEvents="none"
+            />
+
+            <View style={styles.mapPillWrap} pointerEvents="none">
+              <View style={styles.mapPill}>
+                <Text
+                  style={styles.mapPillText}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  {t.tour.openMapsLink}
+                </Text>
+              </View>
+            </View>
           </Pressable>
         ) : null}
 
@@ -146,11 +166,6 @@ export default function TourNextStopCard({
             </View>
           )}
 
-          {showMap ? (
-            <Pressable onPress={onOpenPreviewRoute} hitSlop={8}>
-              <Text style={styles.mapsLink}>{t.tour.openMapsLink}</Text>
-            </Pressable>
-          ) : null}
         </View>
       </View>
 
@@ -182,6 +197,36 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 18,
     overflow: "hidden",
+  },
+
+  mapTint: {
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+
+  mapPillWrap: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+
+  mapPill: {
+    maxWidth: "100%",
+    backgroundColor: TOUR_ACCENT_COLOR,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    shadowColor: TOUR_ACCENT_COLOR,
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+  },
+
+  mapPillText: {
+    fontFamily: FONT_BOLD,
+    fontWeight: "700",
+    fontSize: FONT_SIZE_XS,
+    color: "#FFFFFF",
   },
 
   textColumn: {
@@ -222,15 +267,6 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     fontSize: FONT_SIZE_SM,
     color: TOUR_TEXT_MUTED,
-  },
-
-  mapsLink: {
-    fontFamily: FONT_SEMIBOLD,
-    fontWeight: "600",
-    fontSize: FONT_SIZE_SM,
-    color: HOME_BUTTON_TEXT_COLOR,
-    textDecorationLine: "underline",
-    marginTop: 6,
   },
 
   button: {
