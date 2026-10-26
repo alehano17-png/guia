@@ -18,7 +18,7 @@ import {
   findSentenceStartAtOrBefore,
 } from "../lib/sentences";
 import type { TourLocale } from "../data/tours/index";
-import { TOUR_API_BASE_URL, TOUR_API_KEY, TOUR_API_KEY_HEADER } from "../lib/tourApiConfig";
+import { getTourApiHeaders, TOUR_API_BASE_URL } from "../lib/tourApiConfig";
 
 const FileSystem = require("expo-file-system/legacy");
 
@@ -219,7 +219,7 @@ export function useTourAudio(
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
+              ...(await getTourApiHeaders()),
             },
             body: JSON.stringify({ text, mode: "narration", language }),
           });
@@ -248,7 +248,7 @@ export function useTourAudio(
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
+            ...(await getTourApiHeaders()),
           },
           body: JSON.stringify({
             text,
@@ -451,7 +451,7 @@ export function useTourAudio(
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
+            ...(await getTourApiHeaders()),
           },
           body: JSON.stringify({ text, mode: "chat", language }),
         });

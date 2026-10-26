@@ -1,4 +1,5 @@
-import cors from "cors";
+import { createClient } from "@supabase/supabase-js";
+import { Buffer } from "node:buffer";
 import crypto from "crypto";
 import dotenv from "dotenv";
 import express from "express";
@@ -20,24 +21,143 @@ fs.mkdirSync(AUDIO_CACHE_DIR, { recursive: true });
 const SERVER_CACHE_VERSION = "v2";
 
 const app = express();
-app.use(cors());
-// Límite alto porque /transcribe recibe audio corto en base64 dentro del JSON
-app.use(express.json({ limit: "25mb" }));
+app.disable("x-powered-by");
+// /transcribe recibe audio corto en base64 dentro del JSON (máximo ~3 MB de
+// audio, ver MAX_AUDIO_BASE64_LENGTH); 6 MB deja margen sin aceptar
+// cuerpos enormes.
+app.use(express.json({ limit: "6mb" }));
 
-// Autenticación simple: solo la propia app (con la misma llave en su
-// EXPO_PUBLIC_GUIA_BACKEND_KEY) puede usar los endpoints reales. No es
-// autenticación de usuarios — es una sola llave compartida para bloquear
-// a cualquiera que no sea la app.
-const BACKEND_SECRET_KEY = process.env.BACKEND_SECRET_KEY;
+// Autenticación con la sesión real de Supabase: la app manda el access
+// token del usuario logueado en "Authorization: Bearer <token>" y acá se
+// valida contra Supabase. Sin sesión válida no se usa ningún endpoint que
+// cueste dinero (OpenAI / ElevenLabs).
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_PUBLISHABLE_KEY,
+  { auth: { persistSession: false, autoRefreshToken: false } }
+);
 
-function requireGuiaKey(req, res, next) {
-  const providedKey = req.header("x-guia-key");
+// Caché en memoria de tokens ya validados (token -> userId), para no
+// llamar a Supabase en cada petición: dura 5 minutos como máximo y nunca
+// más allá de la expiración del propio token.
+const TOKEN_CACHE_MS = 5 * 60 * 1000;
+const tokenCache = new Map();
 
-  if (!BACKEND_SECRET_KEY || providedKey !== BACKEND_SECRET_KEY) {
-    return res.status(401).send("No autorizado");
+// Momento de expiración (ms) que trae el propio token (claim "exp"). Solo
+// se lee después de que Supabase lo validó, así que no hace falta
+// verificar la firma acá.
+function getTokenExpiryMs(token) {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64url").toString("utf-8")
+    );
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+async function requireUser(req, res, next) {
+  const header = req.header("authorization") || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+
+  if (!token) {
+    return res.status(401).json({ error: "unauthorized" });
   }
 
-  next();
+  const now = Date.now();
+  const cached = tokenCache.get(token);
+  if (cached && cached.expiresAt > now) {
+    req.userId = cached.userId;
+    return next();
+  }
+  tokenCache.delete(token);
+
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) {
+      return res.status(401).json({ error: "unauthorized" });
+    }
+
+    const tokenExpiry = getTokenExpiryMs(token) ?? now + TOKEN_CACHE_MS;
+    const expiresAt = Math.min(now + TOKEN_CACHE_MS, tokenExpiry);
+    if (expiresAt > now) {
+      // Limpieza simple para que el caché no crezca sin límite.
+      if (tokenCache.size > 1000) {
+        for (const [key, value] of tokenCache) {
+          if (value.expiresAt <= now) tokenCache.delete(key);
+        }
+      }
+      tokenCache.set(token, { userId: data.user.id, expiresAt });
+    }
+
+    req.userId = data.user.id;
+    next();
+  } catch (e) {
+    console.error("Error validando la sesión con Supabase:", e.message);
+    res.status(401).json({ error: "unauthorized" });
+  }
+}
+
+// Límite de uso por usuario (ventana deslizante, en memoria) para que nadie
+// pueda gastar de más en OpenAI / ElevenLabs. Los contadores se reinician
+// si el servidor se reinicia (suficiente por ahora).
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+const usageByKey = new Map();
+
+function rateLimit(name, limits) {
+  const longestWindow = Math.max(...limits.map((l) => l.windowMs));
+
+  return (req, res, next) => {
+    const key = `${name}:${req.userId}`;
+    const now = Date.now();
+    const timestamps = (usageByKey.get(key) || []).filter(
+      (t) => now - t < longestWindow
+    );
+
+    const exceeded = limits.some(
+      ({ windowMs, max }) =>
+        timestamps.filter((t) => now - t < windowMs).length >= max
+    );
+
+    if (exceeded) {
+      usageByKey.set(key, timestamps);
+      return res.status(429).json({ error: "rate_limited" });
+    }
+
+    timestamps.push(now);
+    usageByKey.set(key, timestamps);
+    next();
+  };
+}
+
+const voiceRateLimit = rateLimit("voice", [{ windowMs: HOUR_MS, max: 120 }]);
+const transcribeRateLimit = rateLimit("transcribe", [
+  { windowMs: HOUR_MS, max: 40 },
+]);
+const chatRateLimit = rateLimit("chat", [
+  { windowMs: HOUR_MS, max: 40 },
+  { windowMs: DAY_MS, max: 150 },
+]);
+
+// Límites de tamaño de lo que se recibe. El texto de narración más largo
+// de los tours hoy tiene ~1940 caracteres.
+const MAX_VOICE_TEXT_LENGTH = 2500;
+const VOICE_MODES = ["narration", "chat"];
+// ~4.000.000 caracteres de base64 = unos 3 MB de audio.
+const MAX_AUDIO_BASE64_LENGTH = 4_000_000;
+const MAX_CHAT_MESSAGE_LENGTH = 500;
+const MAX_HISTORY_TURNS = 12;
+const MAX_HISTORY_CONTENT_LENGTH = 2000;
+const MAX_CONTEXT_LENGTH = 200;
+const MAX_SUMMARY_LENGTH = 1500;
+const MAX_HIGHLIGHTS = 10;
+const MAX_HIGHLIGHT_LENGTH = 200;
+
+// Recorta un texto opcional; si no es string, se ignora.
+function clipOptional(value, maxLength) {
+  return typeof value === "string" ? value.slice(0, maxLength) : undefined;
 }
 
 const openai = new OpenAI({
@@ -242,9 +362,21 @@ async function generateVoiceAudio(rawText, mode, withTimestamps = false, languag
 // un script de Node aislado, sin pasar por el celular ni por /voice.
 export { generateVoiceAudio };
 
-app.post("/voice", requireGuiaKey, async (req, res) => {
+app.post("/voice", requireUser, voiceRateLimit, async (req, res) => {
   try {
-    const { mode, withTimestamps, language = "es" } = req.body;
+    const { text, mode, withTimestamps, language = "es" } = req.body ?? {};
+
+    if (
+      typeof text !== "string" ||
+      !text.trim() ||
+      text.length > MAX_VOICE_TEXT_LENGTH
+    ) {
+      return res.status(400).json({ error: "invalid_text" });
+    }
+
+    if (!VOICE_MODES.includes(mode)) {
+      return res.status(400).json({ error: "invalid_mode" });
+    }
 
     // Falla clara y sin costo (antes de tocar la cola de ElevenLabs) si
     // piden un idioma sin voz configurada — en vez de generar en español
@@ -259,7 +391,7 @@ app.post("/voice", requireGuiaKey, async (req, res) => {
 
     if (!withTimestamps) {
       // Camino de siempre — no tocar nada acá.
-      const buffer = await generateVoiceAudio(req.body.text, mode, false, language);
+      const buffer = await generateVoiceAudio(text, mode, false, language);
 
       res.setHeader("Content-Type", "audio/mpeg");
       res.send(buffer);
@@ -267,7 +399,7 @@ app.post("/voice", requireGuiaKey, async (req, res) => {
     }
 
     const { buffer, alignment } = await generateVoiceAudio(
-      req.body.text,
+      text,
       mode,
       true,
       language
@@ -309,15 +441,19 @@ function extractCompleteSentences(buffer) {
   return { sentences, remainder: buffer.slice(start) };
 }
 
-app.post("/transcribe", requireGuiaKey, async (req, res) => {
+app.post("/transcribe", requireUser, transcribeRateLimit, async (req, res) => {
   try {
-    const { audioBase64 } = req.body;
+    const { audioBase64 } = req.body ?? {};
     // Idioma del tour: solo "en" exacto cambia el idioma; cualquier otro
     // valor (o ninguno) sigue en español, como antes.
-    const language = req.body.language === "en" ? "en" : "es";
+    const language = req.body?.language === "en" ? "en" : "es";
 
-    if (!audioBase64) {
+    if (typeof audioBase64 !== "string" || !audioBase64) {
       return res.status(400).json({ error: "Falta audioBase64" });
+    }
+
+    if (audioBase64.length > MAX_AUDIO_BASE64_LENGTH) {
+      return res.status(413).json({ error: "audio_too_large" });
     }
 
     const buffer = Buffer.from(audioBase64, "base64");
@@ -328,8 +464,6 @@ app.post("/transcribe", requireGuiaKey, async (req, res) => {
       language,
     });
 
-    console.log("🎙️ Transcripción:", transcription.text);
-
     res.json({ text: transcription.text });
   } catch (e) {
     console.error("Error transcribiendo:", e);
@@ -337,13 +471,32 @@ app.post("/transcribe", requireGuiaKey, async (req, res) => {
   }
 });
 
-app.post("/chat", requireGuiaKey, async (req, res) => {
+app.post("/chat", requireUser, chatRateLimit, async (req, res) => {
   try {
-    console.log("📩 Mensaje recibido:", req.body.message);
+    const body = req.body ?? {};
+    const { message } = body;
 
-    const { message, context, summary, highlights, tourTitle, history } = req.body;
+    // Lo obligatorio se rechaza; lo opcional se recorta (no se rechaza).
+    if (
+      typeof message !== "string" ||
+      !message.trim() ||
+      message.length > MAX_CHAT_MESSAGE_LENGTH
+    ) {
+      return res.status(400).json({ error: "invalid_message" });
+    }
+
+    const context = clipOptional(body.context, MAX_CONTEXT_LENGTH);
+    const tourTitle = clipOptional(body.tourTitle, MAX_CONTEXT_LENGTH);
+    const summary = clipOptional(body.summary, MAX_SUMMARY_LENGTH);
+    const highlights = Array.isArray(body.highlights)
+      ? body.highlights
+          .filter((h) => typeof h === "string")
+          .slice(0, MAX_HIGHLIGHTS)
+          .map((h) => h.slice(0, MAX_HIGHLIGHT_LENGTH))
+      : undefined;
+    const history = body.history;
     // Mismo criterio que /transcribe: solo "en" exacto cambia el idioma.
-    const language = req.body.language === "en" ? "en" : "es";
+    const language = body.language === "en" ? "en" : "es";
     // Una sola frase de rechazo por petición, en el idioma del tour: la usan
     // el filtro de temas de abajo y la regla del prompt de sistema.
     const offTopicReply =
@@ -353,16 +506,23 @@ app.post("/chat", requireGuiaKey, async (req, res) => {
 
     // Solo se aceptan turnos con la forma esperada — si algo raro llega en
     // el body, se ignora en vez de mandárselo tal cual a OpenAI.
+    // Como máximo los últimos MAX_HISTORY_TURNS turnos, cada uno recortado.
     const conversationHistory = Array.isArray(history)
-      ? history.filter(
-          (m) =>
-            m &&
-            (m.role === "user" || m.role === "assistant") &&
-            typeof m.content === "string"
-        )
+      ? history
+          .filter(
+            (m) =>
+              m &&
+              (m.role === "user" || m.role === "assistant") &&
+              typeof m.content === "string"
+          )
+          .slice(-MAX_HISTORY_TURNS)
+          .map((m) => ({
+            role: m.role,
+            content: m.content.slice(0, MAX_HISTORY_CONTENT_LENGTH),
+          }))
       : [];
 
-    const text = (message || "").toLowerCase().trim();
+    const text = message.toLowerCase().trim();
 
 const shortAllowed = [
   "si",
@@ -476,7 +636,6 @@ Datos clave: ${Array.isArray(highlights) ? highlights.join(", ") : "Sin datos cl
     res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
 
     let sentenceBuffer = "";
-    let fullText = "";
 
     const sendSentence = async (rawSentence) => {
       const sentence = rawSentence.trim();
@@ -509,7 +668,6 @@ Datos clave: ${Array.isArray(highlights) ? highlights.join(", ") : "Sin datos cl
         const delta = part.choices?.[0]?.delta?.content || "";
         if (!delta) continue;
 
-        fullText += delta;
         sentenceBuffer += delta;
 
         const { sentences, remainder } = extractCompleteSentences(sentenceBuffer);
@@ -523,8 +681,6 @@ Datos clave: ${Array.isArray(highlights) ? highlights.join(", ") : "Sin datos cl
       // El pedazo final puede no terminar en punto — igual se procesa,
       // para no perder el cierre de la respuesta.
       await sendSentence(sentenceBuffer);
-
-      console.log("🤖 Respuesta IA:", fullText);
 
       res.write(JSON.stringify({ type: "done" }) + "\n");
       res.end();

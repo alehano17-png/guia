@@ -1,4 +1,4 @@
-﻿import { TOUR_API_BASE_URL, TOUR_API_KEY, TOUR_API_KEY_HEADER } from "./tourApiConfig";
+﻿import { getTourApiHeaders, TOUR_API_BASE_URL } from "./tourApiConfig";
 
 export async function transcribeAudio(
   audioBase64: string,
@@ -8,7 +8,7 @@ export async function transcribeAudio(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      [TOUR_API_KEY_HEADER]: TOUR_API_KEY,
+      ...(await getTourApiHeaders()),
     },
     body: JSON.stringify({ audioBase64, language }),
   });

@@ -1,9 +1,22 @@
-﻿export const TOUR_API_BASE_URL = "http://192.168.18.5:3000";
+﻿import { supabase } from "./supabase";
 
-// Llave compartida que autoriza a esta app (y solo a esta app) a usar el
-// backend — el mismo valor vive en el .env de la raíz
-// (EXPO_PUBLIC_GUIA_BACKEND_KEY) y en el backend/.env (BACKEND_SECRET_KEY).
-// Centralizados acá para que las llamadas a /voice, /transcribe y /chat no
-// repitan el nombre del header a mano y se desincronicen entre sí.
-export const TOUR_API_KEY_HEADER = "x-guia-key";
-export const TOUR_API_KEY = process.env.EXPO_PUBLIC_GUIA_BACKEND_KEY ?? "";
+// Dirección del servidor de voz y chat. En desarrollo viene del .env de la
+// raíz (EXPO_PUBLIC_TOUR_API_URL, la IP local del backend); en producción
+// se configura con la URL https del servidor publicado. Si falta, queda
+// vacía: las llamadas fallan y caen en su manejo de error normal, sin
+// romper la app.
+export const TOUR_API_BASE_URL = process.env.EXPO_PUBLIC_TOUR_API_URL ?? "";
+
+// Headers de autorización para /voice, /transcribe y /chat: el servidor
+// exige la sesión real del usuario (su access token de Supabase). Sin
+// sesión devuelve un objeto vacío y el servidor responde 401, que cae en el
+// mismo manejo de error que cualquier otra falla.
+export async function getTourApiHeaders(): Promise<Record<string, string>> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
