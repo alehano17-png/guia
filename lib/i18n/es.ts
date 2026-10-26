@@ -41,6 +41,12 @@ export const es = {
     deleteConfirm: "Sí, eliminar mi cuenta",
     cancel: "Cancelar",
     deleteError: "No pudimos eliminar tu cuenta. Inténtalo de nuevo.",
+    photoTitle: "Foto de perfil",
+    photoChange: "Cambiar foto de perfil",
+    photoChoose: "Elegir foto",
+    photoRemove: "Quitar foto",
+    photoError: "No pudimos guardar tu foto. Inténtalo de nuevo.",
+    photoPermissionDenied: "Para elegir una foto, permite el acceso a tus fotos en Ajustes.",
   },
 
   tutorial: {

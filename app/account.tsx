@@ -3,15 +3,26 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useState, type ComponentProps } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AvatarSheet from "../components/account/AvatarSheet";
 import DeleteAccountSheet from "../components/account/DeleteAccountSheet";
 import { getUserDisplayName, useAuth } from "../hooks/useAuth";
+import { useAvatar } from "../hooks/useAvatar";
 import { PRIVACY_POLICY_URL } from "../lib/appLinks";
 import { useTranslation } from "../lib/i18n/useTranslation";
 import {
   TOUR_ACCENT_COLOR,
   TOUR_DANGER_COLOR,
+  TOUR_ERROR_COLOR,
   TOUR_GRADIENT_COLORS,
   TOUR_TEXT_MUTED,
   TOUR_TEXT_PRIMARY,
@@ -25,6 +36,7 @@ import {
   FONT_SIZE_MD,
   FONT_SIZE_SM,
   FONT_SIZE_XL,
+  FONT_SIZE_XS,
 } from "../lib/typography";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
@@ -35,6 +47,11 @@ type Row = {
   label: string;
   onPress: () => void;
 };
+
+// Espera a que la hoja de foto termine de cerrarse antes de abrir la
+// galería: en iOS, presentar el selector mientras otro Modal se cierra
+// puede fallar.
+const AFTER_SHEET_CLOSE_MS = 350;
 
 // Vuelve al inicio: atrás si se llegó desde ahí, si no, reemplaza.
 function goHome() {
@@ -52,6 +69,16 @@ export default function AccountScreen() {
   const [isSheetVisible, setIsSheetVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [hasDeleteError, setHasDeleteError] = useState(false);
+  const [isPhotoSheetVisible, setIsPhotoSheetVisible] = useState(false);
+  const {
+    avatarUrl,
+    avatarUpdatedAt,
+    hasAvatar,
+    isBusy: isAvatarBusy,
+    message: avatarMessage,
+    pickAndUploadAvatar,
+    removeAvatar,
+  } = useAvatar();
 
   const displayName = getUserDisplayName(user);
   const email = user?.email ?? "";
@@ -89,6 +116,16 @@ export default function AccountScreen() {
       },
     },
   ];
+
+  const handleChoosePhoto = () => {
+    setIsPhotoSheetVisible(false);
+    setTimeout(pickAndUploadAvatar, AFTER_SHEET_CLOSE_MS);
+  };
+
+  const handleRemovePhoto = () => {
+    setIsPhotoSheetVisible(false);
+    removeAvatar();
+  };
 
   const openDeleteSheet = () => {
     setHasDeleteError(false);
@@ -136,9 +173,49 @@ export default function AccountScreen() {
           <Text style={styles.title}>{t.account.title}</Text>
 
           <View style={styles.profile}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarInitial}>{initial}</Text>
-            </View>
+            {/* Tocar el círculo (o su botoncito) abre la hoja de foto;
+                mientras sube o borra, no se puede volver a tocar. */}
+            <Pressable
+              onPress={() => setIsPhotoSheetVisible(true)}
+              disabled={isAvatarBusy}
+              accessibilityRole="button"
+              accessibilityLabel={t.account.photoChange}
+            >
+              <View style={styles.avatar}>
+                {avatarUrl ? (
+                  <Image
+                    // key: con una foto nueva se vuelve a montar la imagen.
+                    key={avatarUpdatedAt ?? avatarUrl}
+                    source={{ uri: avatarUrl }}
+                    style={styles.avatarImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={styles.avatarInitial}>{initial}</Text>
+                )}
+                {isAvatarBusy ? (
+                  <View style={styles.avatarBusy}>
+                    <ActivityIndicator color="#FFFFFF" />
+                  </View>
+                ) : null}
+              </View>
+              <View style={styles.avatarBadge}>
+                <Ionicons
+                  name="camera-outline"
+                  size={16}
+                  color={TOUR_ACCENT_COLOR}
+                />
+              </View>
+            </Pressable>
+
+            {avatarMessage ? (
+              <Text style={styles.avatarMessage}>
+                {avatarMessage === "permission"
+                  ? t.account.photoPermissionDenied
+                  : t.account.photoError}
+              </Text>
+            ) : null}
+
             {displayName ? (
               <Text style={styles.name}>{displayName}</Text>
             ) : null}
@@ -174,6 +251,14 @@ export default function AccountScreen() {
           </Pressable>
         </View>
       </SafeAreaView>
+
+      <AvatarSheet
+        visible={isPhotoSheetVisible}
+        hasPhoto={hasAvatar}
+        onChoose={handleChoosePhoto}
+        onRemove={handleRemovePhoto}
+        onClose={() => setIsPhotoSheetVisible(false)}
+      />
 
       <DeleteAccountSheet
         visible={isSheetVisible}
@@ -240,6 +325,49 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
+  },
+
+  // Recorta la foto en círculo dentro del avatar (la sombra queda en el
+  // contenedor, que no recorta).
+  avatarImage: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+  },
+
+  avatarBusy: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 42,
+    backgroundColor: "rgba(34,27,53,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  avatarBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+
+  avatarMessage: {
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_XS,
+    color: TOUR_ERROR_COLOR,
+    textAlign: "center",
+    marginTop: 10,
+    maxWidth: 280,
   },
 
   avatarInitial: {

@@ -32,6 +32,12 @@ export const en: TranslationDictionary = {
     deleteConfirm: "Yes, delete my account",
     cancel: "Cancel",
     deleteError: "We couldn't delete your account. Please try again.",
+    photoTitle: "Profile photo",
+    photoChange: "Change profile photo",
+    photoChoose: "Choose photo",
+    photoRemove: "Remove photo",
+    photoError: "We couldn't save your photo. Please try again.",
+    photoPermissionDenied: "To choose a photo, allow access to your photos in Settings.",
   },
 
   tutorial: {

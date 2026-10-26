@@ -47,7 +47,14 @@
       "expo-sqlite",
       "expo-asset",
       "expo-status-bar",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "GUÍA usa tus fotos solo para que elijas tu foto de perfil.",
+          "cameraPermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
