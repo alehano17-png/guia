@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../hooks/useAuth";
+import { getAuthErrorMessage } from "../lib/authErrors";
 import { interpolate } from "../lib/i18n/interpolate";
 import { useTranslation } from "../lib/i18n/useTranslation";
 import {
@@ -33,7 +34,7 @@ import {
   FONT_SIZE_XS,
 } from "../lib/typography";
 
-const MIN_PASSWORD_LENGTH = 6;
+const MIN_PASSWORD_LENGTH = 8;
 
 export default function SignupScreen() {
   const { signUp } = useAuth();
@@ -71,7 +72,7 @@ export default function SignupScreen() {
     setErrorMessage(null);
     setIsSubmitting(true);
 
-    const { error, hasSession } = await signUp(
+    const { error, errorCode, hasSession } = await signUp(
       email.trim(),
       password,
       displayName.trim()
@@ -80,7 +81,7 @@ export default function SignupScreen() {
     setIsSubmitting(false);
 
     if (error) {
-      setErrorMessage(error);
+      setErrorMessage(getAuthErrorMessage(errorCode, t));
       return;
     }
 

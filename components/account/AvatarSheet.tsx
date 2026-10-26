@@ -35,7 +35,7 @@ type Props = {
 const SHEET_HIDDEN_OFFSET = 600;
 
 // Hoja "Foto de perfil": misma hoja inferior y animación que
-// DeleteAccountSheet / TourLanguageSheet.
+// ConfirmSheet / TourLanguageSheet.
 export default function AvatarSheet({
   visible,
   hasPhoto,

@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../hooks/useAuth";
+import { getAuthErrorMessage } from "../lib/authErrors";
 import { useTranslation } from "../lib/i18n/useTranslation";
 import {
   TOUR_ACCENT_COLOR,
@@ -50,12 +51,12 @@ export default function LoginScreen() {
     setErrorMessage(null);
     setIsSubmitting(true);
 
-    const { error, hasSession } = await signIn(email.trim(), password);
+    const { error, errorCode, hasSession } = await signIn(email.trim(), password);
 
     setIsSubmitting(false);
 
     if (error) {
-      setErrorMessage(error);
+      setErrorMessage(getAuthErrorMessage(errorCode, t));
       return;
     }
 

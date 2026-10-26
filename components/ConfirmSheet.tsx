@@ -10,14 +10,12 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { HOME_BUTTON_TEXT_COLOR } from "../../lib/homeTheme";
-import { useTranslation } from "../../lib/i18n/useTranslation";
+import { HOME_BUTTON_TEXT_COLOR } from "../lib/homeTheme";
 import {
-  TOUR_DANGER_COLOR,
   TOUR_ERROR_COLOR,
   TOUR_TEXT_PRIMARY,
   TOUR_TEXT_SECONDARY,
-} from "../../lib/tourTheme";
+} from "../lib/tourTheme";
 import {
   FONT_BOLD,
   FONT_REGULAR,
@@ -25,12 +23,22 @@ import {
   FONT_SIZE_MD,
   FONT_SIZE_XL,
   FONT_SIZE_XS,
-} from "../../lib/typography";
+} from "../lib/typography";
 
 type Props = {
   visible: boolean;
-  isDeleting: boolean;
-  hasError: boolean;
+  title: string;
+  body: string;
+  confirmLabel: string;
+  // Color del botón principal: TOUR_DANGER_COLOR para acciones
+  // destructivas (eliminar cuenta), TOUR_ACCENT_COLOR para el resto.
+  confirmColor: string;
+  cancelLabel: string;
+  // Mientras es true, el botón muestra carga y la hoja no se puede cerrar
+  // ni volver a confirmar.
+  isBusy?: boolean;
+  // Mensaje de error dentro de la hoja (null = sin error).
+  errorMessage?: string | null;
   onConfirm: () => void;
   onClose: () => void;
 };
@@ -38,16 +46,20 @@ type Props = {
 // Distancia desde la que sube la hoja (igual que TourLanguageSheet).
 const SHEET_HIDDEN_OFFSET = 600;
 
-// Confirmación de "Eliminar cuenta": misma hoja inferior y misma animación
-// que la del idioma del tour (TourLanguageSheet).
-export default function DeleteAccountSheet({
+// Hoja inferior de confirmación (eliminar cuenta, cerrar sesión...): misma
+// hoja y misma animación que la del idioma del tour (TourLanguageSheet).
+export default function ConfirmSheet({
   visible,
-  isDeleting,
-  hasError,
+  title,
+  body,
+  confirmLabel,
+  confirmColor,
+  cancelLabel,
+  isBusy = false,
+  errorMessage = null,
   onConfirm,
   onClose,
 }: Props) {
-  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const progress = useState(() => new Animated.Value(0))[0];
   // El Modal se queda montado mientras corre la animación de salida.
@@ -87,9 +99,8 @@ export default function DeleteAccountSheet({
     });
   }, [visible, progress]);
 
-  // Mientras se elimina, la hoja no se puede cerrar.
   const handleClose = () => {
-    if (!isDeleting) onClose();
+    if (!isBusy) onClose();
   };
 
   return (
@@ -123,35 +134,37 @@ export default function DeleteAccountSheet({
         >
           <View style={styles.handle} />
 
-          <Text style={styles.title}>{t.account.deleteTitle}</Text>
-          <Text style={styles.body}>{t.account.deleteBody}</Text>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.body}>{body}</Text>
 
-          {hasError ? (
-            <Text style={styles.errorText}>{t.account.deleteError}</Text>
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
           ) : null}
 
           <Pressable
-            style={[styles.dangerButton, isDeleting && styles.buttonBusy]}
+            style={[
+              styles.confirmButton,
+              { backgroundColor: confirmColor },
+              isBusy && styles.buttonBusy,
+            ]}
             onPress={onConfirm}
-            disabled={isDeleting}
+            disabled={isBusy}
             accessibilityRole="button"
           >
-            {isDeleting ? (
+            {isBusy ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.dangerButtonText}>
-                {t.account.deleteConfirm}
-              </Text>
+              <Text style={styles.confirmButtonText}>{confirmLabel}</Text>
             )}
           </Pressable>
 
           <Pressable
-            style={[styles.cancelButton, isDeleting && styles.buttonBusy]}
+            style={[styles.cancelButton, isBusy && styles.buttonBusy]}
             onPress={handleClose}
-            disabled={isDeleting}
+            disabled={isBusy}
             accessibilityRole="button"
           >
-            <Text style={styles.cancelButtonText}>{t.account.cancel}</Text>
+            <Text style={styles.cancelButtonText}>{cancelLabel}</Text>
           </Pressable>
         </Animated.View>
       </View>
@@ -219,15 +232,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  dangerButton: {
-    backgroundColor: TOUR_DANGER_COLOR,
+  confirmButton: {
     borderRadius: 30,
     paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  dangerButtonText: {
+  confirmButtonText: {
     fontFamily: FONT_BOLD,
     fontWeight: "700",
     fontSize: FONT_SIZE_MD,

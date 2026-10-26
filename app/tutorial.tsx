@@ -23,6 +23,7 @@ import {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import MapOpenOverlay from "../components/tour/MapOpenOverlay";
 import VoiceBlob from "../components/tour/VoiceBlob";
 import {
   getDiscoveryGradient,
@@ -63,6 +64,11 @@ const TEXT_GAP = 20; // entre el texto y los puntitos
 // que el título arranque a la misma altura en todos los pasos.
 const TEXT_BLOCK_HEIGHT = 34 * 2 + 10 + 24 * 3;
 const SKIP_HEIGHT = 24;
+// Mini mapa del paso 3: cuadro de 84; el dibujo está hecho sobre 64.
+const MINI_MAP_SIZE = 84;
+const MINI_MAP_DRAWING_SIZE = 64;
+// Color del texto de "Saltar" y "Anterior".
+const SKIP_TEXT_COLOR = "#4A3F8F";
 
 // Mascota + tarjeta ("hero"). En pantallas bajas (ej. 375x667) no entran a
 // tamaño completo: la tarjeta se achica hasta MIN_CARD_SCALE y la mascota
@@ -306,6 +312,20 @@ export default function TutorialScreen() {
         )}
       </Pressable>
 
+      {/* "Anterior": a la izquierda, a la altura de "Saltar" y con su
+          mismo estilo; no aparece en el primer paso. */}
+      {step > 0 ? (
+        <Pressable
+          style={[styles.back, { top: skipTop }]}
+          accessibilityRole="button"
+          hitSlop={12}
+          onPress={() => goToStep(step - 1)}
+        >
+          <Ionicons name="chevron-back" size={18} color={SKIP_TEXT_COLOR} />
+          <Text style={styles.skipText}>{t.tutorial.back}</Text>
+        </Pressable>
+      ) : null}
+
       <Pressable
         style={[styles.skip, { top: skipTop }]}
         accessibilityRole="button"
@@ -398,14 +418,20 @@ function MapDemo({ demo }: { demo: DemoTexts }) {
   return (
     <View>
       <View style={styles.mapRow}>
+        {/* Igual que la tarjeta real del tour: mapa con blur y la
+            píldora "Abrir mapa" encima. El dibujo se hizo sobre 64x64 y se
+            escala al tamaño del cuadro. */}
         <View style={styles.miniMap}>
-          <View style={styles.miniMapPark} />
-          <View style={styles.miniMapWater} />
-          <View style={styles.miniMapStreetH} />
-          <View style={styles.miniMapStreetV} />
-          <View style={styles.miniMapPin}>
-            <View style={styles.miniMapPinDot} />
+          <View style={styles.miniMapDrawing}>
+            <View style={styles.miniMapPark} />
+            <View style={styles.miniMapWater} />
+            <View style={styles.miniMapStreetH} />
+            <View style={styles.miniMapStreetV} />
+            <View style={styles.miniMapPin}>
+              <View style={styles.miniMapPinDot} />
+            </View>
           </View>
+          <MapOpenOverlay label={demo.openMap} />
         </View>
 
         <View style={styles.mapTexts}>
@@ -413,7 +439,6 @@ function MapDemo({ demo }: { demo: DemoTexts }) {
           <Text style={styles.mapName} numberOfLines={2}>
             {demo.nextStopName}
           </Text>
-          <Text style={styles.mapLink}>{demo.openMap}</Text>
         </View>
       </View>
 
@@ -460,11 +485,19 @@ const styles = StyleSheet.create({
     right: 24,
   },
 
+  back: {
+    position: "absolute",
+    left: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+
   skipText: {
     fontFamily: FONT_SEMIBOLD,
     fontWeight: "600",
     fontSize: FONT_SIZE_MD,
-    color: "#4A3F8F",
+    color: SKIP_TEXT_COLOR,
   },
 
   hero: {
@@ -651,12 +684,23 @@ const styles = StyleSheet.create({
     padding: 10,
   },
 
+  // 84 (no 64): con el tamaño de la píldora real, "Abrir mapa" no se leía
+  // en 64.
   miniMap: {
-    width: 64,
-    height: 64,
+    width: MINI_MAP_SIZE,
+    height: MINI_MAP_SIZE,
     borderRadius: 14,
     overflow: "hidden",
     backgroundColor: "#EAE6DD",
+  },
+
+  miniMapDrawing: {
+    position: "absolute",
+    width: MINI_MAP_DRAWING_SIZE,
+    height: MINI_MAP_DRAWING_SIZE,
+    left: (MINI_MAP_SIZE - MINI_MAP_DRAWING_SIZE) / 2,
+    top: (MINI_MAP_SIZE - MINI_MAP_DRAWING_SIZE) / 2,
+    transform: [{ scale: MINI_MAP_SIZE / MINI_MAP_DRAWING_SIZE }],
   },
 
   miniMapPark: {
@@ -738,15 +782,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: TOUR_TEXT_PRIMARY,
     marginTop: 2,
-  },
-
-  mapLink: {
-    fontFamily: FONT_SEMIBOLD,
-    fontWeight: "600",
-    fontSize: 12,
-    color: HOME_BUTTON_TEXT_COLOR,
-    textDecorationLine: "underline",
-    marginTop: 4,
   },
 
   mapButton: {

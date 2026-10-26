@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AvatarSheet from "../components/account/AvatarSheet";
-import DeleteAccountSheet from "../components/account/DeleteAccountSheet";
+import ConfirmSheet from "../components/ConfirmSheet";
 import { getUserDisplayName, useAuth } from "../hooks/useAuth";
 import { useAvatar } from "../hooks/useAvatar";
 import { PRIVACY_POLICY_URL } from "../lib/appLinks";
@@ -70,6 +70,7 @@ export default function AccountScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [hasDeleteError, setHasDeleteError] = useState(false);
   const [isPhotoSheetVisible, setIsPhotoSheetVisible] = useState(false);
+  const [isSignOutSheetVisible, setIsSignOutSheetVisible] = useState(false);
   const {
     avatarUrl,
     avatarUpdatedAt,
@@ -110,10 +111,8 @@ export default function AccountScreen() {
       key: "signout",
       icon: "log-out-outline",
       label: t.account.signOut,
-      onPress: () => {
-        router.replace("/");
-        signOut();
-      },
+      // Pide confirmación antes de cerrar la sesión.
+      onPress: () => setIsSignOutSheetVisible(true),
     },
   ];
 
@@ -125,6 +124,12 @@ export default function AccountScreen() {
   const handleRemovePhoto = () => {
     setIsPhotoSheetVisible(false);
     removeAvatar();
+  };
+
+  const handleConfirmSignOut = () => {
+    setIsSignOutSheetVisible(false);
+    router.replace("/");
+    signOut();
   };
 
   const openDeleteSheet = () => {
@@ -260,10 +265,26 @@ export default function AccountScreen() {
         onClose={() => setIsPhotoSheetVisible(false)}
       />
 
-      <DeleteAccountSheet
+      <ConfirmSheet
+        visible={isSignOutSheetVisible}
+        title={t.account.signOutTitle}
+        body={t.account.signOutBody}
+        confirmLabel={t.account.signOut}
+        confirmColor={TOUR_ACCENT_COLOR}
+        cancelLabel={t.account.cancel}
+        onConfirm={handleConfirmSignOut}
+        onClose={() => setIsSignOutSheetVisible(false)}
+      />
+
+      <ConfirmSheet
         visible={isSheetVisible}
-        isDeleting={isDeleting}
-        hasError={hasDeleteError}
+        title={t.account.deleteTitle}
+        body={t.account.deleteBody}
+        confirmLabel={t.account.deleteConfirm}
+        confirmColor={TOUR_DANGER_COLOR}
+        cancelLabel={t.account.cancel}
+        isBusy={isDeleting}
+        errorMessage={hasDeleteError ? t.account.deleteError : null}
         onConfirm={handleConfirmDelete}
         onClose={() => setIsSheetVisible(false)}
       />

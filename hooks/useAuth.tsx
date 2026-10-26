@@ -16,6 +16,10 @@ import { tourApiFetch } from "../lib/tourApiConfig";
 
 type AuthResult = {
   error: string | null;
+  // `code` del error de Supabase (ej. "invalid_credentials"); null si no
+  // trae (por ejemplo, sin conexión). Las pantallas muestran un texto
+  // propio según el código (lib/authErrors.ts), no el mensaje en inglés.
+  errorCode: string | null;
   // true si ya quedó una sesión activa apenas se resuelve la llamada. En
   // signUp puede venir en false si el proyecto de Supabase exige
   // confirmar el correo antes de dar sesión — ahí quien llama no debe
@@ -109,15 +113,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string): Promise<AuthResult> => {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (data.session) {
-        setSessionExpired(false);
-        rearmSessionExpired();
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (data.session) {
+          setSessionExpired(false);
+          rearmSessionExpired();
+        }
+        return {
+          error: error?.message ?? null,
+          errorCode: error ? (error.code ?? null) : null,
+          hasSession: !!data.session,
+        };
+      } catch {
+        return { error: "network", errorCode: null, hasSession: false };
       }
-      return { error: error?.message ?? null, hasSession: !!data.session };
     },
     []
   );
@@ -129,14 +141,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       displayName?: string
     ): Promise<AuthResult> => {
       const trimmedName = displayName?.trim();
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        // options.data va al metadata del usuario (auth.users.raw_user_meta_data),
-        // legible después como user.user_metadata — ver getUserDisplayName arriba.
-        ...(trimmedName ? { options: { data: { name: trimmedName } } } : {}),
-      });
-      return { error: error?.message ?? null, hasSession: !!data.session };
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          // options.data va al metadata del usuario (auth.users.raw_user_meta_data),
+          // legible después como user.user_metadata — ver getUserDisplayName arriba.
+          ...(trimmedName ? { options: { data: { name: trimmedName } } } : {}),
+        });
+
+        // Con confirmación de correo activada, Supabase NO da error si el
+        // correo ya existe (para no revelar qué correos están registrados):
+        // devuelve un usuario sin identidades y no manda ningún correo.
+        // Se trata como "ya existe" para no decir "te enviamos un correo".
+        if (!error && data.user && data.user.identities?.length === 0) {
+          return {
+            error: "user_already_exists",
+            errorCode: "user_already_exists",
+            hasSession: false,
+          };
+        }
+
+        return {
+          error: error?.message ?? null,
+          errorCode: error ? (error.code ?? null) : null,
+          hasSession: !!data.session,
+        };
+      } catch {
+        return { error: "network", errorCode: null, hasSession: false };
+      }
     },
     []
   );
