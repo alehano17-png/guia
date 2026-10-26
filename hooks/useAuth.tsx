@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { onSessionExpired, rearmSessionExpired } from "../lib/sessionEvents";
 import { supabase } from "../lib/supabase";
 
 type AuthResult = {
@@ -30,6 +31,11 @@ type AuthContextValue = {
     displayName?: string
   ) => Promise<AuthResult>;
   signOut: () => Promise<void>;
+  // true cuando la sesión terminó sola (el servidor la rechazó y no se pudo
+  // renovar): se cerró la sesión local y el login muestra un aviso. No se
+  // activa con "Cerrar sesión" a propósito.
+  sessionExpired: boolean;
+  clearSessionExpired: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -46,6 +52,7 @@ export function getUserDisplayName(user: AuthUser | null): string | null {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -57,15 +64,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // esto, la sesión persistida (storage) se cargaría al abrir la app
     // pero nunca reflejaría cambios posteriores.
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setUser(session?.user ?? null);
         setIsLoadingSession(false);
+        // Con una sesión nueva (login o registro), el aviso de "sesión
+        // terminada" se apaga y vuelve a poder dispararse.
+        if (event === "SIGNED_IN") {
+          setSessionExpired(false);
+          rearmSessionExpired();
+        }
       }
     );
 
+    // Sesión rechazada por el servidor y sin poder renovarse: se marca
+    // primero (para que la navegación sepa el motivo) y después se cierra
+    // la sesión solo en este celular.
+    const unsubscribeSessionExpired = onSessionExpired(() => {
+      setSessionExpired(true);
+      supabase.auth.signOut({ scope: "local" }).catch(() => {});
+    });
+
     return () => {
       listener.subscription.unsubscribe();
+      unsubscribeSessionExpired();
     };
+  }, []);
+
+  const clearSessionExpired = useCallback(() => {
+    setSessionExpired(false);
   }, []);
 
   const signIn = useCallback(
@@ -74,6 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       });
+      if (data.session) {
+        setSessionExpired(false);
+        rearmSessionExpired();
+      }
       return { error: error?.message ?? null, hasSession: !!data.session };
     },
     []
@@ -104,7 +134,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoadingSession, signIn, signUp, signOut }}
+      value={{
+        user,
+        isLoadingSession,
+        signIn,
+        signUp,
+        signOut,
+        sessionExpired,
+        clearSessionExpired,
+      }}
     >
       {children}
     </AuthContext.Provider>

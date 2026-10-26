@@ -30,6 +30,7 @@ import { useTourRouteActions } from "../hooks/useTourRouteActions";
 import { getDistanceInMeters } from "../lib/geo";
 import { ChatMessage } from "../lib/chatTypes";
 import { sendTourChatMessage } from "../lib/sendTourChatMessage";
+import { isRateLimitedError } from "../lib/tourApiConfig";
 import { TOUR_GRADIENT_COLORS } from "../lib/tourTheme";
 import { translations } from "../lib/i18n";
 import { LocaleOverride, useTranslation } from "../lib/i18n/useTranslation";
@@ -509,6 +510,11 @@ const sendMessage = async (messageOverride?: string) => {
   const historyForRequest = getHistory()
   pushToHistory({ role: "user", content: userMessage.text })
 
+  // El tipo de error se toma en el .catch de la promesa y no con un
+  // catch (error) más abajo: un catch con parámetro hace que el React
+  // Compiler deje de optimizar esta pantalla entera.
+  let isRateLimited = false
+
   try {
     const text = await sendTourChatMessage({
       message: userMessage.text,
@@ -518,6 +524,9 @@ const sendMessage = async (messageOverride?: string) => {
       tourTitle: tour?.title,
       history: historyForRequest,
       language: tourLocale,
+    }).catch((error: unknown) => {
+      isRateLimited = isRateLimitedError(error)
+      throw error
     })
 
     pushToHistory({ role: "assistant", content: text })
@@ -536,7 +545,7 @@ const sendMessage = async (messageOverride?: string) => {
       {
         id: createMessageId(),
         role: "assistant",
-        text: t.tour.chatError
+        text: isRateLimited ? t.tour.chatRateLimited : t.tour.chatError
       }
     ])
   }

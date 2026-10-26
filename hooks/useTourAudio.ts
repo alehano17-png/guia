@@ -18,7 +18,7 @@ import {
   findSentenceStartAtOrBefore,
 } from "../lib/sentences";
 import type { TourLocale } from "../data/tours/index";
-import { getTourApiHeaders, TOUR_API_BASE_URL } from "../lib/tourApiConfig";
+import { tourApiFetch } from "../lib/tourApiConfig";
 
 const FileSystem = require("expo-file-system/legacy");
 
@@ -215,18 +215,11 @@ export function useTourAudio(
       if (!withTimestamps) {
         // Camino de siempre — no tocar nada acá.
         try {
-          const res = await fetch(`${TOUR_API_BASE_URL}/voice`, {
+          const res = await tourApiFetch("/voice", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(await getTourApiHeaders()),
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text, mode: "narration", language }),
           });
-
-          if (!res.ok) {
-            throw new Error(`Backend /voice respondió ${res.status}`);
-          }
 
           const arrayBuffer = await res.arrayBuffer();
 
@@ -244,12 +237,9 @@ export function useTourAudio(
       }
 
       try {
-        const res = await fetch(`${TOUR_API_BASE_URL}/voice`, {
+        const res = await tourApiFetch("/voice", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(await getTourApiHeaders()),
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             text,
             mode: "narration",
@@ -257,10 +247,6 @@ export function useTourAudio(
             language,
           }),
         });
-
-        if (!res.ok) {
-          throw new Error(`Backend /voice respondió ${res.status}`);
-        }
 
         const data = await res.json();
 
@@ -447,18 +433,11 @@ export function useTourAudio(
   const speakChatReply = useCallback(
     async (text: string) => {
       try {
-        const res = await fetch(`${TOUR_API_BASE_URL}/voice`, {
+        const res = await tourApiFetch("/voice", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(await getTourApiHeaders()),
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text, mode: "chat", language }),
         });
-
-        if (!res.ok) {
-          throw new Error(`Backend /voice respondió ${res.status}`);
-        }
 
         const arrayBuffer = await res.arrayBuffer();
         const audioBase64 = Buffer.from(arrayBuffer).toString("base64");

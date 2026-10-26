@@ -11,6 +11,7 @@ import {
   ConversationMessage,
   sendTourChatMessage,
 } from "../lib/sendTourChatMessage";
+import { isRateLimitedError } from "../lib/tourApiConfig";
 import { transcribeAudio } from "../lib/transcribeAudio";
 
 const FileSystem = require("expo-file-system/legacy");
@@ -54,7 +55,15 @@ const MAX_HISTORY_MESSAGES = 10;
 // texto.
 export const GUIA_TRANSITION_AUDIO_STEP_ID = "guia-transition";
 
-export type GuiaVoiceStatus = "idle" | "listening" | "thinking" | "speaking" | "error";
+// "rate_limited": el servidor rechazó la pregunta por límite de uso (429);
+// la píldora pide esperar un momento. Se puede volver a tocar, como "error".
+export type GuiaVoiceStatus =
+  | "idle"
+  | "listening"
+  | "thinking"
+  | "speaking"
+  | "error"
+  | "rate_limited";
 
 type TourContext = {
   context?: string;
@@ -282,7 +291,7 @@ export function useGuiaVoiceMode({
         setStatus("idle");
       } catch (e) {
         console.log("Error en el modo de voz de GUÍA", e);
-        setStatus("error");
+        setStatus(isRateLimitedError(e) ? "rate_limited" : "error");
       } finally {
         // Pase lo que pase (éxito, transcripción vacía, o error),
         // stopCurrentAudio() ya pausó la narración al principio de esta
@@ -343,7 +352,7 @@ export function useGuiaVoiceMode({
       return text;
     } catch (e) {
       console.log("Error al transcribir dictado", e);
-      setStatus("error");
+      setStatus(isRateLimitedError(e) ? "rate_limited" : "error");
       return "";
     } finally {
       // Pase lo que pase (éxito, transcripción vacía, o error),

@@ -58,6 +58,7 @@ export const en: TranslationDictionary = {
       submit: "Log in",
       noAccount: "Don't have an account?",
       signUpLink: "Sign up",
+      sessionExpired: "Your session has ended. Sign in again to continue your tour.",
     },
     signup: {
       title: "Create your account",
@@ -118,6 +119,7 @@ export const en: TranslationDictionary = {
     languageContinue: "Continue",
     preparing: "Getting your {{tourTitle}} tour ready",
     chatError: "I had trouble replying. Please try again.",
+    chatRateLimited: "You've asked a lot of questions in a row. Wait a moment and try again.",
   },
 
   chat: {
@@ -137,6 +139,7 @@ export const en: TranslationDictionary = {
     statusThinking: "Thinking...",
     statusSpeaking: "Speaking...",
     statusError: "I didn't catch that, tap to try again",
+    statusRateLimited: "Wait a moment",
     transitionPhrases: [
       "Let's continue the tour.",
       "Let's pick up where we left off.",

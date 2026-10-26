@@ -33,7 +33,7 @@ import {
 } from "../lib/typography";
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, sessionExpired } = useAuth();
   const { t } = useTranslation();
 
   const [email, setEmail] = useState("");
@@ -85,6 +85,15 @@ export default function LoginScreen() {
             </Text>
 
             <View style={styles.form}>
+              {/* Sesión terminada sola: mismo estilo que el aviso
+                  informativo del registro (accountCreatedInfo). Se oculta
+                  al iniciar sesión (signIn limpia sessionExpired). */}
+              {sessionExpired && (
+                <Text style={styles.infoText}>
+                  {t.auth.login.sessionExpired}
+                </Text>
+              )}
+
               <View style={styles.field}>
                 <Text style={styles.label}>{t.auth.login.emailLabel}</Text>
                 <TextInput
@@ -199,6 +208,15 @@ const styles = StyleSheet.create({
     color: TOUR_TEXT_PRIMARY,
     borderWidth: 1,
     borderColor: "rgba(124,111,224,0.25)",
+  },
+
+  infoText: {
+    color: TOUR_TEXT_SECONDARY,
+    fontFamily: FONT_REGULAR,
+    fontWeight: "400",
+    fontSize: FONT_SIZE_XS,
+    marginBottom: 12,
+    textAlign: "center",
   },
 
   errorText: {

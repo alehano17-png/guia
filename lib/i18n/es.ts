@@ -68,6 +68,7 @@ export const es = {
       submit: "Iniciar sesión",
       noAccount: "¿No tienes cuenta?",
       signUpLink: "Regístrate",
+      sessionExpired: "Tu sesión terminó. Vuelve a iniciar sesión para seguir con tu recorrido.",
     },
     signup: {
       title: "Crea tu cuenta",
@@ -129,6 +130,7 @@ export const es = {
     languageContinue: "Continuar",
     preparing: "Preparando tu recorrido por {{tourTitle}}",
     chatError: "Tuve un problema al responder. Intenta otra vez.",
+    chatRateLimited: "Hiciste muchas preguntas seguidas. Espera un momento y vuelve a intentar.",
   },
 
   chat: {
@@ -148,6 +150,7 @@ export const es = {
     statusThinking: "Pensando...",
     statusSpeaking: "Hablando...",
     statusError: "No entendí, toca para intentar de nuevo",
+    statusRateLimited: "Espera un momento",
     // Frases habladas (no solo en pantalla) al retomar la narración tras
     // "Hablar con GUÍA" — se elige una al azar entre las 4.
     transitionPhrases: [

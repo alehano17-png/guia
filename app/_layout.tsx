@@ -4,8 +4,9 @@ import {
   PlusJakartaSans_700Bold,
   useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import OfflineBanner from '@/components/OfflineBanner';
@@ -43,7 +44,16 @@ export default function RootLayout() {
 // <AuthProvider> para leer el contexto.
 function RootNavigator() {
   const colorScheme = useColorScheme();
-  const { user, isLoadingSession } = useAuth();
+  const { user, isLoadingSession, sessionExpired } = useAuth();
+
+  // Sesión terminada sola (no "Cerrar sesión"): Stack.Protected ya saca a
+  // la persona de tour/recomendations al quedar `user` en null; acá se la
+  // lleva al login (con su aviso) en vez de al inicio.
+  useEffect(() => {
+    if (sessionExpired && !user && !isLoadingSession) {
+      router.replace('/login');
+    }
+  }, [sessionExpired, user, isLoadingSession]);
 
   // Todavía no sabemos si hay sesión o no — ni mostramos la app ni el
   // login, para no redirigir de más y que se vea un parpadeo.

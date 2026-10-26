@@ -1,6 +1,6 @@
 import { Buffer } from "buffer";
 import { fetch as expoFetch } from "expo/fetch";
-import { getTourApiHeaders, TOUR_API_BASE_URL } from "./tourApiConfig";
+import { tourApiFetch } from "./tourApiConfig";
 
 // Un turno de la conversación (pregunta o respuesta) — lo que se manda
 // como contexto de los mensajes anteriores, no el mensaje nuevo en sí.
@@ -53,26 +53,24 @@ export async function sendTourChatMessage({
   // fetch global de React Native no entrega response.body como stream real
   // (llega todo junto igual, aunque el servidor lo mande de a pedazos) —
   // expo/fetch sí, así que es el único cambiado acá.
-  const res = await expoFetch(`${TOUR_API_BASE_URL}/chat`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(await getTourApiHeaders()),
+  // tourApiFetch ya lanza TourApiError si la respuesta no es ok.
+  const res = await tourApiFetch(
+    "/chat",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message,
+        context,
+        summary,
+        highlights,
+        tourTitle,
+        history,
+        language,
+      }),
     },
-    body: JSON.stringify({
-      message,
-      context,
-      summary,
-      highlights,
-      tourTitle,
-      history,
-      language,
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Chat request failed: ${res.status}`);
-  }
+    expoFetch
+  );
 
   if (!res.body) {
     throw new Error("Respuesta de chat sin cuerpo (streaming no soportado)");
