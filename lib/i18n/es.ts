@@ -24,8 +24,23 @@ export const es = {
     },
     prompt: "¿Salimos a caminar?",
     start: "EMPEZAR",
-    signOut: "Cerrar sesión",
+    myAccount: "Mi cuenta",
+    accountDeleted: "Tu cuenta fue eliminada.",
     howItWorks: "Cómo funciona",
+  },
+
+  account: {
+    title: "Mi cuenta",
+    back: "Volver",
+    howItWorks: "Cómo funciona",
+    privacyPolicy: "Política de privacidad",
+    signOut: "Cerrar sesión",
+    deleteAccount: "Eliminar cuenta",
+    deleteTitle: "¿Eliminar tu cuenta?",
+    deleteBody: "Se borrarán tu cuenta, tu nombre y tu correo. Esta acción no se puede deshacer.",
+    deleteConfirm: "Sí, eliminar mi cuenta",
+    cancel: "Cancelar",
+    deleteError: "No pudimos eliminar tu cuenta. Inténtalo de nuevo.",
   },
 
   tutorial: {

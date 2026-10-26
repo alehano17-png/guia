@@ -27,3 +27,9 @@ export function onSessionExpired(listener: Listener): () => void {
 export function rearmSessionExpired(): void {
   armed = true;
 }
+
+// Apaga el aviso hasta el próximo inicio de sesión: al eliminar la cuenta,
+// las peticiones que fallen después no deben mostrar "sesión terminada".
+export function disarmSessionExpired(): void {
+  armed = false;
+}

@@ -6,8 +6,13 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { onSessionExpired, rearmSessionExpired } from "../lib/sessionEvents";
+import {
+  disarmSessionExpired,
+  onSessionExpired,
+  rearmSessionExpired,
+} from "../lib/sessionEvents";
 import { supabase } from "../lib/supabase";
+import { tourApiFetch } from "../lib/tourApiConfig";
 
 type AuthResult = {
   error: string | null;
@@ -36,6 +41,13 @@ type AuthContextValue = {
   // activa con "Cerrar sesión" a propósito.
   sessionExpired: boolean;
   clearSessionExpired: () => void;
+  // Elimina la cuenta en el servidor y cierra la sesión local. error: true
+  // si no se pudo (la sesión sigue igual).
+  deleteAccount: () => Promise<{ error: boolean }>;
+  // true justo después de eliminar la cuenta, para que el inicio muestre
+  // un aviso breve; clearAccountDeleted lo apaga.
+  accountDeleted: boolean;
+  clearAccountDeleted: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -53,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [accountDeleted, setAccountDeleted] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -132,6 +145,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  const deleteAccount = useCallback(async (): Promise<{ error: boolean }> => {
+    try {
+      await tourApiFetch("/account", { method: "DELETE" });
+    } catch {
+      return { error: true };
+    }
+
+    // La cuenta ya no existe: ninguna petición que falle desde acá debe
+    // mostrar "sesión terminada". Después se cierra la sesión solo en este
+    // celular (la cuenta ya se borró en el servidor).
+    disarmSessionExpired();
+    setAccountDeleted(true);
+    await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+    return { error: false };
+  }, []);
+
+  const clearAccountDeleted = useCallback(() => {
+    setAccountDeleted(false);
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -142,6 +175,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         sessionExpired,
         clearSessionExpired,
+        deleteAccount,
+        accountDeleted,
+        clearAccountDeleted,
       }}
     >
       {children}

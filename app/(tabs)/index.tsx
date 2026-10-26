@@ -36,6 +36,7 @@ import {
   FONT_SEMIBOLD,
   FONT_SIZE_LG,
   FONT_SIZE_MD,
+  FONT_SIZE_SM,
   FONT_SIZE_TITLE,
   FONT_SIZE_XL,
 } from "../../lib/typography";
@@ -49,7 +50,7 @@ const DESIGN_HEIGHT = 844;
 const MASCOT_SIZE = 260;
 
 export default function StartScreen() {
-  const { user, signOut } = useAuth();
+  const { user, accountDeleted, clearAccountDeleted } = useAuth();
   const { t } = useTranslation();
   const timeOfDay = useTimeOfDay();
   const theme = HOME_MOMENT_THEMES[timeOfDay];
@@ -82,6 +83,13 @@ export default function StartScreen() {
     );
   }, []);
 
+  // Aviso breve tras eliminar la cuenta: desaparece solo.
+  useEffect(() => {
+    if (!accountDeleted) return;
+    const timer = setTimeout(clearAccountDeleted, 4000);
+    return () => clearTimeout(timer);
+  }, [accountDeleted, clearAccountDeleted]);
+
   const mascotAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: mascotTranslateY.value }],
   }));
@@ -99,6 +107,15 @@ export default function StartScreen() {
       >
         GUÍA
       </Text>
+
+      {accountDeleted ? (
+        <View
+          pointerEvents="none"
+          style={[styles.notice, { top: insets.top + 64 }]}
+        >
+          <Text style={styles.noticeText}>{t.home.accountDeleted}</Text>
+        </View>
+      ) : null}
 
       {/* Globo de saludo, con la colita apuntando a la mascota */}
       <View style={[styles.bubbleWrap, { bottom: 472 * scale }]}>
@@ -150,7 +167,7 @@ export default function StartScreen() {
       </Pressable>
 
       {/* Enlaces bajo el botón, en una sola fila: "Cómo funciona" siempre,
-          y "Cerrar sesión" solo con sesión, separados por un punto medio. */}
+          y "Mi cuenta" solo con sesión, separados por un punto medio. */}
       <View
         style={[
           styles.linksRow,
@@ -175,8 +192,6 @@ export default function StartScreen() {
           </Text>
         </Pressable>
 
-        {/* Solo de prueba: para poder probar el flujo con/sin sesión sin
-            desinstalar la app. No es un elemento final de esta pantalla. */}
         {user && (
           <>
             <Text style={[styles.linkText, { color: theme.signOutColor }]}>
@@ -185,10 +200,10 @@ export default function StartScreen() {
             <Pressable
               style={styles.link}
               hitSlop={8}
-              onPress={() => signOut()}
+              onPress={() => router.push("/account")}
             >
               <Text style={[styles.linkText, { color: theme.signOutColor }]}>
-                {t.home.signOut}
+                {t.home.myAccount}
               </Text>
             </Pressable>
           </>
@@ -290,6 +305,23 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE_MD,
     color: HOME_BUTTON_TEXT_COLOR,
     letterSpacing: 1,
+  },
+
+  // Aviso breve (ej. "Tu cuenta fue eliminada."), bajo la marca.
+  notice: {
+    position: "absolute",
+    alignSelf: "center",
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+
+  noticeText: {
+    fontFamily: FONT_SEMIBOLD,
+    fontWeight: "600",
+    fontSize: FONT_SIZE_SM,
+    color: TOUR_TEXT_PRIMARY,
   },
 
   linksRow: {

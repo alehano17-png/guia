@@ -26,3 +26,7 @@ export const TOUR_PLACEHOLDER_COLOR = "#9C93B5";
 
 // Rojo de los mensajes de error en formularios.
 export const TOUR_ERROR_COLOR = "#C0392B";
+
+// Acciones destructivas (ej. "Eliminar cuenta"): un rojo apagado, menos
+// alarmante que el de error.
+export const TOUR_DANGER_COLOR = "#C2410C";

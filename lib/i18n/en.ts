@@ -15,8 +15,23 @@ export const en: TranslationDictionary = {
     },
     prompt: "Shall we go for a walk?",
     start: "START",
-    signOut: "Sign out",
+    myAccount: "My account",
+    accountDeleted: "Your account was deleted.",
     howItWorks: "How it works",
+  },
+
+  account: {
+    title: "My account",
+    back: "Back",
+    howItWorks: "How it works",
+    privacyPolicy: "Privacy policy",
+    signOut: "Sign out",
+    deleteAccount: "Delete account",
+    deleteTitle: "Delete your account?",
+    deleteBody: "Your account, name and email will be deleted. This can't be undone.",
+    deleteConfirm: "Yes, delete my account",
+    cancel: "Cancel",
+    deleteError: "We couldn't delete your account. Please try again.",
   },
 
   tutorial: {

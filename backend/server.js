@@ -37,6 +37,14 @@ const supabase = createClient(
   { auth: { persistSession: false, autoRefreshToken: false } }
 );
 
+// Cliente admin (llave secreta, solo en el servidor): se usa únicamente
+// para eliminar la cuenta de un usuario y sus archivos.
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SECRET_KEY,
+  { auth: { persistSession: false, autoRefreshToken: false } }
+);
+
 // Caché en memoria de tokens ya validados (token -> userId), para no
 // llamar a Supabase en cada petición: dura 5 minutos como máximo y nunca
 // más allá de la expiración del propio token.
@@ -140,6 +148,7 @@ const chatRateLimit = rateLimit("chat", [
   { windowMs: HOUR_MS, max: 40 },
   { windowMs: DAY_MS, max: 150 },
 ]);
+const accountRateLimit = rateLimit("account", [{ windowMs: HOUR_MS, max: 5 }]);
 
 // Límites de tamaño de lo que se recibe. El texto de narración más largo
 // de los tours hoy tiene ~1940 caracteres.
@@ -696,6 +705,71 @@ Datos clave: ${Array.isArray(highlights) ? highlights.join(", ") : "Sin datos cl
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error en chat IA" });
+  }
+});
+
+// Fotos de perfil: bucket de Storage con una carpeta por usuario
+// (<userId>/...).
+const AVATARS_BUCKET = "avatars";
+
+function isMissingBucketError(error) {
+  return (
+    String(error?.statusCode ?? error?.status ?? "") === "404" ||
+    /not found/i.test(error?.message ?? "")
+  );
+}
+
+// Borra todos los archivos del usuario en el bucket de fotos. Si el bucket
+// todavía no existe o la carpeta está vacía, no hace nada. Se borra de a
+// tandas, con un tope de vueltas para no quedar en un bucle si algo no se
+// puede borrar.
+async function deleteUserAvatars(userId) {
+  const bucket = supabaseAdmin.storage.from(AVATARS_BUCKET);
+
+  for (let round = 0; round < 20; round++) {
+    const { data, error } = await bucket.list(userId, { limit: 100 });
+    if (error) {
+      if (isMissingBucketError(error)) return;
+      throw error;
+    }
+
+    // Solo archivos (las subcarpetas vienen sin id).
+    const paths = (data ?? [])
+      .filter((item) => item.id)
+      .map((item) => `${userId}/${item.name}`);
+    if (paths.length === 0) return;
+
+    const { error: removeError } = await bucket.remove(paths);
+    if (removeError) throw removeError;
+  }
+}
+
+// Elimina la cuenta del usuario logueado: primero sus fotos, después el
+// usuario. Se puede repetir sin problema (por ejemplo, si la red se cortó
+// justo después de borrar): si el usuario ya no existe, también es éxito.
+app.delete("/account", requireUser, accountRateLimit, async (req, res) => {
+  const userId = req.userId;
+
+  try {
+    await deleteUserAvatars(userId);
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    if (error && error.status !== 404) throw error;
+
+    // Sus tokens ya no deben servir, aunque estuvieran en el caché.
+    for (const [token, value] of tokenCache) {
+      if (value.userId === userId) tokenCache.delete(token);
+    }
+
+    res.json({ ok: true });
+  } catch (e) {
+    // Sin datos del usuario en el log: solo el tipo de falla.
+    console.error(
+      "Error eliminando una cuenta:",
+      e?.status ?? e?.statusCode ?? "",
+      e?.name ?? "Error"
+    );
+    res.status(500).json({ error: "delete_failed" });
   }
 });
 

@@ -81,6 +81,7 @@ function RootNavigator() {
         <Stack.Protected guard={!!user}>
           <Stack.Screen name="recomendations" />
           <Stack.Screen name="tour" />
+          <Stack.Screen name="account" />
         </Stack.Protected>
 
         <Stack.Protected guard={!user}>
