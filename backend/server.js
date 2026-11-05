@@ -13,14 +13,11 @@ import {
   getOffTopicReply,
 } from "./guiaPrompt.js";
 import {
-  MAX_SESSION_SECONDS,
-  REALTIME_CLIENT_SECRET_TTL_SECONDS,
-  REALTIME_MODEL,
-  REALTIME_NOISE_REDUCTION,
-  REALTIME_REASONING_EFFORT,
-  REALTIME_TURN_DETECTION,
-  REALTIME_VOICE,
-} from "./realtimeConfig.js";
+  ConversationError,
+  createConversationManager,
+  createOpenAiRealtimeCalls,
+} from "./conversations.js";
+import { REALTIME_CALLS_PER_HOUR } from "./realtimeConfig.js";
 
 dotenv.config(); // 🔥 primero cargas variables
 
@@ -52,13 +49,21 @@ const supabase = createClient(
   { auth: { persistSession: false, autoRefreshToken: false } }
 );
 
-// Cliente admin (llave secreta, solo en el servidor): se usa únicamente
-// para eliminar la cuenta de un usuario y sus archivos.
+// Cliente admin (llave secreta, solo en el servidor): se usa para eliminar
+// la cuenta de un usuario y sus archivos, y para la tabla tour_runs (bolsa
+// de conversación por tour; RLS sin reglas, solo el servidor la usa).
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SECRET_KEY,
   { auth: { persistSession: false, autoRefreshToken: false } }
 );
+
+// Conversaciones de voz en tiempo real y su bolsa por tour (ver
+// conversations.js).
+const conversations = createConversationManager({
+  db: supabaseAdmin,
+  calls: createOpenAiRealtimeCalls(process.env.OPENAI_API_KEY),
+});
 
 // Caché en memoria de tokens ya validados (token -> userId), para no
 // llamar a Supabase en cada petición: dura 5 minutos como máximo y nunca
@@ -164,10 +169,10 @@ const chatRateLimit = rateLimit("chat", [
   { windowMs: DAY_MS, max: 150 },
 ]);
 const accountRateLimit = rateLimit("account", [{ windowMs: HOUR_MS, max: 5 }]);
-// Cada llave temporal abre una conversación de voz (la parte más cara).
+// Anti-saturación al abrir conversaciones de voz (no limita a usuarios
+// reales: el tiempo lo limita la bolsa de cada tour).
 const realtimeRateLimit = rateLimit("realtime", [
-  { windowMs: HOUR_MS, max: 20 },
-  { windowMs: DAY_MS, max: 60 },
+  { windowMs: HOUR_MS, max: REALTIME_CALLS_PER_HOUR },
 ]);
 
 // Límites de tamaño de lo que se recibe. El texto de narración más largo
@@ -189,7 +194,7 @@ function clipOptional(value, maxLength) {
   return typeof value === "string" ? value.slice(0, maxLength) : undefined;
 }
 
-// Datos del paso actual que mandan /chat y /realtime/session, con los
+// Datos del paso actual que mandan /chat y /realtime/call, con los
 // mismos recortes en los dos. Solo "en" exacto cambia el idioma.
 function parseTourContext(body) {
   return {
@@ -724,79 +729,113 @@ ${buildStepContext("es", { tourTitle, context, summary, highlights }).join("\n")
   }
 });
 
-// Conversación por voz en tiempo real (OpenAI Realtime por WebRTC): el
-// servidor pide a OpenAI una llave temporal con la sesión ya configurada
-// (modelo, voz, instrucciones, razonamiento, ruido y turnos, todo desde
-// realtimeConfig.js) y la app solo recibe esa llave. OPENAI_API_KEY nunca
-// sale del servidor.
-//
-// Sin transcripción de lo que dice la persona: audio.input.transcription
-// queda en su valor por defecto (null, desactivada) en vez de mandarlo.
-async function createRealtimeClientSecret(instructions) {
-  const secret = await openai.realtime.clientSecrets.create({
-    expires_after: {
-      anchor: "created_at",
-      seconds: REALTIME_CLIENT_SECRET_TTL_SECONDS,
-    },
-    session: {
-      type: "realtime",
-      model: REALTIME_MODEL,
-      instructions,
-      output_modalities: ["audio"],
-      audio: {
-        input: {
-          noise_reduction: { type: REALTIME_NOISE_REDUCTION },
-          turn_detection: REALTIME_TURN_DETECTION,
-        },
-        output: { voice: REALTIME_VOICE },
-      },
-      // Los tipos del SDK instalado son anteriores a gpt-realtime-2 y no
-      // declaran "reasoning", pero el cuerpo se envía tal cual a la API.
-      reasoning: { effort: REALTIME_REASONING_EFFORT },
-    },
-  });
+// Conversación por voz en tiempo real (OpenAI Realtime por WebRTC), con el
+// servidor en medio: la app manda su oferta SDP, el servidor crea la llamada
+// en OpenAI con la llave real y la configuración de realtimeConfig.js, y
+// devuelve la respuesta SDP. La app nunca recibe ninguna llave; el servidor
+// mide y corta cada conversación contra la bolsa del tour (conversations.js).
 
-  return { clientSecret: secret.value, expiresAt: secret.expires_at };
+const MAX_TOUR_ID_LENGTH = 64;
+const TOUR_ID_RE = /^[a-z0-9-]+$/i;
+// Una oferta SDP de WebRTC con audio y un canal de datos ocupa unos pocos KB.
+const MAX_SDP_LENGTH = 20000;
+
+// Respuesta para los errores del control de conversaciones: los que ya
+// traen status van tal cual; el resto, 500 sin datos del usuario en el log.
+function sendConversationError(res, e, action) {
+  if (e instanceof ConversationError) {
+    return res.status(e.status).json(e.body);
+  }
+  console.error(
+    `Error en ${action}:`,
+    e?.status ?? e?.code ?? "",
+    e?.name ?? "Error"
+  );
+  res.status(500).json({ error: "conversation_error" });
 }
 
-export { createRealtimeClientSecret };
+// Inicia (o retoma) el tour: misma bolsa si ya estaba iniciado y sin
+// terminar.
+app.post("/tour/start", requireUser, async (req, res) => {
+  const tourId = req.body?.tourId;
+  if (
+    typeof tourId !== "string" ||
+    tourId.length > MAX_TOUR_ID_LENGTH ||
+    !TOUR_ID_RE.test(tourId)
+  ) {
+    return res.status(400).json({ error: "invalid_tour" });
+  }
 
-app.post(
-  "/realtime/session",
-  requireUser,
-  realtimeRateLimit,
-  async (req, res) => {
-    const { language, tourTitle, context, summary, highlights } =
-      parseTourContext(req.body ?? {});
+  try {
+    res.json(await conversations.startTour(req.userId, tourId));
+  } catch (e) {
+    sendConversationError(res, e, "/tour/start");
+  }
+});
 
-    try {
-      const { clientSecret, expiresAt } = await createRealtimeClientSecret(
-        buildRealtimeInstructions({
+// Termina el tour (solo el "Terminar" del último paso): cierra la bolsa.
+app.post("/tour/finish", requireUser, async (req, res) => {
+  try {
+    res.json(await conversations.finishTour(req.userId, req.body?.runId));
+  } catch (e) {
+    sendConversationError(res, e, "/tour/finish");
+  }
+});
+
+// Abre una conversación con la oferta SDP de la app.
+app.post("/realtime/call", requireUser, realtimeRateLimit, async (req, res) => {
+  const body = req.body ?? {};
+  const { sdp, runId } = body;
+
+  if (
+    typeof sdp !== "string" ||
+    !sdp.startsWith("v=") ||
+    sdp.length > MAX_SDP_LENGTH
+  ) {
+    return res.status(400).json({ error: "invalid_sdp" });
+  }
+
+  const { language, tourTitle, context, summary, highlights } =
+    parseTourContext(body);
+
+  try {
+    res.json(
+      await conversations.startCall(req.userId, {
+        runId,
+        sdp,
+        instructions: buildRealtimeInstructions({
           language,
           tourTitle,
           context,
           summary,
           highlights,
-        })
-      );
-
-      res.json({
-        clientSecret,
-        expiresAt,
-        model: REALTIME_MODEL,
-        maxSessionSeconds: MAX_SESSION_SECONDS,
-      });
-    } catch (e) {
-      // Sin datos del usuario ni la llave en el log: solo el tipo de falla.
-      console.error(
-        "Error creando la sesión de voz en tiempo real:",
-        e?.status ?? "",
-        e?.code ?? e?.name ?? "Error"
-      );
-      res.status(502).json({ error: "realtime_unavailable" });
-    }
+        }),
+      })
+    );
+  } catch (e) {
+    sendConversationError(res, e, "/realtime/call");
   }
-);
+});
+
+// La app terminó la conversación (botón o silencio). runId es opcional: si
+// viene, remainingSeconds es el de ese tour.
+app.post("/realtime/end", requireUser, async (req, res) => {
+  try {
+    res.json(await conversations.endCall(req.userId, req.body?.runId));
+  } catch (e) {
+    sendConversationError(res, e, "/realtime/end");
+  }
+});
+
+// Aviso de vida de la app cada 10 s durante una conversación. Sin el
+// limitador de aperturas: no abre nada.
+app.post("/realtime/heartbeat", requireUser, async (req, res) => {
+  try {
+    res.json(await conversations.heartbeat(req.userId));
+  } catch (e) {
+    sendConversationError(res, e, "/realtime/heartbeat");
+  }
+});
 
 // Fotos de perfil: bucket de Storage con una carpeta por usuario
 // (<userId>/...).
@@ -870,7 +909,26 @@ app.delete("/account", requireUser, accountRateLimit, async (req, res) => {
 // el puerto 3000 y chocar con el backend real que ya está corriendo.
 const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMainModule) {
-  app.listen(3000, "0.0.0.0", () => {
-    console.log("🔥 Backend corriendo en red local");
-  });
+  // Antes de aceptar pedidos: las conversaciones que quedaron abiertas en la
+  // tabla (el servidor se cayó o reinició) se cuelgan y se cobran solo hasta
+  // su último aviso. Luego arranca el vigilante de conversaciones sin aviso.
+  conversations
+    .recoverOpenCalls()
+    .then((closed) => {
+      if (closed > 0) {
+        console.log(`Conversaciones cerradas al arrancar: ${closed}`);
+      }
+    })
+    .catch((e) => {
+      console.error(
+        "Error cerrando conversaciones abiertas al arrancar:",
+        e?.code ?? e?.name ?? "Error"
+      );
+    })
+    .finally(() => {
+      conversations.startWatchdog();
+      app.listen(3000, "0.0.0.0", () => {
+        console.log("🔥 Backend corriendo en red local");
+      });
+    });
 }

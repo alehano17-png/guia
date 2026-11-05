@@ -1,8 +1,8 @@
 // Cambiar aquí la voz o el modelo de GUÍA; no requiere actualizar la app.
 //
 // Configuración de la conversación en tiempo real (OpenAI Realtime). El
-// servidor la fija al crear la llave temporal (POST /realtime/session), así
-// la app nunca elige modelo, voz ni instrucciones.
+// servidor crea cada llamada con esta configuración (POST /realtime/call),
+// así la app nunca elige modelo, voz ni instrucciones.
 
 export const REALTIME_MODEL = "gpt-realtime-2.1";
 
@@ -26,9 +26,24 @@ export const REALTIME_TURN_DETECTION = {
   eagerness: "low",
 };
 
-// Duración máxima de una conversación; la app la usa para cortar sola.
-export const MAX_SESSION_SECONDS = 300;
+// Estos números son decisión de negocio; cambiarlos solo aquí.
+//
+// Bolsa de conversación por tour iniciado: segundos en total, sin importar
+// cuántas conversaciones se hagan con ella.
+export const TOUR_CONVERSATION_SECONDS = 300;
+// Protección anti-saturación (no limita a usuarios reales): máximo de
+// conversaciones que un usuario puede abrir por hora.
+export const REALTIME_CALLS_PER_HOUR = 30;
 
-// Cuánto vale la llave temporal para iniciar la conexión. Solo sirve para
-// conectarse: una vez abierta, la conversación sigue aunque la llave venza.
-export const REALTIME_CLIENT_SECRET_TTL_SECONDS = 120;
+// Valores técnicos del control de conversaciones (no de negocio).
+//
+// La app avisa que sigue viva cada 10 s (POST /realtime/heartbeat). Si pasan
+// HEARTBEAT_TIMEOUT_SECONDS sin aviso, el servidor cuelga la conversación y
+// descuenta solo hasta el último aviso.
+export const HEARTBEAT_TIMEOUT_SECONDS = 25;
+// Cada cuánto revisa el servidor las conversaciones sin aviso o pasadas de
+// su tiempo.
+export const STALE_CHECK_INTERVAL_SECONDS = 5;
+// Reserva hecha mientras OpenAI crea la llamada: si sigue así pasado este
+// tiempo (por ejemplo, el servidor se cayó a mitad), se libera sin descontar.
+export const PENDING_CALL_TIMEOUT_SECONDS = 60;
