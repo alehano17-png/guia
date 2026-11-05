@@ -15,9 +15,11 @@
 //
 // Sin avisos de la app (heartbeat) por HEARTBEAT_TIMEOUT_SECONDS, el
 // servidor cuelga y descuenta hasta el momento del corte (último aviso +
-// esos segundos), para que una app que nunca avisa no hable gratis. Solo al
-// arrancar el servidor se descuenta hasta el último aviso, porque ahí la
-// conversación quedó abierta por culpa del servidor.
+// esos segundos), para que una app que nunca avisa no hable gratis. Al
+// arrancar el servidor, las que quedaron abiertas por una caída o reinicio
+// se descuentan con la misma regla. Mientras el servidor está caído, el
+// cronómetro de respaldo de la app corta al agotarse la bolsa, usando el
+// remainingSeconds que devuelven /realtime/call y cada heartbeat.
 
 import crypto from "node:crypto";
 import {
@@ -165,12 +167,11 @@ export function createConversationManager({ db, calls, log = console }) {
   // Hasta cuándo se cobra una conversación que se cierra:
   // - "now": hasta ahora (la app la terminó, se agotó la bolsa, la reemplazó
   //   otra, se terminó el tour, o el vigilante la encontró sin avisos).
-  // - "deadline": cortada por falta de avisos; hasta el momento del corte
-  //   (último aviso + HEARTBEAT_TIMEOUT_SECONDS).
-  // - "last_seen": hasta el último aviso; solo al arrancar el servidor.
+  // - "deadline": cortada por falta de avisos, o quedó abierta por una caída
+  //   o reinicio del servidor; hasta el momento del corte (último aviso +
+  //   HEARTBEAT_TIMEOUT_SECONDS), o hasta ahora si eso todavía no llegó.
   function chargeEndMs(row, nowMs, mode) {
     const lastSeen = Date.parse(row.active_call_last_seen_at);
-    if (mode === "last_seen") return lastSeen;
     if (mode === "deadline") {
       return Math.min(nowMs, lastSeen + HEARTBEAT_TIMEOUT_MS);
     }
@@ -605,9 +606,11 @@ export function createConversationManager({ db, calls, log = console }) {
     });
   }
 
-  // POST /realtime/heartbeat: la app sigue viva. Si el aviso llega tarde
-  // (ya pasó el límite), la conversación se corta y se descuenta hasta el
-  // momento del corte.
+  // POST /realtime/heartbeat: la app sigue viva. Mientras la conversación
+  // está activa, SIEMPRE devuelve remainingSeconds calculado aquí desde la
+  // tabla: la app resincroniza con él su cronómetro de respaldo. Si el aviso
+  // llega tarde (ya pasó el límite), la conversación se corta y se descuenta
+  // hasta el momento del corte.
   async function heartbeat(userId) {
     const rows = (await activeRowsOfUser(userId)).filter(
       (row) => !isPending(row.active_call_id)
@@ -662,8 +665,9 @@ export function createConversationManager({ db, calls, log = console }) {
       for (const row of data) {
         const sinceLastSeen = now - Date.parse(row.active_call_last_seen_at);
         if (isPending(row.active_call_id)) {
+          // Una reserva nunca se cobra, sea cual sea el modo.
           if (sinceLastSeen > PENDING_TIMEOUT_MS) {
-            await closeCall(row.active_call_id, "last_seen");
+            await closeCall(row.active_call_id, "deadline");
           }
         } else if (isStale(row, now)) {
           if (!activeCalls.has(row.active_call_id)) {
@@ -679,9 +683,10 @@ export function createConversationManager({ db, calls, log = console }) {
   }
 
   // Al arrancar el servidor: las conversaciones que quedaron abiertas (el
-  // servidor se cayó o reinició) se cuelgan en OpenAI y se cobran solo hasta
-  // su último aviso, no hasta el corte: ahí la culpa es del servidor, no del
-  // usuario.
+  // servidor se cayó o reinició) se cuelgan en OpenAI y se cobran con la
+  // misma regla que el corte por falta de avisos: hasta el último aviso +
+  // HEARTBEAT_TIMEOUT_SECONDS, sin pasar de la bolsa (o hasta ahora, si el
+  // servidor volvió antes de ese momento).
   async function recoverOpenCalls() {
     const { data, error } = await db
       .from(TABLE)
@@ -691,7 +696,7 @@ export function createConversationManager({ db, calls, log = console }) {
 
     let closed = 0;
     for (const row of data) {
-      if (await closeCall(row.active_call_id, "last_seen")) closed++;
+      if (await closeCall(row.active_call_id, "deadline")) closed++;
     }
     return closed;
   }

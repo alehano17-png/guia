@@ -39,8 +39,11 @@ export const REALTIME_CALLS_PER_HOUR = 30;
 // el servidor cuelga y descuenta HASTA EL MOMENTO DEL CORTE (último aviso +
 // estos segundos), no hasta el último aviso: así una app que nunca avisa no
 // consigue tiempo gratis, y quien pierde la señal pierde como máximo esto.
-// (Al arrancar el servidor es distinto: ver recoverOpenCalls en
-// conversations.js.)
+// Al arrancar el servidor, las conversaciones que quedaron abiertas por una
+// caída o reinicio se descuentan con la misma regla (último aviso + estos
+// segundos, sin pasar de la bolsa). Mientras el servidor está caído, el
+// cronómetro de respaldo de la app corta la conversación al agotarse la
+// bolsa (lo resincroniza con el remainingSeconds de cada heartbeat).
 export const HEARTBEAT_TIMEOUT_SECONDS = 15;
 
 // Tours que existen en la app (ids de data/tours/skeletons). /tour/start
