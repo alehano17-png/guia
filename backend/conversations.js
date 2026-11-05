@@ -12,6 +12,12 @@
 //
 // Mientras OpenAI crea la llamada, active_call_id guarda una reserva
 // "pending:<uuid>" que nunca se cobra.
+//
+// Sin avisos de la app (heartbeat) por HEARTBEAT_TIMEOUT_SECONDS, el
+// servidor cuelga y descuenta hasta el momento del corte (último aviso +
+// esos segundos), para que una app que nunca avisa no hable gratis. Solo al
+// arrancar el servidor se descuenta hasta el último aviso, porque ahí la
+// conversación quedó abierta por culpa del servidor.
 
 import crypto from "node:crypto";
 import {
@@ -24,6 +30,7 @@ import {
   REALTIME_VOICE,
   STALE_CHECK_INTERVAL_SECONDS,
   TOUR_CONVERSATION_SECONDS,
+  VALID_TOUR_IDS,
 } from "./realtimeConfig.js";
 
 const TABLE = "tour_runs";
@@ -135,7 +142,8 @@ export function createConversationManager({ db, calls, log = console }) {
   // celulares). La base igual protege con actualizaciones condicionadas.
   const userLocks = new Map();
   // Conversaciones abiertas por este proceso: { callId, userId, runId,
-  // startedAt, timer } con el corte programado al agotarse la bolsa.
+  // startedAt, timer, staleTimer }, con el corte programado al agotarse la
+  // bolsa (timer) y el corte exacto por falta de avisos (staleTimer).
   const activeCalls = new Map();
   let sweeping = false;
 
@@ -155,13 +163,23 @@ export function createConversationManager({ db, calls, log = console }) {
   const iso = (ms) => new Date(ms).toISOString();
 
   // Hasta cuándo se cobra una conversación que se cierra:
-  // - "last_seen": hasta el último aviso de la app (sin heartbeat, reinicio).
-  // - "now": hasta ahora; pero si la app dejó de avisar hace más del límite,
-  //   solo hasta su último aviso (nunca se cobra tiempo que no se usó).
+  // - "now": hasta ahora (la app la terminó, se agotó la bolsa, la reemplazó
+  //   otra, se terminó el tour, o el vigilante la encontró sin avisos).
+  // - "deadline": cortada por falta de avisos; hasta el momento del corte
+  //   (último aviso + HEARTBEAT_TIMEOUT_SECONDS).
+  // - "last_seen": hasta el último aviso; solo al arrancar el servidor.
   function chargeEndMs(row, nowMs, mode) {
     const lastSeen = Date.parse(row.active_call_last_seen_at);
     if (mode === "last_seen") return lastSeen;
-    return nowMs - lastSeen > HEARTBEAT_TIMEOUT_MS ? lastSeen : nowMs;
+    if (mode === "deadline") {
+      return Math.min(nowMs, lastSeen + HEARTBEAT_TIMEOUT_MS);
+    }
+    return nowMs;
+  }
+
+  // Sin avisos de la app hace HEARTBEAT_TIMEOUT_SECONDS o más.
+  function isStale(row, nowMs) {
+    return nowMs - Date.parse(row.active_call_last_seen_at) >= HEARTBEAT_TIMEOUT_MS;
   }
 
   // Segundos de la conversación activa de una fila hasta endMs, redondeados
@@ -182,6 +200,7 @@ export function createConversationManager({ db, calls, log = console }) {
   function forgetActiveCall(callId) {
     const entry = activeCalls.get(callId);
     if (entry?.timer) clearTimeout(entry.timer);
+    if (entry?.staleTimer) clearTimeout(entry.staleTimer);
     activeCalls.delete(callId);
   }
 
@@ -216,9 +235,9 @@ export function createConversationManager({ db, calls, log = console }) {
   // con el mismo último aviso, para que dos cierres a la vez nunca descuenten
   // dos veces ni un heartbeat de último segundo cambie la cuenta.
   // Devuelve la fila ya actualizada, o null si otra vía ya la había cerrado.
-  async function closeCall(callId, mode) {
-    forgetActiveCall(callId);
-
+  // requireStale: cerrar solo si sigue sin avisos (corte por falta de
+  // heartbeat); si llegó un aviso nuevo, no la cierra y devuelve null.
+  async function closeCall(callId, mode, { requireStale = false } = {}) {
     for (let attempt = 0; attempt < 3; attempt++) {
       const { data: row, error } = await db
         .from(TABLE)
@@ -226,7 +245,11 @@ export function createConversationManager({ db, calls, log = console }) {
         .eq("active_call_id", callId)
         .maybeSingle();
       if (error) throw error;
-      if (!row) return null;
+      if (!row) {
+        forgetActiveCall(callId);
+        return null;
+      }
+      if (requireStale && !isStale(row, Date.now())) return null;
 
       const secondsUsed = Math.min(
         TOUR_CONVERSATION_SECONDS,
@@ -248,6 +271,7 @@ export function createConversationManager({ db, calls, log = console }) {
       if (updateError) throw updateError;
 
       if (updated.length === 1) {
+        forgetActiveCall(callId);
         if (!isPending(callId)) await hangupQuietly(callId);
         return updated[0];
       }
@@ -256,6 +280,37 @@ export function createConversationManager({ db, calls, log = console }) {
     }
 
     throw new Error("close_call_conflict");
+  }
+
+  // Corte exacto por falta de avisos: vence HEARTBEAT_TIMEOUT_SECONDS después
+  // del último aviso; cada aviso que recibe este proceso lo reinicia.
+  function scheduleStaleCheck(entry, lastSeenMs) {
+    if (entry.staleTimer) clearTimeout(entry.staleTimer);
+    const delay = Math.max(0, lastSeenMs + HEARTBEAT_TIMEOUT_MS - Date.now());
+    entry.staleTimer = setTimeout(() => {
+      entry.staleTimer = null;
+      closeIfStale(entry).catch((e) =>
+        log.error("Error cortando una conversación sin avisos:", e?.code ?? e?.name ?? "Error")
+      );
+    }, delay + 20);
+    entry.staleTimer.unref?.();
+  }
+
+  // Al vencer: si sigue sin avisos, se corta y se descuenta hasta el momento
+  // del corte. Si llegó un aviso más nuevo (por ejemplo, a otro proceso), se
+  // reprograma desde ese aviso.
+  async function closeIfStale(entry) {
+    const closed = await closeCall(entry.callId, "deadline", { requireStale: true });
+    if (closed || !activeCalls.has(entry.callId)) return;
+
+    const { data: row, error } = await db
+      .from(TABLE)
+      .select("active_call_last_seen_at")
+      .eq("active_call_id", entry.callId)
+      .maybeSingle();
+    if (error) throw error;
+    if (row) scheduleStaleCheck(entry, Date.parse(row.active_call_last_seen_at));
+    else forgetActiveCall(entry.callId);
   }
 
   async function activeRowsOfUser(userId) {
@@ -314,6 +369,12 @@ export function createConversationManager({ db, calls, log = console }) {
   // POST /tour/start: misma bolsa si el tour ya estaba iniciado y sin
   // terminar; bolsa nueva solo si no hay ninguno abierto.
   function startTour(userId, tourId) {
+    // Solo tours que existen en la app: con ids inventados se podrían abrir
+    // bolsas nuevas sin límite.
+    if (!VALID_TOUR_IDS.includes(tourId)) {
+      return Promise.reject(new ConversationError(400, { error: "unknown_tour" }));
+    }
+
     return withUserLock(userId, async () => {
       const existing = await findOpenRun(userId, tourId);
       if (existing) {
@@ -514,9 +575,19 @@ export function createConversationManager({ db, calls, log = console }) {
         throw new ConversationError(409, { error: "call_superseded" });
       }
 
-      const entry = { callId: created.callId, userId, runId: run.id, startedAt, timer: null };
+      const entry = {
+        callId: created.callId,
+        userId,
+        runId: run.id,
+        startedAt,
+        timer: null,
+        staleTimer: null,
+      };
       activeCalls.set(created.callId, entry);
       scheduleCutoff(entry, remaining);
+      // Al abrirse cuenta como primer aviso: si la app nunca avisa, se corta
+      // a los HEARTBEAT_TIMEOUT_SECONDS.
+      scheduleStaleCheck(entry, startedAt);
 
       return { sdp: created.sdp, remainingSeconds: remaining };
     });
@@ -534,8 +605,9 @@ export function createConversationManager({ db, calls, log = console }) {
     });
   }
 
-  // POST /realtime/heartbeat: la app sigue viva. Si ya pasó el límite sin
-  // aviso, la conversación se cierra (hasta el último aviso).
+  // POST /realtime/heartbeat: la app sigue viva. Si el aviso llega tarde
+  // (ya pasó el límite), la conversación se corta y se descuenta hasta el
+  // momento del corte.
   async function heartbeat(userId) {
     const rows = (await activeRowsOfUser(userId)).filter(
       (row) => !isPending(row.active_call_id)
@@ -545,8 +617,8 @@ export function createConversationManager({ db, calls, log = console }) {
     const row = rows[0];
     const now = Date.now();
 
-    if (now - Date.parse(row.active_call_last_seen_at) > HEARTBEAT_TIMEOUT_MS) {
-      await closeCall(row.active_call_id, "last_seen");
+    if (isStale(row, now)) {
+      await closeCall(row.active_call_id, "deadline");
       return { ok: false };
     }
 
@@ -559,6 +631,10 @@ export function createConversationManager({ db, calls, log = console }) {
     if (error) throw error;
     if (data.length === 0) return { ok: false };
 
+    // Reinicia el corte exacto por falta de avisos (si la abrió este proceso).
+    const entry = activeCalls.get(row.active_call_id);
+    if (entry) scheduleStaleCheck(entry, now);
+
     const remaining = remainingSeconds(data[0], now);
     if (remaining <= 0) {
       await closeCall(row.active_call_id, "now");
@@ -567,9 +643,10 @@ export function createConversationManager({ db, calls, log = console }) {
     return { ok: true, remainingSeconds: remaining };
   }
 
-  // Vigilante: cierra las conversaciones sin heartbeat hace más del límite
-  // (cobrando hasta el último aviso), las reservas colgadas y, como respaldo
-  // del corte programado, las que ya agotaron la bolsa.
+  // Vigilante (respaldo): cierra las reservas colgadas, las conversaciones
+  // sin avisos que NO abrió este proceso (las suyas las corta su
+  // temporizador exacto) cobrando hasta ahora, y las que ya agotaron la
+  // bolsa por si su corte programado se perdió.
   async function sweepStaleCalls() {
     if (sweeping) return;
     sweeping = true;
@@ -588,8 +665,10 @@ export function createConversationManager({ db, calls, log = console }) {
           if (sinceLastSeen > PENDING_TIMEOUT_MS) {
             await closeCall(row.active_call_id, "last_seen");
           }
-        } else if (sinceLastSeen > HEARTBEAT_TIMEOUT_MS) {
-          await closeCall(row.active_call_id, "last_seen");
+        } else if (isStale(row, now)) {
+          if (!activeCalls.has(row.active_call_id)) {
+            await closeCall(row.active_call_id, "now", { requireStale: true });
+          }
         } else if (remainingSeconds(row, now) <= 0) {
           await closeCall(row.active_call_id, "now");
         }
@@ -601,7 +680,8 @@ export function createConversationManager({ db, calls, log = console }) {
 
   // Al arrancar el servidor: las conversaciones que quedaron abiertas (el
   // servidor se cayó o reinició) se cuelgan en OpenAI y se cobran solo hasta
-  // su último aviso.
+  // su último aviso, no hasta el corte: ahí la culpa es del servidor, no del
+  // usuario.
   async function recoverOpenCalls() {
     const { data, error } = await db
       .from(TABLE)

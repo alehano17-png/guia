@@ -34,15 +34,28 @@ export const TOUR_CONVERSATION_SECONDS = 300;
 // Protección anti-saturación (no limita a usuarios reales): máximo de
 // conversaciones que un usuario puede abrir por hora.
 export const REALTIME_CALLS_PER_HOUR = 30;
+// Conversación sin avisos de la app: la app avisa que sigue viva cada 10 s
+// (POST /realtime/heartbeat). Si pasan HEARTBEAT_TIMEOUT_SECONDS sin aviso,
+// el servidor cuelga y descuenta HASTA EL MOMENTO DEL CORTE (último aviso +
+// estos segundos), no hasta el último aviso: así una app que nunca avisa no
+// consigue tiempo gratis, y quien pierde la señal pierde como máximo esto.
+// (Al arrancar el servidor es distinto: ver recoverOpenCalls en
+// conversations.js.)
+export const HEARTBEAT_TIMEOUT_SECONDS = 15;
+
+// Tours que existen en la app (ids de data/tours/skeletons). /tour/start
+// rechaza cualquier otro, para que no se puedan abrir bolsas con ids
+// inventados. Al agregar un tour nuevo a la app, agregar aquí su id.
+export const VALID_TOUR_IDS = [
+  "miraflores-completo",
+  "barranco",
+  "centro-historico",
+];
 
 // Valores técnicos del control de conversaciones (no de negocio).
-//
-// La app avisa que sigue viva cada 10 s (POST /realtime/heartbeat). Si pasan
-// HEARTBEAT_TIMEOUT_SECONDS sin aviso, el servidor cuelga la conversación y
-// descuenta solo hasta el último aviso.
-export const HEARTBEAT_TIMEOUT_SECONDS = 25;
-// Cada cuánto revisa el servidor las conversaciones sin aviso o pasadas de
-// su tiempo.
+// Cada cuánto revisa el vigilante las conversaciones sin aviso o pasadas de
+// su tiempo. Es un respaldo: las que abre este proceso tienen su propio
+// corte exacto por falta de avisos.
 export const STALE_CHECK_INTERVAL_SECONDS = 5;
 // Reserva hecha mientras OpenAI crea la llamada: si sigue así pasado este
 // tiempo (por ejemplo, el servidor se cayó a mitad), se libera sin descontar.

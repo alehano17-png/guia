@@ -735,8 +735,6 @@ ${buildStepContext("es", { tourTitle, context, summary, highlights }).join("\n")
 // devuelve la respuesta SDP. La app nunca recibe ninguna llave; el servidor
 // mide y corta cada conversación contra la bolsa del tour (conversations.js).
 
-const MAX_TOUR_ID_LENGTH = 64;
-const TOUR_ID_RE = /^[a-z0-9-]+$/i;
 // Una oferta SDP de WebRTC con audio y un canal de datos ocupa unos pocos KB.
 const MAX_SDP_LENGTH = 20000;
 
@@ -755,19 +753,11 @@ function sendConversationError(res, e, action) {
 }
 
 // Inicia (o retoma) el tour: misma bolsa si ya estaba iniciado y sin
-// terminar.
+// terminar. Solo tours de VALID_TOUR_IDS; cualquier otro valor (incluido uno
+// que no sea texto) -> 400 { error: "unknown_tour" }.
 app.post("/tour/start", requireUser, async (req, res) => {
-  const tourId = req.body?.tourId;
-  if (
-    typeof tourId !== "string" ||
-    tourId.length > MAX_TOUR_ID_LENGTH ||
-    !TOUR_ID_RE.test(tourId)
-  ) {
-    return res.status(400).json({ error: "invalid_tour" });
-  }
-
   try {
-    res.json(await conversations.startTour(req.userId, tourId));
+    res.json(await conversations.startTour(req.userId, req.body?.tourId));
   } catch (e) {
     sendConversationError(res, e, "/tour/start");
   }
