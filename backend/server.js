@@ -6,6 +6,21 @@ import express from "express";
 import fs from "fs";
 import OpenAI, { toFile } from "openai";
 import { fileURLToPath } from "url";
+import {
+  buildRealtimeInstructions,
+  buildStepContext,
+  buildTopicRules,
+  getOffTopicReply,
+} from "./guiaPrompt.js";
+import {
+  MAX_SESSION_SECONDS,
+  REALTIME_CLIENT_SECRET_TTL_SECONDS,
+  REALTIME_MODEL,
+  REALTIME_NOISE_REDUCTION,
+  REALTIME_REASONING_EFFORT,
+  REALTIME_TURN_DETECTION,
+  REALTIME_VOICE,
+} from "./realtimeConfig.js";
 
 dotenv.config(); // 🔥 primero cargas variables
 
@@ -149,6 +164,11 @@ const chatRateLimit = rateLimit("chat", [
   { windowMs: DAY_MS, max: 150 },
 ]);
 const accountRateLimit = rateLimit("account", [{ windowMs: HOUR_MS, max: 5 }]);
+// Cada llave temporal abre una conversación de voz (la parte más cara).
+const realtimeRateLimit = rateLimit("realtime", [
+  { windowMs: HOUR_MS, max: 20 },
+  { windowMs: DAY_MS, max: 60 },
+]);
 
 // Límites de tamaño de lo que se recibe. El texto de narración más largo
 // de los tours hoy tiene ~1940 caracteres.
@@ -167,6 +187,23 @@ const MAX_HIGHLIGHT_LENGTH = 200;
 // Recorta un texto opcional; si no es string, se ignora.
 function clipOptional(value, maxLength) {
   return typeof value === "string" ? value.slice(0, maxLength) : undefined;
+}
+
+// Datos del paso actual que mandan /chat y /realtime/session, con los
+// mismos recortes en los dos. Solo "en" exacto cambia el idioma.
+function parseTourContext(body) {
+  return {
+    context: clipOptional(body.context, MAX_CONTEXT_LENGTH),
+    tourTitle: clipOptional(body.tourTitle, MAX_CONTEXT_LENGTH),
+    summary: clipOptional(body.summary, MAX_SUMMARY_LENGTH),
+    highlights: Array.isArray(body.highlights)
+      ? body.highlights
+          .filter((h) => typeof h === "string")
+          .slice(0, MAX_HIGHLIGHTS)
+          .map((h) => h.slice(0, MAX_HIGHLIGHT_LENGTH))
+      : undefined,
+    language: body.language === "en" ? "en" : "es",
+  };
 }
 
 const openai = new OpenAI({
@@ -494,24 +531,12 @@ app.post("/chat", requireUser, chatRateLimit, async (req, res) => {
       return res.status(400).json({ error: "invalid_message" });
     }
 
-    const context = clipOptional(body.context, MAX_CONTEXT_LENGTH);
-    const tourTitle = clipOptional(body.tourTitle, MAX_CONTEXT_LENGTH);
-    const summary = clipOptional(body.summary, MAX_SUMMARY_LENGTH);
-    const highlights = Array.isArray(body.highlights)
-      ? body.highlights
-          .filter((h) => typeof h === "string")
-          .slice(0, MAX_HIGHLIGHTS)
-          .map((h) => h.slice(0, MAX_HIGHLIGHT_LENGTH))
-      : undefined;
+    const { context, tourTitle, summary, highlights, language } =
+      parseTourContext(body);
     const history = body.history;
-    // Mismo criterio que /transcribe: solo "en" exacto cambia el idioma.
-    const language = body.language === "en" ? "en" : "es";
     // Una sola frase de rechazo por petición, en el idioma del tour: la usan
     // el filtro de temas de abajo y la regla del prompt de sistema.
-    const offTopicReply =
-      language === "en"
-        ? "I can only answer questions about this tour and this place."
-        : "Solo puedo responder preguntas sobre este recorrido y este lugar.";
+    const offTopicReply = getOffTopicReply(language);
 
     // Solo se aceptan turnos con la forma esperada — si algo raro llega en
     // el body, se ignora en vez de mandárselo tal cual a OpenAI.
@@ -615,20 +640,11 @@ Eres GUÍA, un asistente turístico.
 Solo puedes responder preguntas relacionadas con el recorrido actual.
 
 Reglas estrictas:
-- Responde solo sobre el tour, el punto actual, su historia, contexto, recorrido, duración o qué sigue después.
-- El recorrido ocurre en ${tourTitle ?? "esta zona"}. Preguntas sobre esta zona en general (ubicación, distrito, alrededores) también son tema válido, no solo sobre el punto puntual actual.
-- Si el usuario escribe algo breve como "sí", "no", "ok", "dale", "continúa" o "siguiente", interprétalo dentro del recorrido actual, no lo rechaces.
-- Si el mensaje breve es ambiguo, asume que el usuario quiere continuar con la explicación del lugar actual.
-- Si la pregunta no tiene relación con el tour, responde exactamente:
-"${offTopicReply}"
-- No respondas temas generales, personales, actualidad, tecnología, deporte, salud ni otros temas externos.
+${buildTopicRules("es", { tourTitle, offTopicReply }).join("\n")}
 - Responde breve, claro y natural.
 - ${language === "en" ? "Always answer in English." : "Responde siempre en español."}
 
-Tour actual: ${tourTitle ?? "Tour"}
-Punto actual: ${context ?? "Lugar actual"}
-Resumen: ${summary ?? "Sin resumen"}
-Datos clave: ${Array.isArray(highlights) ? highlights.join(", ") : "Sin datos clave"}
+${buildStepContext("es", { tourTitle, context, summary, highlights }).join("\n")}
 `.trim()
   },
         ...conversationHistory,
@@ -707,6 +723,80 @@ Datos clave: ${Array.isArray(highlights) ? highlights.join(", ") : "Sin datos cl
     res.status(500).json({ error: "Error en chat IA" });
   }
 });
+
+// Conversación por voz en tiempo real (OpenAI Realtime por WebRTC): el
+// servidor pide a OpenAI una llave temporal con la sesión ya configurada
+// (modelo, voz, instrucciones, razonamiento, ruido y turnos, todo desde
+// realtimeConfig.js) y la app solo recibe esa llave. OPENAI_API_KEY nunca
+// sale del servidor.
+//
+// Sin transcripción de lo que dice la persona: audio.input.transcription
+// queda en su valor por defecto (null, desactivada) en vez de mandarlo.
+async function createRealtimeClientSecret(instructions) {
+  const secret = await openai.realtime.clientSecrets.create({
+    expires_after: {
+      anchor: "created_at",
+      seconds: REALTIME_CLIENT_SECRET_TTL_SECONDS,
+    },
+    session: {
+      type: "realtime",
+      model: REALTIME_MODEL,
+      instructions,
+      output_modalities: ["audio"],
+      audio: {
+        input: {
+          noise_reduction: { type: REALTIME_NOISE_REDUCTION },
+          turn_detection: REALTIME_TURN_DETECTION,
+        },
+        output: { voice: REALTIME_VOICE },
+      },
+      // Los tipos del SDK instalado son anteriores a gpt-realtime-2 y no
+      // declaran "reasoning", pero el cuerpo se envía tal cual a la API.
+      reasoning: { effort: REALTIME_REASONING_EFFORT },
+    },
+  });
+
+  return { clientSecret: secret.value, expiresAt: secret.expires_at };
+}
+
+export { createRealtimeClientSecret };
+
+app.post(
+  "/realtime/session",
+  requireUser,
+  realtimeRateLimit,
+  async (req, res) => {
+    const { language, tourTitle, context, summary, highlights } =
+      parseTourContext(req.body ?? {});
+
+    try {
+      const { clientSecret, expiresAt } = await createRealtimeClientSecret(
+        buildRealtimeInstructions({
+          language,
+          tourTitle,
+          context,
+          summary,
+          highlights,
+        })
+      );
+
+      res.json({
+        clientSecret,
+        expiresAt,
+        model: REALTIME_MODEL,
+        maxSessionSeconds: MAX_SESSION_SECONDS,
+      });
+    } catch (e) {
+      // Sin datos del usuario ni la llave en el log: solo el tipo de falla.
+      console.error(
+        "Error creando la sesión de voz en tiempo real:",
+        e?.status ?? "",
+        e?.code ?? e?.name ?? "Error"
+      );
+      res.status(502).json({ error: "realtime_unavailable" });
+    }
+  }
+);
 
 // Fotos de perfil: bucket de Storage con una carpeta por usuario
 // (<userId>/...).
