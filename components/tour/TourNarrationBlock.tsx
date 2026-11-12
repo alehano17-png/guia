@@ -52,6 +52,7 @@ export default function TourNarrationBlock({
     speaking: t.guia.statusSpeaking,
     error: t.guia.statusError,
     rate_limited: t.guia.statusRateLimited,
+    no_time: t.guia.statusNoTime,
   };
 
   // Solo se puede tocar en reposo o tras un error — mientras escucha,

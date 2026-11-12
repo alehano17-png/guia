@@ -22,9 +22,17 @@ import {
 } from "../data/tours/preview";
 import {
   GUIA_TRANSITION_AUDIO_STEP_ID,
+  type GuiaVoiceStatus,
   useGuiaVoiceMode,
 } from "../hooks/useGuiaVoiceMode";
+import {
+  type RealtimeConversationStatus,
+  type RealtimeEndReason,
+  useRealtimeConversation,
+} from "../hooks/useRealtimeConversation";
 import { useTourAudio } from "../hooks/useTourAudio";
+import { useTourRun } from "../hooks/useTourRun";
+import { isRealtimeVoiceAvailable } from "../lib/webrtc";
 import { useTourLocation } from "../hooks/useTourLocation";
 import { useTourRouteActions } from "../hooks/useTourRouteActions";
 import { getDistanceInMeters } from "../lib/geo";
@@ -39,8 +47,21 @@ import { LocaleOverride, useTranslation } from "../lib/i18n/useTranslation";
 // se dispara el avance automático (solo para pasos de tipo "advance").
 const ARRIVAL_RADIUS_METERS = 30;
 
+// Estados de la conversación en tiempo real mostrados con los textos que ya
+// tiene la píldora de GUÍA (la parte 2b hará los definitivos).
+const REALTIME_PILL_STATUS: Record<RealtimeConversationStatus, GuiaVoiceStatus> = {
+  idle: "idle",
+  connecting: "thinking",
+  listening: "listening",
+  speaking: "speaking",
+  ending: "thinking",
+  no_time: "no_time",
+  error: "error",
+};
+
 
 import {
+  AppState,
   Animated,
   StyleSheet,
   View
@@ -297,6 +318,101 @@ const handleWakeWordDetected = useCallback(() => {
   })
 }, [askGuia, step, tour])
 
+// Conversación por voz en tiempo real (OpenAI Realtime por WebRTC). Solo en
+// un build propio con WebRTC y con la bolsa del tour abierta; en Expo Go (o
+// si /tour/start falla) el botón sigue usando el modo de voz anterior.
+const [realtimeVoiceAvailable] = useState(isRealtimeVoiceAvailable)
+
+const tourRun = useTourRun({ tourId, enabled: !loadingTour && !!tour })
+
+// Retoma la narración donde quedó: stopCurrentAudioForGuia ya guardó la
+// posición redondeada al inicio de la oración. resumeCachedAudioFromLastPosition
+// vuelve a poner el audio en modo reproducción (altavoz) antes de sonar.
+const resumeNarrationAfterRealtime = useCallback(async () => {
+  const currentStep = stepRef.current
+  if (!currentStep) return
+  await ensureAudioForStep(currentStep.id, currentStep.voiceText, true)
+  await resumeCachedAudioFromLastPosition(currentStep.id, currentStep.voiceText)
+}, [ensureAudioForStep, resumeCachedAudioFromLastPosition])
+
+// Si la conversación se cerró por ir a segundo plano, la narración se
+// retoma al volver a la app (no en segundo plano).
+const pendingNarrationResumeRef = useRef(false)
+
+const handleRealtimeEnded = useCallback(
+  (reason: RealtimeEndReason) => {
+    // Saliendo del tour, o pasando a otro paso (que ya narra el suyo).
+    if (reason === "exit" || reason === "step_changed") return
+    if (reason === "background") {
+      pendingNarrationResumeRef.current = true
+      return
+    }
+    resumeNarrationAfterRealtime()
+  },
+  [resumeNarrationAfterRealtime]
+)
+
+useEffect(() => {
+  const subscription = AppState.addEventListener("change", (state) => {
+    if (state === "active" && pendingNarrationResumeRef.current) {
+      pendingNarrationResumeRef.current = false
+      resumeNarrationAfterRealtime()
+    }
+  })
+  return () => subscription.remove()
+}, [resumeNarrationAfterRealtime])
+
+const {
+  status: realtimeStatus,
+  isActive: isRealtimeActive,
+  start: startRealtime,
+  end: endRealtime,
+} = useRealtimeConversation({
+  runId: tourRun.runId,
+  language: tourLocale,
+  knownRemainingSeconds: tourRun.remainingSeconds,
+  onRemainingSeconds: tourRun.setRemainingSeconds,
+  onEnded: handleRealtimeEnded,
+})
+
+const usesRealtimeVoice = realtimeVoiceAvailable && !!tourRun.runId
+
+// Botón "Toca para hablar con GUÍA".
+const handleAskGuia = useCallback(async () => {
+  if (!usesRealtimeVoice) {
+    handleWakeWordDetected()
+    return
+  }
+  if (isRealtimeActive) return
+
+  // Pausa la narración redondeando a la oración, igual que askGuia().
+  await stopCurrentAudioForGuia()
+  startRealtime({
+    tourTitle: tour?.title,
+    context: step?.title,
+    summary: step?.summary,
+    highlights: step?.highlights,
+  })
+}, [
+  usesRealtimeVoice,
+  handleWakeWordDetected,
+  isRealtimeActive,
+  stopCurrentAudioForGuia,
+  startRealtime,
+  tour,
+  step,
+])
+
+const narrationPillStatus: GuiaVoiceStatus = usesRealtimeVoice
+  ? REALTIME_PILL_STATUS[realtimeStatus]
+  : guiaVoiceStatus
+
+// Cambiar de paso con una conversación abierta la cierra: el paso nuevo
+// empieza su propia narración.
+useEffect(() => {
+  endRealtime("step_changed")
+}, [currentStepId, endRealtime])
+
 const stepIndex = tour?.steps.findIndex((s) => s.id === step?.id) ?? 0
 const totalSteps = tour?.steps.length ?? 0
 
@@ -376,7 +492,18 @@ const { openStartRoute, openPreviewRoute } = useTourRouteActions({
 
 
 
-const handleBack = () => {
+// "Salir" = pausa: cierra la conversación abierta (si hay) pero NO termina
+// el tour; al volver se retoma la misma bolsa de conversación.
+const handleExit = () => {
+  endRealtime("exit")
+  router.back()
+}
+
+// "Terminar" del último paso: cierra la bolsa del tour (/tour/finish, sin
+// esperar a la red) y sale.
+const handleFinishTour = () => {
+  endRealtime("exit")
+  tourRun.finish()
   router.back()
 }
 
@@ -423,9 +550,9 @@ const goNext = () => {
     return
   }
 
-  // Paso de cierre (end): "Terminar" sale del tour igual que "Salir".
+  // Paso de cierre (end): "Terminar" termina el tour y sale.
   if (action.type === "none" && step?.end) {
-    handleBack()
+    handleFinishTour()
   }
 }
 
@@ -683,7 +810,7 @@ return(
   title={step.title}
   stepIndex={stepIndex}
   totalSteps={totalSteps}
-  onBack={handleBack}
+  onBack={handleExit}
   onOpenChat={handleOpenChat}
 />
 
@@ -695,8 +822,8 @@ return(
 <TourNarrationBlock
   pulseAnim={pulseAnim}
   voiceEnergy={voiceEnergy}
-  guiaVoiceStatus={guiaVoiceStatus}
-  onAskGuia={handleWakeWordDetected}
+  guiaVoiceStatus={narrationPillStatus}
+  onAskGuia={handleAskGuia}
 />
 
 

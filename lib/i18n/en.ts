@@ -173,6 +173,9 @@ export const en: TranslationDictionary = {
     statusSpeaking: "Speaking...",
     statusError: "I didn't catch that, tap to try again",
     statusRateLimited: "Wait a moment",
+    statusNoTime: "This tour's conversation time is used up",
+    realtimeGoodbyeInstruction:
+      "Say goodbye now in one short, warm sentence: say that the conversation time for this tour is over and that the tour continues. Don't ask any questions.",
     transitionPhrases: [
       "Let's continue the tour.",
       "Let's pick up where we left off.",

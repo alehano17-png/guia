@@ -184,6 +184,12 @@ export const es = {
     statusSpeaking: "Hablando...",
     statusError: "No entendí, toca para intentar de nuevo",
     statusRateLimited: "Espera un momento",
+    // La bolsa de conversación por voz de este tour está en 0.
+    statusNoTime: "Se acabó el tiempo de conversación de este tour",
+    // Instrucción (no se muestra) para que GUÍA se despida al agotarse la
+    // bolsa, en el idioma del tour.
+    realtimeGoodbyeInstruction:
+      "Despídete ahora en una sola frase corta y cálida: di que se acabó el tiempo de conversación de este tour y que el recorrido continúa. No hagas preguntas.",
     // Frases habladas (no solo en pantalla) al retomar la narración tras
     // "Hablar con GUÍA" — se elige una al azar entre las 4.
     transitionPhrases: [
