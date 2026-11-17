@@ -70,7 +70,7 @@ in its central monument.`,
         "Sculptor Mariano Benlliure",
         "The llama mix-up",
       ],
-      nextStepPreview: { time: "5–7 min walk" },
+      nextStepPreview: { time: "10–12 min walk" },
     },
 
     {

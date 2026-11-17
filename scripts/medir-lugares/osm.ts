@@ -11,13 +11,17 @@
 // 1) nodos a menos de KEEP_RADIUS_METERS de algún punto;
 // 2) vías que tocan esos nodos;
 // 3) relaciones multipolígono armadas con esas vías.
+// De paso se guardan todos los elementos con nombre de esa zona (nodos, vías
+// y relaciones, con cualquier etiqueta), para revisar si el punto de un paso
+// quedó corrido respecto del lugar que nombra.
 
 import { createReadStream } from "node:fs";
 import { readOsmPbf } from "@osmix/pbf";
 
 // Cubre de sobra cualquier lugar que pueda servir (a menos de 150 m del
-// punto y de hasta 300 m de lado). Un contorno con nodos más lejos que esto
-// queda incompleto y se descarta: sería "muy grande" de todos modos.
+// punto y de hasta 300 m de lado) y la búsqueda de nombres (a menos de
+// 1 km). Un contorno con nodos más lejos que esto queda incompleto y se
+// descarta: sería "muy grande" de todos modos.
 const KEEP_RADIUS_METERS = 1500;
 const METERS_PER_DEGREE_LAT = (Math.PI / 180) * 6371000;
 
@@ -30,6 +34,28 @@ export type OsmArea = {
   source: string;
   tags: Tags;
   outerRings: [number, number][][];
+};
+
+// Etiquetas con nombres de un lugar: el principal y los alternativos (por
+// ejemplo, el Parque del Amor se llama oficialmente "Parque Alberto Andrade
+// Carmona" y tiene "Parque del Amor" como alt_name y old_name).
+export const NAME_KEYS = ["name", "name:es", "alt_name", "old_name", "official_name", "short_name", "loc_name"];
+
+function hasName(tags: Tags): boolean {
+  return NAME_KEYS.some((key) => !!tags[key]);
+}
+
+// Un elemento con nombre (nodo, vía o relación, con cualquier etiqueta).
+export type NamedFeature = {
+  // "node/123", "way/456" o "relation/789".
+  source: string;
+  tags: Tags;
+  // Tramos conocidos de su geometría (los nodos cercanos), como [lat, lng].
+  // Un nodo es un tramo de un solo punto.
+  lines: [number, number][][];
+  // Anillos cerrados y completos (vía cerrada o multipolígono): un punto
+  // adentro está a 0 m del elemento.
+  rings: [number, number][][];
 };
 
 // Solo lugares visitables: plazas, parques y jardines, edificios, iglesias,
@@ -86,10 +112,27 @@ function joinRings(parts: number[][]): number[][] | null {
   return rings;
 }
 
+// Tramos de una vía con los nodos que se conocen (los cercanos), en orden.
+function knownRuns(refs: number[], nodes: Map<number, [number, number]>): [number, number][][] {
+  const runs: [number, number][][] = [];
+  let current: [number, number][] = [];
+  for (const ref of refs) {
+    const coord = nodes.get(ref);
+    if (coord) {
+      current.push(coord);
+    } else if (current.length) {
+      runs.push(current);
+      current = [];
+    }
+  }
+  if (current.length) runs.push(current);
+  return runs;
+}
+
 export async function readAreasNear(
   pbfPath: string,
   points: Point[]
-): Promise<{ areas: OsmArea[]; seconds: number }> {
+): Promise<{ areas: OsmArea[]; named: NamedFeature[]; seconds: number }> {
   const started = Date.now();
 
   // Filtro rápido por recuadro y luego por distancia a cada punto.
@@ -111,6 +154,7 @@ export async function readAreasNear(
   const nodes = new Map<number, [number, number]>();
   const ways = new Map<number, { refs: number[]; tags: Tags | null }>();
   const areas: OsmArea[] = [];
+  const named: NamedFeature[] = [];
 
   const { blocks } = await readOsmPbf(createReadStream(pbfPath));
 
@@ -122,25 +166,53 @@ export async function readAreasNear(
     const getStrings = () => (strings ??= block.stringtable.map((s) => decoder.decode(s)));
 
     for (const group of block.primitivegroup) {
-      // Nodos densos (deltas acumulados): solo se guardan los cercanos.
+      // Nodos densos (deltas acumulados): solo se guardan los cercanos. Sus
+      // etiquetas vienen todas seguidas en keys_vals, separadas por un 0.
       if (group.dense) {
-        const { id, lat, lon } = group.dense;
+        const { id, lat, lon, keys_vals: keysVals } = group.dense;
         let nodeId = 0;
         let rawLat = 0;
         let rawLon = 0;
+        let kv = 0;
         for (let i = 0; i < id.length; i++) {
           nodeId += id[i];
           rawLat += lat[i];
           rawLon += lon[i];
+          const tagsStart = kv;
+          while (kv < keysVals.length && keysVals[kv] !== 0) kv += 2;
+          const tagsEnd = kv;
+          kv++;
+
           const latitude = 1e-9 * (latOffset + granularity * rawLat);
           const longitude = 1e-9 * (lonOffset + granularity * rawLon);
-          if (isNearAnyPoint(latitude, longitude)) nodes.set(nodeId, [latitude, longitude]);
+          if (!isNearAnyPoint(latitude, longitude)) continue;
+          nodes.set(nodeId, [latitude, longitude]);
+
+          if (tagsEnd > tagsStart) {
+            const keys: number[] = [];
+            const vals: number[] = [];
+            for (let j = tagsStart; j < tagsEnd; j += 2) {
+              keys.push(keysVals[j]);
+              vals.push(keysVals[j + 1]);
+            }
+            const tags = tagsFrom(keys, vals, getStrings());
+            if (hasName(tags)) {
+              named.push({ source: `node/${nodeId}`, tags, lines: [[[latitude, longitude]]], rings: [] });
+            }
+          }
         }
       }
       for (const node of group.nodes) {
         const latitude = 1e-9 * (latOffset + granularity * node.lat);
         const longitude = 1e-9 * (lonOffset + granularity * node.lon);
-        if (isNearAnyPoint(latitude, longitude)) nodes.set(node.id, [latitude, longitude]);
+        if (!isNearAnyPoint(latitude, longitude)) continue;
+        nodes.set(node.id, [latitude, longitude]);
+        if (node.keys.length) {
+          const tags = tagsFrom(node.keys, node.vals, getStrings());
+          if (hasName(tags)) {
+            named.push({ source: `node/${node.id}`, tags, lines: [[[latitude, longitude]]], rings: [] });
+          }
+        }
       }
 
       // Vías que tocan algún nodo cercano. Las cerradas y visitables ya son
@@ -160,47 +232,57 @@ export async function readAreasNear(
         ways.set(way.id, { refs, tags });
 
         const closed = refs.length >= 4 && refs[0] === refs[refs.length - 1];
-        if (closed && tags && isVisitable(tags) && refs.every((r) => nodes.has(r))) {
-          areas.push({
-            source: `way/${way.id}`,
-            tags,
-            outerRings: [refs.slice(0, -1).map((r) => nodes.get(r)!)],
-          });
+        const ring = closed && refs.every((r) => nodes.has(r)) ? refs.slice(0, -1).map((r) => nodes.get(r)!) : null;
+        if (ring && tags && isVisitable(tags)) {
+          areas.push({ source: `way/${way.id}`, tags, outerRings: [ring] });
+        }
+        if (tags && hasName(tags)) {
+          named.push({ source: `way/${way.id}`, tags, lines: knownRuns(refs, nodes), rings: ring ? [ring] : [] });
         }
       }
 
-      // Multipolígonos visitables, armados con las vías guardadas.
+      // Relaciones: los multipolígonos visitables son contornos, y las que
+      // tienen nombre se guardan con la geometría conocida de sus miembros.
       for (const relation of group.relations) {
         const tags = tagsFrom(relation.keys, relation.vals, getStrings());
-        if (tags.type !== "multipolygon" || !isVisitable(tags)) continue;
+        const isMultipolygon = tags.type === "multipolygon";
+        const isArea = isMultipolygon || tags.type === "boundary";
+        const wantsArea = isMultipolygon && isVisitable(tags);
+        const wantsNamed = hasName(tags);
+        if (!wantsArea && !wantsNamed) continue;
 
         const outerParts: number[][] = [];
+        const lines: [number, number][][] = [];
         let member = 0;
         let complete = true;
         for (let i = 0; i < relation.memids.length; i++) {
           member += relation.memids[i];
+          if (relation.types[i] === 0) {
+            // 0 = nodo
+            const coord = nodes.get(member);
+            if (coord) lines.push([coord]);
+            continue;
+          }
           if (relation.types[i] !== 1) continue; // 1 = vía
+          const way = ways.get(member);
+          if (way) lines.push(...knownRuns(way.refs, nodes));
           const role = getStrings()[relation.roles_sid[i]];
           if (role !== "outer" && role !== "") continue;
-          const way = ways.get(member);
-          if (!way || !way.refs.every((r) => nodes.has(r))) {
-            complete = false;
-            break;
-          }
-          outerParts.push(way.refs);
+          if (!way || !way.refs.every((r) => nodes.has(r))) complete = false;
+          else outerParts.push(way.refs);
         }
-        if (!complete || !outerParts.length) continue;
 
-        const rings = joinRings(outerParts);
-        if (!rings) continue;
-        areas.push({
-          source: `relation/${relation.id}`,
-          tags,
-          outerRings: rings.map((ring) => ring.slice(0, -1).map((r) => nodes.get(r)!)),
-        });
+        const rings = isArea && complete && outerParts.length ? joinRings(outerParts) : null;
+        const ringCoords = rings ? rings.map((r) => r.slice(0, -1).map((ref) => nodes.get(ref)!)) : [];
+        if (wantsArea && rings) {
+          areas.push({ source: `relation/${relation.id}`, tags, outerRings: ringCoords });
+        }
+        if (wantsNamed && lines.length) {
+          named.push({ source: `relation/${relation.id}`, tags, lines, rings: ringCoords });
+        }
       }
     }
   }
 
-  return { areas, seconds: (Date.now() - started) / 1000 };
+  return { areas, named, seconds: (Date.now() - started) / 1000 };
 }

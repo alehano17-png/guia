@@ -55,5 +55,6 @@ La app sabe que la persona llegó a un lugar cuando está a 15 m o menos de su c
 3. Revisa en la tabla solo los marcados:
    - `revisar`: no hay un lugar con nombre parecido; se usó el contorno más chico que contiene el punto. Confirma que sea el lugar correcto.
    - `sin contorno`, `lugar largo` o `muy grande`: la app usa el círculo de 15 m alrededor del punto. Si un lugar quedó sin contorno y no debería, revisa que el punto del esqueleto esté bien ubicado.
+   - `punto corrido? (X m)` (columna "Revisión del punto", se revisan todos los pasos): a menos de 1 km hay un elemento del mapa cuyo nombre tiene todas las palabras del título del paso, pero el más cercano está a más de 50 m de su punto. La tabla muestra su nombre y su id de OpenStreetMap. Revisa las coordenadas del paso en el esqueleto: la herramienta no las corrige. Los títulos sin una palabra que distinga un lugar (por ejemplo, solo el nombre del barrio o "Mirador") no se revisan.
 
 Datos de mapas: © colaboradores de OpenStreetMap, licencia ODbL (https://www.openstreetmap.org/copyright). Antes de publicar, la app debe mostrar esta atribución en sus créditos.

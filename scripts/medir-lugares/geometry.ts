@@ -52,6 +52,17 @@ export function distanceToRing(p: XY, ring: XY[]): number {
   return best;
 }
 
+// Distancia del punto a un tramo abierto (una calle, por ejemplo). Un tramo
+// de un solo punto es un nodo.
+export function distanceToLine(p: XY, line: XY[]): number {
+  if (line.length === 1) return Math.hypot(p.x - line[0].x, p.y - line[0].y);
+  let best = Infinity;
+  for (let i = 0; i + 1 < line.length; i++) {
+    best = Math.min(best, distanceToSegment(p, line[i], line[i + 1]));
+  }
+  return best;
+}
+
 export function ringArea(ring: XY[]): number {
   let sum = 0;
   for (let i = 0; i < ring.length; i++) {

@@ -70,7 +70,7 @@ en su monumento central.`,
         "Escultor Mariano Benlliure",
         "La confusión de la llama",
       ],
-      nextStepPreview: { time: "5–7 min a pie" },
+      nextStepPreview: { time: "10–12 min a pie" },
     },
 
     {

@@ -5,11 +5,11 @@ export const centroHistoricoSkeleton: TourSkeleton = {
   steps: [
     {
       id: "inicio-centro",
-      latitude: -12.051389,
-      longitude: -77.030556,
+      latitude: -12.051657,
+      longitude: -77.034605,
       startRoute: {
-        latitude: -12.051389,
-        longitude: -77.030556,
+        latitude: -12.051657,
+        longitude: -77.034605,
         nextStepId: "plaza-san-martin",
       },
     },
@@ -17,8 +17,8 @@ export const centroHistoricoSkeleton: TourSkeleton = {
     {
       id: "plaza-san-martin",
       nextId: "plaza-mayor",
-      latitude: -12.051389,
-      longitude: -77.030556,
+      latitude: -12.051657,
+      longitude: -77.034605,
     },
 
     {

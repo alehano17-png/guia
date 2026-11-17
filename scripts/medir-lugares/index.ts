@@ -6,6 +6,12 @@
 //   npm run medir-lugares                    mide solo los pasos sin contorno
 //   npm run medir-lugares -- --reemplazar    recalcula todos
 //
+// Además revisa TODOS los pasos (también los que ya tenían contorno) por si
+// su punto quedó corrido: busca a menos de 1 km cualquier elemento del mapa
+// con un nombre parecido al título del paso y, si el más cercano está a más
+// de 50 m del punto, lo marca "punto corrido?" en la tabla. Solo informa: no
+// edita ningún archivo .ts.
+//
 // Datos: © colaboradores de OpenStreetMap, licencia ODbL
 // (https://www.openstreetmap.org/copyright), del archivo de Perú de
 // Geofabrik. Antes de publicar, la app debe mostrar esta atribución en sus
@@ -22,6 +28,7 @@ import type { TourContent } from "../../data/tours/content-types";
 import type { TourOutlines, TourPlaceOutline } from "../../data/tours/outline-types";
 import type { TourSkeleton } from "../../data/tours/skeleton-types";
 import {
+  distanceToLine,
   distanceToRing,
   lengthAndWidth,
   makeProjection,
@@ -29,7 +36,7 @@ import {
   simplifyRing,
   type XY,
 } from "./geometry";
-import { readAreasNear, type OsmArea } from "./osm";
+import { NAME_KEYS, readAreasNear, type NamedFeature, type OsmArea, type Tags } from "./osm";
 
 const ROOT = process.cwd();
 const SKELETONS_DIR = path.join(ROOT, "data/tours/skeletons");
@@ -46,6 +53,10 @@ const MAX_ELONGATION = 3; // "lugar largo": largo > 3 veces el ancho
 const MAX_POINTS = 40;
 const SIMPLIFY_TOLERANCE_METERS = 1;
 
+// Revisión de puntos corridos.
+const POINT_CHECK_RADIUS_METERS = 1000; // dónde buscar un nombre parecido
+const POINT_CHECK_MAX_OFFSET_METERS = 50; // más lejos que esto: "punto corrido?"
+
 type Status = "ok" | "revisar" | "sin contorno" | "lugar largo" | "muy grande";
 
 type Row = {
@@ -54,6 +65,7 @@ type Row = {
   size: string;
   points: string;
   status: Status | "ya tenía contorno";
+  pointCheck: string;
 };
 
 // Palabras que no sirven para reconocer un lugar por su nombre (son de
@@ -78,15 +90,18 @@ function significantWords(text: string): string[] {
   return text.split(" ").filter((w) => w.length >= 4 && !GENERIC_WORDS.has(w));
 }
 
-// Nombre parecido al título del paso (sin tildes ni mayúsculas, coincidencia
-// parcial): uno contiene al otro, o comparten una palabra que distingue.
-function nameMatchesTitle(name: string, title: string): boolean {
+// Qué tan parecido es un nombre al título del paso (sin tildes ni
+// mayúsculas): 2 si uno contiene al otro; 1 si solo comparten una palabra
+// que distingue; 0 si nada. El 2 gana al 1: con el punto en el centro de la
+// Plaza San Martín, "Plaza San Martín" debe ganarle al monumento "General
+// José de San Martín", que es más chico y también contiene el punto.
+function nameMatchScore(name: string, title: string): number {
   const n = normalize(name);
   const t = normalize(title);
-  if (!n || !t) return false;
-  if (n.includes(t) || (n.length >= 5 && t.includes(n))) return true;
+  if (!n || !t) return 0;
+  if (n.includes(t) || (n.length >= 5 && t.includes(n))) return 2;
   const words = new Set(significantWords(n));
-  return significantWords(t).some((w) => words.has(w));
+  return significantWords(t).some((w) => words.has(w)) ? 1 : 0;
 }
 
 function areaName(area: OsmArea): string {
@@ -94,14 +109,53 @@ function areaName(area: OsmArea): string {
 }
 
 // Todos los nombres del lugar en el mapa: el principal y los alternativos
-// (por ejemplo, el Parque del Amor se llama oficialmente "Parque Alberto
-// Andrade Carmona" y tiene "Parque del Amor" como alt_name y old_name).
-const NAME_KEYS = ["name", "name:es", "alt_name", "old_name", "official_name", "short_name", "loc_name"];
-
-function areaNames(area: OsmArea): string[] {
-  return NAME_KEYS.flatMap((key) => area.tags[key]?.split(";") ?? [])
+// (ver NAME_KEYS en osm.ts).
+function namesOf(tags: Tags): string[] {
+  return NAME_KEYS.flatMap((key) => tags[key]?.split(";") ?? [])
     .map((name) => name.trim())
     .filter(Boolean);
+}
+
+// Palabras que no cuentan al comparar un nombre con el título.
+const CONNECTOR_WORDS = new Set(["a", "al", "con", "de", "del", "e", "el", "en", "la", "las", "los", "y"]);
+
+// Para la revisión de puntos corridos el nombre debe tener TODAS las palabras
+// del título (sin contar "de", "la", "los"...). Es más estricto que
+// nameMatchScore porque busca a 1 km, donde hay muchos lugares que
+// comparten una sola palabra con el título (por ejemplo, una tienda "San
+// Martín" más cerca del punto que la Plaza San Martín).
+function nameHasAllTitleWords(name: string, titleWords: string[]): boolean {
+  const words = new Set(normalize(name).split(" "));
+  return titleWords.every((w) => words.has(w));
+}
+
+// "punto corrido? (X m) Nombre, id" si el elemento con nombre parecido más
+// cercano (a menos de 1 km) está a más de 50 m del punto; "-" si no.
+function checkPoint(latitude: number, longitude: number, title: string, named: NamedFeature[]): string {
+  const normalizedTitle = normalize(title);
+  // Un título sin ninguna palabra que distinga un lugar (por ejemplo, el
+  // nombre del barrio en el paso de inicio, o solo "Mirador") no se busca.
+  if (!significantWords(normalizedTitle).length) return "-";
+  const titleWords = normalizedTitle.split(" ").filter((w) => !CONNECTOR_WORDS.has(w));
+
+  const project = makeProjection(latitude, longitude);
+  const origin: XY = { x: 0, y: 0 };
+  const toXY = (coords: [number, number][]) => coords.map(([lat, lng]) => project(lat, lng));
+
+  let best: { distance: number; name: string; source: string } | null = null;
+  for (const feature of named) {
+    const name = namesOf(feature.tags).find((n) => nameHasAllTitleWords(n, titleWords));
+    if (!name) continue;
+    let distance = Infinity;
+    for (const ring of feature.rings) distance = Math.min(distance, distanceToRing(origin, toXY(ring)));
+    for (const line of feature.lines) distance = Math.min(distance, distanceToLine(origin, toXY(line)));
+    if (distance <= POINT_CHECK_RADIUS_METERS && (!best || distance < best.distance)) {
+      best = { distance, name, source: feature.source };
+    }
+  }
+
+  if (!best || best.distance <= POINT_CHECK_MAX_OFFSET_METERS) return "-";
+  return `punto corrido? (${Math.round(best.distance)} m) ${best.name}, ${best.source}`;
 }
 
 type Candidate = {
@@ -117,7 +171,7 @@ function measureStep(
   longitude: number,
   title: string,
   areas: OsmArea[]
-): { row: Omit<Row, "stepId">; outline: TourPlaceOutline | null } {
+): { row: Omit<Row, "stepId" | "pointCheck">; outline: TourPlaceOutline | null } {
   const project = makeProjection(latitude, longitude);
   const origin: XY = { x: 0, y: 0 };
 
@@ -137,14 +191,15 @@ function measureStep(
   const bySmallest = (a: Candidate, b: Candidate) =>
     (a.distance > 0 ? 1 : 0) - (b.distance > 0 ? 1 : 0) || a.areaM2 - b.areaM2;
 
-  // a) Nombre parecido al título, con el punto dentro o a menos de 30 m.
+  // a) Nombre parecido al título, con el punto dentro o a menos de 30 m. Gana
+  // el nombre más parecido; entre iguales, el que contiene el punto y luego
+  // el más chico.
   const byName = candidates
-    .filter(
-      (c) =>
-        c.distance <= NAME_MATCH_MAX_DISTANCE_METERS &&
-        areaNames(c.area).some((name) => nameMatchesTitle(name, title))
-    )
-    .sort(bySmallest);
+    .filter((c) => c.distance <= NAME_MATCH_MAX_DISTANCE_METERS)
+    .map((c) => ({ c, score: Math.max(0, ...namesOf(c.area.tags).map((name) => nameMatchScore(name, title))) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score || bySmallest(a.c, b.c))
+    .map(({ c }) => c);
   // b) Si no, el más chico que contenga el punto (para revisar a mano).
   const containing = candidates.filter((c) => c.distance === 0).sort(bySmallest);
 
@@ -249,10 +304,10 @@ function formatOutlines(outlines: TourOutlines): string {
 
 function printTable(tourId: string, rows: Row[]) {
   console.log(`\n${tourId}`);
-  console.log("| Paso | Contorno en el mapa | Largo x ancho (m) | Puntos | Marca |");
-  console.log("|---|---|---|---|---|");
+  console.log("| Paso | Contorno en el mapa | Largo x ancho (m) | Puntos | Marca | Revisión del punto |");
+  console.log("|---|---|---|---|---|---|");
   for (const r of rows) {
-    console.log(`| ${r.stepId} | ${r.name} | ${r.size} | ${r.points} | ${r.status} |`);
+    console.log(`| ${r.stepId} | ${r.name} | ${r.size} | ${r.points} | ${r.status} | ${r.pointCheck} |`);
   }
 }
 
@@ -261,26 +316,26 @@ async function main() {
   const started = Date.now();
   const tours = await loadTours();
 
-  // Pasos a medir: con coordenadas, y sin contorno guardado (salvo
-  // --reemplazar).
-  const toMeasure = tours.flatMap((tour) =>
-    tour.skeleton.steps
-      .filter((s) => s.latitude != null && s.longitude != null)
-      .filter((s) => replaceAll || !tour.existing[s.id])
-      .map((s) => ({ lat: s.latitude!, lng: s.longitude! }))
+  // Todos los pasos con coordenadas se revisan (punto corrido); se miden
+  // solo los que no tienen contorno guardado (salvo --reemplazar).
+  const steps = tours.flatMap((tour) =>
+    tour.skeleton.steps.filter((s) => s.latitude != null && s.longitude != null).map((s) => ({ tour, s }))
   );
-
-  let areas: OsmArea[] = [];
-  if (toMeasure.length) {
-    await ensurePeruFile();
-    const read = await readAreasNear(PBF_PATH, toMeasure);
-    areas = read.areas;
-    console.log(
-      `Archivo de Perú leído en ${read.seconds.toFixed(1)} s: ${areas.length} contornos visitables cerca de ${toMeasure.length} puntos.`
-    );
-  } else {
-    console.log("No hay pasos sin contorno: nada que medir (usa --reemplazar para recalcular).");
+  const toMeasure = steps.filter(({ tour, s }) => replaceAll || !tour.existing[s.id]).length;
+  if (!steps.length) {
+    console.log("No hay pasos con coordenadas: nada que revisar.");
+    return;
   }
+
+  await ensurePeruFile();
+  const read = await readAreasNear(
+    PBF_PATH,
+    steps.map(({ s }) => ({ lat: s.latitude!, lng: s.longitude! }))
+  );
+  const { areas, named } = read;
+  console.log(
+    `Archivo de Perú leído en ${read.seconds.toFixed(1)} s: ${areas.length} contornos visitables y ${named.length} elementos con nombre cerca de ${steps.length} puntos (${toMeasure} por medir).`
+  );
 
   for (const tour of tours) {
     const next: TourOutlines = replaceAll ? {} : { ...tour.existing };
@@ -288,14 +343,15 @@ async function main() {
 
     for (const step of tour.skeleton.steps) {
       if (step.latitude == null || step.longitude == null) continue;
+      const title = tour.titles.get(step.id) ?? step.id;
+      const pointCheck = checkPoint(step.latitude, step.longitude, title, named);
       if (!replaceAll && tour.existing[step.id]) {
         const saved = tour.existing[step.id];
-        rows.push({ stepId: step.id, name: saved.name, size: "-", points: String(saved.outline.length), status: "ya tenía contorno" });
+        rows.push({ stepId: step.id, name: saved.name, size: "-", points: String(saved.outline.length), status: "ya tenía contorno", pointCheck });
         continue;
       }
-      const title = tour.titles.get(step.id) ?? step.id;
       const { row, outline } = measureStep(step.latitude, step.longitude, title, areas);
-      rows.push({ stepId: step.id, ...row });
+      rows.push({ stepId: step.id, ...row, pointCheck });
       if (outline) next[step.id] = outline;
       else delete next[step.id];
     }
@@ -311,6 +367,7 @@ async function main() {
 
   console.log(`\nTotal: ${((Date.now() - started) / 1000).toFixed(1)} s.`);
   console.log("Revisa a mano solo los marcados \"revisar\" (y, si quieres, los demás que no son \"ok\").");
+  console.log("Si un paso dice \"punto corrido?\", revisa sus coordenadas en el esqueleto (esta herramienta no lo corrige).");
 }
 
 main().catch((error: unknown) => {
