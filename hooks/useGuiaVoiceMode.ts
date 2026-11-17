@@ -57,8 +57,10 @@ export const GUIA_TRANSITION_AUDIO_STEP_ID = "guia-transition";
 
 // "rate_limited": el servidor rechazó la pregunta por límite de uso (429);
 // la píldora pide esperar un momento. Se puede volver a tocar, como "error".
-// "no_time": solo con la conversación en tiempo real, cuando la bolsa de
-// este tour está en 0 (este modo de voz nunca lo usa).
+// "no_time" y "no_connection": solo con la conversación en tiempo real
+// (este modo de voz nunca los usa). "no_time": la bolsa de este tour está
+// en 0. "no_connection": no se pudo abrir la bolsa (/tour/start) ni al
+// reintentar; se puede volver a tocar, como "error".
 export type GuiaVoiceStatus =
   | "idle"
   | "listening"
@@ -66,7 +68,8 @@ export type GuiaVoiceStatus =
   | "speaking"
   | "error"
   | "rate_limited"
-  | "no_time";
+  | "no_time"
+  | "no_connection";
 
 type TourContext = {
   context?: string;

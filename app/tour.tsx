@@ -318,12 +318,28 @@ const handleWakeWordDetected = useCallback(() => {
   })
 }, [askGuia, step, tour])
 
-// Conversación por voz en tiempo real (OpenAI Realtime por WebRTC). Solo en
-// un build propio con WebRTC y con la bolsa del tour abierta; en Expo Go (o
-// si /tour/start falla) el botón sigue usando el modo de voz anterior.
+// Conversación por voz en tiempo real (OpenAI Realtime por WebRTC), que
+// descuenta de la bolsa del tour.
+//
+// El modo de voz anterior (grabar -> /transcribe -> /chat -> /voice) queda
+// SOLO para cuando WebRTC no está disponible (Expo Go, desarrollo). No
+// descuenta de la bolsa, así que en un build con WebRTC no se usa nunca, ni
+// siquiera si /tour/start falla: sin bolsa no hay voz. Antes de publicar se
+// evaluará quitarlo.
 const [realtimeVoiceAvailable] = useState(isRealtimeVoiceAvailable)
 
-const tourRun = useTourRun({ tourId, enabled: !loadingTour && !!tour })
+const {
+  runId: tourRunId,
+  remainingSeconds: tourRemainingSeconds,
+  setRemainingSeconds: setTourRemainingSeconds,
+  retry: retryTourRun,
+  finish: finishTourRun,
+} = useTourRun({ tourId, enabled: !loadingTour && !!tour })
+
+// Al tocar el botón sin bolsa: reintentando /tour/start, o falló también
+// el reintento (la píldora pide revisar la conexión).
+const [isRetryingTourRun, setIsRetryingTourRun] = useState(false)
+const [tourRunFailed, setTourRunFailed] = useState(false)
 
 // Retoma la narración donde quedó: stopCurrentAudioForGuia ya guardó la
 // posición redondeada al inicio de la oración. resumeCachedAudioFromLastPosition
@@ -332,6 +348,9 @@ const resumeNarrationAfterRealtime = useCallback(async () => {
   const currentStep = stepRef.current
   if (!currentStep) return
   await ensureAudioForStep(currentStep.id, currentStep.voiceText, true)
+  // Si mientras tanto se pasó a otro paso (por ejemplo, el GPS al terminar
+  // la conversación), ese paso ya narra el suyo.
+  if (stepRef.current?.id !== currentStep.id) return
   await resumeCachedAudioFromLastPosition(currentStep.id, currentStep.voiceText)
 }, [ensureAudioForStep, resumeCachedAudioFromLastPosition])
 
@@ -368,47 +387,77 @@ const {
   start: startRealtime,
   end: endRealtime,
 } = useRealtimeConversation({
-  runId: tourRun.runId,
   language: tourLocale,
-  knownRemainingSeconds: tourRun.remainingSeconds,
-  onRemainingSeconds: tourRun.setRemainingSeconds,
+  knownRemainingSeconds: tourRemainingSeconds,
+  onRemainingSeconds: setTourRemainingSeconds,
   onEnded: handleRealtimeEnded,
 })
 
-const usesRealtimeVoice = realtimeVoiceAvailable && !!tourRun.runId
-
 // Botón "Toca para hablar con GUÍA".
 const handleAskGuia = useCallback(async () => {
-  if (!usesRealtimeVoice) {
+  // Sin WebRTC (Expo Go, desarrollo): el modo de voz anterior.
+  if (!realtimeVoiceAvailable) {
     handleWakeWordDetected()
     return
   }
-  if (isRealtimeActive) return
+  if (isRealtimeActive || isRetryingTourRun) return
+
+  // Sin bolsa (por ejemplo, sin internet al abrir el tour): se reintenta
+  // /tour/start ahora. Si vuelve a fallar, no hay conversación (tampoco el
+  // modo anterior) y la narración sigue sonando.
+  let runId = tourRunId
+  if (!runId) {
+    setTourRunFailed(false)
+    setIsRetryingTourRun(true)
+    runId = await retryTourRun()
+    setIsRetryingTourRun(false)
+    if (!runId) {
+      setTourRunFailed(true)
+      return
+    }
+  }
+  setTourRunFailed(false)
 
   // Pausa la narración redondeando a la oración, igual que askGuia().
   await stopCurrentAudioForGuia()
-  startRealtime({
+  startRealtime(runId, {
     tourTitle: tour?.title,
     context: step?.title,
     summary: step?.summary,
     highlights: step?.highlights,
   })
 }, [
-  usesRealtimeVoice,
+  realtimeVoiceAvailable,
   handleWakeWordDetected,
   isRealtimeActive,
+  isRetryingTourRun,
+  tourRunId,
+  retryTourRun,
   stopCurrentAudioForGuia,
   startRealtime,
   tour,
   step,
 ])
 
-const narrationPillStatus: GuiaVoiceStatus = usesRealtimeVoice
-  ? REALTIME_PILL_STATUS[realtimeStatus]
-  : guiaVoiceStatus
+const narrationPillStatus: GuiaVoiceStatus = !realtimeVoiceAvailable
+  ? guiaVoiceStatus
+  : isRetryingTourRun
+    ? "thinking"
+    : tourRunFailed && !isRealtimeActive
+      ? "no_connection"
+      : REALTIME_PILL_STATUS[realtimeStatus]
 
-// Cambiar de paso con una conversación abierta la cierra: el paso nuevo
-// empieza su propia narración.
+// El modo de voz anterior tiene una pregunta en curso (escuchando,
+// pensando o hablando).
+const isGuiaVoiceBusy =
+  guiaVoiceStatus !== "idle" &&
+  guiaVoiceStatus !== "error" &&
+  guiaVoiceStatus !== "rate_limited" &&
+  guiaVoiceStatus !== "no_time"
+
+// Tocar "Siguiente" con una conversación abierta la cierra: el paso nuevo
+// empieza su propia narración. (El avance automático por GPS no actúa
+// durante una conversación, ver más abajo.)
 useEffect(() => {
   endRealtime("step_changed")
 }, [currentStepId, endRealtime])
@@ -503,7 +552,7 @@ const handleExit = () => {
 // esperar a la red) y sale.
 const handleFinishTour = () => {
   endRealtime("exit")
-  tourRun.finish()
+  finishTourRun()
   router.back()
 }
 
@@ -574,10 +623,16 @@ useEffect(() => {
 // avanzaría dos pasos seguidos; ahí se confirma tocando "Siguiente".
 // En un tour cerrado (enclosed) solo actúa en el inicio guiado: dentro del
 // recinto el GPS no distingue zonas ni pisos.
+// Tampoco mientras hay una conversación con GUÍA (en tiempo real, o el modo
+// de voz anterior escuchando, pensando o hablando): cambiar de paso la
+// cortaría. Al terminar la conversación este effect vuelve a correr (sus
+// dependencias cambian) y, si la persona sigue dentro del radio, avanza
+// en ese momento.
 useEffect(() => {
   if (!userLocation || !previewDestination) return
   if (step?.actionCard) return
   if (tour?.enclosed && !isGuidedStart) return
+  if (isRealtimeActive || isGuiaVoiceBusy) return
   if (hasAutoAdvancedRef.current) return
 
   const distance = getDistanceInMeters(userLocation, previewDestination)
@@ -607,6 +662,8 @@ useEffect(() => {
   hasChoices,
   step,
   tour?.enclosed,
+  isRealtimeActive,
+  isGuiaVoiceBusy,
 ])
 
 // messageOverride: para las sugerencias del estado vacío del chat, que

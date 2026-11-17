@@ -174,6 +174,7 @@ export const en: TranslationDictionary = {
     statusError: "I didn't catch that, tap to try again",
     statusRateLimited: "Wait a moment",
     statusNoTime: "This tour's conversation time is used up",
+    statusNoConnection: "We couldn't connect to GUÍA. Check your connection.",
     realtimeGoodbyeInstruction:
       "Say goodbye now in one short, warm sentence: say that the conversation time for this tour is over and that the tour continues. Don't ask any questions.",
     transitionPhrases: [

@@ -186,6 +186,8 @@ export const es = {
     statusRateLimited: "Espera un momento",
     // La bolsa de conversación por voz de este tour está en 0.
     statusNoTime: "Se acabó el tiempo de conversación de este tour",
+    // No se pudo abrir la bolsa del tour (/tour/start) ni al reintentar.
+    statusNoConnection: "No pudimos conectar con GUÍA. Revisa tu conexión.",
     // Instrucción (no se muestra) para que GUÍA se despida al agotarse la
     // bolsa, en el idioma del tour.
     realtimeGoodbyeInstruction:

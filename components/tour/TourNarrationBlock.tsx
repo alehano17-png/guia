@@ -53,6 +53,7 @@ export default function TourNarrationBlock({
     error: t.guia.statusError,
     rate_limited: t.guia.statusRateLimited,
     no_time: t.guia.statusNoTime,
+    no_connection: t.guia.statusNoConnection,
   };
 
   // Solo se puede tocar en reposo o tras un error — mientras escucha,
@@ -60,7 +61,8 @@ export default function TourNarrationBlock({
   const isGuiaBusy =
     guiaVoiceStatus !== "idle" &&
     guiaVoiceStatus !== "error" &&
-    guiaVoiceStatus !== "rate_limited";
+    guiaVoiceStatus !== "rate_limited" &&
+    guiaVoiceStatus !== "no_connection";
 
   const [scale, setScale] = useState(1);
   const handleLayout = (e: LayoutChangeEvent) => {

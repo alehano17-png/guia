@@ -203,13 +203,11 @@ function closeMedia(s: Session) {
 }
 
 export function useRealtimeConversation({
-  runId,
   language,
   knownRemainingSeconds,
   onRemainingSeconds,
   onEnded,
 }: {
-  runId: string | null;
   // Idioma del tour: el de GUÍA y el de su despedida.
   language: TourLocale;
   // Lo último que dijo el servidor sobre la bolsa (null si no se sabe).
@@ -486,11 +484,13 @@ export function useRealtimeConversation({
 
   // Abre una conversación: micrófono -> conexión WebRTC -> oferta SDP ->
   // /realtime/call (el servidor crea la llamada en OpenAI) -> respuesta SDP.
+  // runId llega como parámetro (no del render): puede venir de un reintento
+  // de /tour/start hecho justo antes, en el mismo toque.
   const start = useCallback(
-    async (context: RealtimeStartContext) => {
+    async (runId: string, context: RealtimeStartContext) => {
       if (sessionRef.current) return;
 
-      const s = newSession(runId ?? "", language);
+      const s = newSession(runId, language);
       sessionRef.current = s;
 
       const lib = getWebRTC();
@@ -581,7 +581,7 @@ export function useRealtimeConversation({
         await finishSession(s, s.noTime ? "no_time" : "error");
       }
     },
-    [runId, language, finishSession, handleChannelOpen, handleServerEvent, setStatusIfMounted]
+    [language, finishSession, handleChannelOpen, handleServerEvent, setStatusIfMounted]
   );
 
   // Cierra la conversación activa (si hay). Idempotente.
