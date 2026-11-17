@@ -151,11 +151,7 @@ casi 500 años.`,
         "17 generaciones de la misma familia",
         "Residencia privada más antigua de Latinoamérica",
       ],
-      actionCard: {
-        tag: "Recorrido por confirmación",
-        title: "Camina hacia la Casa de Aliaga",
-        subtitle: "Cuando llegues, toca \"Siguiente\".",
-      },
+      nextStepPreview: { time: "4–6 min a pie" },
     },
 
     {
@@ -201,11 +197,7 @@ tras los terremotos.`,
         "Técnica antisísmica de quincha",
         "Tumba de Francisco Pizarro",
       ],
-      actionCard: {
-        tag: "Recorrido por confirmación",
-        title: "Camina hacia la Catedral",
-        subtitle: "Cuando llegues, toca \"Siguiente\".",
-      },
+      nextStepPreview: { time: "3–4 min a pie" },
     },
 
     {
@@ -242,11 +234,7 @@ todavía se sigue escribiendo.`,
         "Reinstalada en enero de 2025",
         "Junto al monumento a Taulichusco",
       ],
-      actionCard: {
-        tag: "Recorrido por confirmación",
-        title: "Camina hacia el Pasaje Santa Rosa",
-        subtitle: "Cuando llegues, toca \"Siguiente\".",
-      },
+      nextStepPreview: { time: "6–8 min a pie" },
     },
 
     {
@@ -283,11 +271,7 @@ por más de un siglo.`,
         "Catacumbas olvidadas",
         "Redescubiertas en 1943",
       ],
-      actionCard: {
-        tag: "Recorrido por confirmación",
-        title: "Camina hacia el Convento de San Francisco",
-        subtitle: "Cuando llegues, toca \"Siguiente\".",
-      },
+      nextStepPreview: { time: "2–3 min a pie" },
     },
 
     {

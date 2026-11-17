@@ -33,7 +33,6 @@ export const centroHistoricoSkeleton: TourSkeleton = {
       nextId: "catedral",
       latitude: -12.044411,
       longitude: -77.030288,
-      hasActionCard: true,
     },
 
     {
@@ -41,7 +40,6 @@ export const centroHistoricoSkeleton: TourSkeleton = {
       nextId: "pasaje-santa-rosa",
       latitude: -12.04675,
       longitude: -77.02968,
-      hasActionCard: true,
     },
 
     {
@@ -49,7 +47,6 @@ export const centroHistoricoSkeleton: TourSkeleton = {
       nextId: "san-francisco",
       latitude: -12.045688,
       longitude: -77.031078,
-      hasActionCard: true,
     },
 
     {
@@ -57,7 +54,6 @@ export const centroHistoricoSkeleton: TourSkeleton = {
       nextId: "parque-muralla",
       latitude: -12.045478,
       longitude: -77.027173,
-      hasActionCard: true,
     },
 
     {

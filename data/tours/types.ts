@@ -1,3 +1,5 @@
+import type { TourPlaceOutline } from "./outline-types";
+
 export type TourChoice = {
   label: string;
   nextId: string;
@@ -17,6 +19,9 @@ export type TourStep = {
   // Punto dentro de un recinto (ubicación poco precisa): la tarjeta no
   // muestra mapa ni 'Abrir mapa'.
   noMap?: boolean
+  // Contorno real del lugar (data/tours/outlines/), si existe: sirve para
+  // saber cuándo la persona llegó. Sin contorno, solo cuenta el punto.
+  outline?: TourPlaceOutline
   choices?: TourChoice[]
 
   startRoute?: {

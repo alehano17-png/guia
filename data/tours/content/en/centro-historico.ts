@@ -151,11 +151,7 @@ almost 500 years.`,
         "17 generations of the same family",
         "Oldest private residence in Latin America",
       ],
-      actionCard: {
-        tag: "Confirm to continue",
-        title: "Walk to the Casa de Aliaga",
-        subtitle: "When you arrive, tap \"Next\".",
-      },
+      nextStepPreview: { time: "4–6 min walk" },
     },
 
     {
@@ -201,11 +197,7 @@ after earthquakes.`,
         "Anti-seismic quincha technique",
         "Tomb of Francisco Pizarro",
       ],
-      actionCard: {
-        tag: "Confirm to continue",
-        title: "Walk to the Cathedral",
-        subtitle: "When you arrive, tap \"Next\".",
-      },
+      nextStepPreview: { time: "3–4 min walk" },
     },
 
     {
@@ -242,11 +234,7 @@ is still being written.`,
         "Reinstalled in January 2025",
         "Next to the monument to Taulichusco",
       ],
-      actionCard: {
-        tag: "Confirm to continue",
-        title: "Walk to Pasaje Santa Rosa",
-        subtitle: "When you arrive, tap \"Next\".",
-      },
+      nextStepPreview: { time: "6–8 min walk" },
     },
 
     {
@@ -283,11 +271,7 @@ for more than a century.`,
         "Forgotten catacombs",
         "Rediscovered in 1943",
       ],
-      actionCard: {
-        tag: "Confirm to continue",
-        title: "Walk to the San Francisco Convent",
-        subtitle: "When you arrive, tap \"Next\".",
-      },
+      nextStepPreview: { time: "2–3 min walk" },
     },
 
     {

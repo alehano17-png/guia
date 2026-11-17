@@ -35,7 +35,8 @@ import { useTourRun } from "../hooks/useTourRun";
 import { isRealtimeVoiceAvailable } from "../lib/webrtc";
 import { useTourLocation } from "../hooks/useTourLocation";
 import { useTourRouteActions } from "../hooks/useTourRouteActions";
-import { getDistanceInMeters } from "../lib/geo";
+import * as Haptics from "expo-haptics";
+import { getTourArrivalTarget, isWithinArrival } from "../data/tours/arrival";
 import { ChatMessage } from "../lib/chatTypes";
 import { sendTourChatMessage } from "../lib/sendTourChatMessage";
 import { isRateLimitedError } from "../lib/tourApiConfig";
@@ -43,9 +44,10 @@ import { TOUR_GRADIENT_COLORS } from "../lib/tourTheme";
 import { translations } from "../lib/i18n";
 import { LocaleOverride, useTranslation } from "../lib/i18n/useTranslation";
 
-// Radio de "llegada" al punto del recorrido, en metros — a partir de acá
-// se dispara el avance automático (solo para pasos de tipo "advance").
-const ARRIVAL_RADIUS_METERS = 30;
+// Al llegar al siguiente lugar, GUÍA tiene que quedar libre este tiempo
+// seguido antes de vibrar y preguntar: cubre el instante entre que una
+// narración se prepara y empieza a sonar.
+const ARRIVAL_ASK_DELAY_MS = 1000;
 
 // Estados de la conversación en tiempo real mostrados con los textos que ya
 // tiene la píldora de GUÍA (la parte 2b hará los definitivos).
@@ -152,6 +154,7 @@ const {
   stopCurrentAudio,
   playAudioBase64,
   voiceEnergy,
+  isPlaying: isAudioPlaying,
 } = useTourAudio(pulseAnim, tourLocale);
 
 // `step` todavía no existe en este punto del componente (se calcula más
@@ -450,14 +453,13 @@ const narrationPillStatus: GuiaVoiceStatus = !realtimeVoiceAvailable
 // El modo de voz anterior tiene una pregunta en curso (escuchando,
 // pensando o hablando).
 const isGuiaVoiceBusy =
-  guiaVoiceStatus !== "idle" &&
-  guiaVoiceStatus !== "error" &&
-  guiaVoiceStatus !== "rate_limited" &&
-  guiaVoiceStatus !== "no_time"
+  guiaVoiceStatus === "listening" ||
+  guiaVoiceStatus === "thinking" ||
+  guiaVoiceStatus === "speaking"
 
-// Tocar "Siguiente" con una conversación abierta la cierra: el paso nuevo
-// empieza su propia narración. (El avance automático por GPS no actúa
-// durante una conversación, ver más abajo.)
+// Tocar "Siguiente" o "Escuchar" con una conversación abierta la cierra: el
+// paso nuevo empieza su propia narración. (El GPS ya no cambia de paso
+// solo: pregunta "¿Llegaste?" cuando GUÍA queda libre, ver más abajo.)
 useEffect(() => {
   endRealtime("step_changed")
 }, [currentStepId, endRealtime])
@@ -605,66 +607,83 @@ const goNext = () => {
   }
 }
 
-// Evita disparar goNext() más de una vez para el mismo paso mientras el
-// usuario se queda dentro del radio de llegada.
-const hasAutoAdvancedRef = useRef(false)
+// Llegada al siguiente lugar por GPS (solo en primer plano: useTourLocation
+// deja de actualizar userLocation si no). Ya NO avanza solo: el GPS vigila
+// solo el siguiente lugar (data/tours/arrival.ts: inicio guiado, tours
+// cerrados, choices, end, noMap) y, al llegar, cuando GUÍA queda libre, el
+// celular vibra una vez y la tarjeta pregunta "¿Llegaste?". "Escuchar"
+// pasa al siguiente paso; antes de llegar, "Siguiente" funciona igual.
+const arrivalTarget = useMemo(
+  () =>
+    getTourArrivalTarget({
+      steps: tour?.steps,
+      step,
+      isGuidedStart,
+      startRoute,
+      enclosed: tour?.enclosed,
+    }),
+  [tour?.steps, step, isGuidedStart, startRoute, tour?.enclosed]
+)
 
+// Por paso: si ya llegó (aunque después se haya alejado) y si ya se le
+// preguntó. Se guardan con el id del paso, así que al cambiar de paso
+// quedan reiniciados solos. La pregunta sale una sola vez por paso y se
+// queda hasta que la persona toque el botón o cambie de paso.
+const [arrivedStepId, setArrivedStepId] = useState<string | null>(null)
+const [askedStepId, setAskedStepId] = useState<string | null>(null)
+const isAskingArrival = !!arrivalTarget && askedStepId === currentStepId
+
+// Paso cuya narración ya empezó: mientras la de este paso se prepara (antes
+// de sonar), GUÍA también cuenta como ocupada.
+const [narrationStartedStepId, setNarrationStartedStepId] = useState<string | null>(null)
+
+// GUÍA ocupada: narración sonando (o preparándose para este paso),
+// conversación en tiempo real, modo de voz anterior escuchando/pensando/
+// hablando, o el chat de texto abierto. La pregunta espera: nunca
+// interrumpe.
+const isGuiaBusy =
+  isAudioPlaying ||
+  narrationStartedStepId !== currentStepId ||
+  isRealtimeActive ||
+  isGuiaVoiceBusy ||
+  showChat
+
+// El GPS marca la llegada (una vez por paso: si el GPS salta en el borde,
+// no se deshace).
 useEffect(() => {
-  hasAutoAdvancedRef.current = false
-}, [currentStepId])
-
-// Detección automática de llegada por GPS: solo mientras la app está en
-// primer plano (useTourLocation deja de actualizar userLocation si no).
-// Solo avanza sola cuando la acción correspondiente es "advance" — si
-// haría falta abrir una app externa (openStartRoute) o mostrar una
-// decisión (openDecision), se deja que el usuario toque el botón.
-// Tampoco en pasos con actionCard ("Camina hacia…"): su destino es su
-// propia ubicación, la misma a la que llevó el paso anterior, así que
-// avanzaría dos pasos seguidos; ahí se confirma tocando "Siguiente".
-// En un tour cerrado (enclosed) solo actúa en el inicio guiado: dentro del
-// recinto el GPS no distingue zonas ni pisos.
-// Tampoco mientras hay una conversación con GUÍA (en tiempo real, o el modo
-// de voz anterior escuchando, pensando o hablando): cambiar de paso la
-// cortaría. Al terminar la conversación este effect vuelve a correr (sus
-// dependencias cambian) y, si la persona sigue dentro del radio, avanza
-// en ese momento.
-useEffect(() => {
-  if (!userLocation || !previewDestination) return
-  if (step?.actionCard) return
-  if (tour?.enclosed && !isGuidedStart) return
-  if (isRealtimeActive || isGuiaVoiceBusy) return
-  if (hasAutoAdvancedRef.current) return
-
-  const distance = getDistanceInMeters(userLocation, previewDestination)
-  if (distance >= ARRIVAL_RADIUS_METERS) return
-
-  const action = getTourNextAction({
-    isGuidedStart,
-    startMapViewed,
-    startRouteNextStepId: startRoute?.nextStepId,
-    hasChoices,
-    stepNextId: step?.nextId,
-  })
-
-  if (action.type !== "advance") return
-
-  hasAutoAdvancedRef.current = true
-  // setState disparado por un cambio del GPS (sistema externo) — es el uso
-  // correcto de un effect según la doc de React, no una cascada de renders.
+  if (!arrivalTarget || !userLocation) return
+  if (arrivedStepId === currentStepId) return
+  if (!isWithinArrival(userLocation, arrivalTarget)) return
+  // setState disparado por un cambio del GPS (sistema externo).
   // eslint-disable-next-line react-hooks/set-state-in-effect
+  setArrivedStepId(currentStepId)
+}, [arrivalTarget, userLocation, arrivedStepId, currentStepId])
+
+// Ya llegó y GUÍA está libre (de forma sostenida): vibra una vez y
+// pregunta, aunque la persona ya se haya alejado mientras esperaba.
+useEffect(() => {
+  if (!arrivalTarget || arrivedStepId !== currentStepId) return
+  if (askedStepId === currentStepId || isGuiaBusy) return
+
+  const timer = setTimeout(() => {
+    setAskedStepId(currentStepId)
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+      () => {}
+    )
+  }, ARRIVAL_ASK_DELAY_MS)
+  return () => clearTimeout(timer)
+}, [arrivalTarget, arrivedStepId, askedStepId, currentStepId, isGuiaBusy])
+
+// Botón de la tarjeta: "Escuchar" si está preguntando (pasa al lugar al que
+// llegó; en el inicio guiado, al primer punto aunque no haya abierto la
+// ruta); si no, "Siguiente" como siempre.
+const handleCardPress = () => {
+  if (isAskingArrival && arrivalTarget) {
+    setCurrentStepId(arrivalTarget.nextStepId)
+    return
+  }
   goNext()
-}, [
-  userLocation,
-  previewDestination,
-  isGuidedStart,
-  startMapViewed,
-  startRoute,
-  hasChoices,
-  step,
-  tour?.enclosed,
-  isRealtimeActive,
-  isGuiaVoiceBusy,
-])
+}
 
 // messageOverride: para las sugerencias del estado vacío del chat, que
 // llenan Y envían en el mismo toque (ver onSuggestionPress más abajo) —
@@ -784,6 +803,10 @@ useEffect(() => {
     // El globo ya no se arma a mano acá — useTourAudio lo mueve solo,
     // en tiempo real, con el volumen real del audio mientras suena.
     await playCachedAudio(step.id, textToSpeak);
+
+    // Desde acá, "GUÍA ocupada" depende de si el audio sigue sonando
+    // (también si no se pudo preparar: así igual se puede preguntar).
+    if (!cancelled) setNarrationStartedStepId(step.id);
   };
 
   pulseAnim.setValue(1);
@@ -893,7 +916,9 @@ return(
   walkTime={walkTime}
   actionCard={actionCardData}
   buttonLabel={primaryButtonLabel}
-  onPress={goNext}
+  onPress={handleCardPress}
+  askingArrival={isAskingArrival}
+  arrivalTitle={arrivalTarget?.title}
   onOpenPreviewRoute={openPreviewRoute}
   locationPermissionGranted={locationPermissionGranted}
   mapLatitude={mapLatitude}

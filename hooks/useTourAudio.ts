@@ -7,7 +7,7 @@ import {
   useAudioPlayer,
   useAudioSampleListener,
 } from "expo-audio";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import {
@@ -106,6 +106,21 @@ export function useTourAudio(
   const voiceEnergy = useSharedValue(0);
 
   const player = useAudioPlayer();
+
+  // Si el player está sonando ahora (narración, frase de transición o una
+  // respuesta del modo de voz anterior: todo pasa por este mismo player).
+  // Es el estado real de expo-audio (AudioStatus.playing), que llega con su
+  // evento playbackStatusUpdate; solo hay un render nuevo cuando cambia.
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    const subscription = (
+      player as unknown as PlayerWithPlaybackListener
+    ).addListener("playbackStatusUpdate", (status) => {
+      setIsPlaying(status.playing);
+    });
+    return () => subscription.remove();
+  }, [player]);
 
   useEffect(() => {
     requestRecordingPermissionsAsync().catch(() => {
@@ -529,5 +544,6 @@ export function useTourAudio(
     speakChatReply,
     playAudioBase64,
     voiceEnergy,
+    isPlaying,
   };
 }

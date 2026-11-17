@@ -15,6 +15,15 @@ import { mirafloresContentEn } from "./content/en/miraflores";
 import { barrancoContentEn } from "./content/en/barranco";
 import { centroHistoricoContentEn } from "./content/en/centro-historico";
 
+// Contornos de los lugares, uno por tour. Son archivos GENERADOS por una
+// herramienta aparte (desde OpenStreetMap): nadie los edita a mano. Un
+// archivo vacío ({}) significa que ningún lugar de ese tour tiene contorno
+// todavía, y la llegada se detecta solo con el círculo alrededor del punto.
+import type { TourOutlines } from "./outline-types";
+import mirafloresOutlines from "./outlines/miraflores-completo.json";
+import barrancoOutlines from "./outlines/barranco.json";
+import centroHistoricoOutlines from "./outlines/centro-historico.json";
+
 export type {
   TourStep
 } from "./types";
@@ -30,20 +39,25 @@ type TourRegistryEntry = {
   // Partial a propósito: un tour puede no tener todavía contenido en
   // un idioma. getTourById cae a "es" cuando falta el idioma pedido.
   content: Partial<Record<TourLocale, TourContent>>;
+  // Contornos de sus lugares, por id de paso (no dependen del idioma).
+  outlines: TourOutlines;
 };
 
 const TOUR_REGISTRY: TourRegistryEntry[] = [
   {
     skeleton: mirafloresSkeleton,
     content: { es: mirafloresContentEs, en: mirafloresContentEn },
+    outlines: mirafloresOutlines as TourOutlines,
   },
   {
     skeleton: barrancoSkeleton,
     content: { es: barrancoContentEs, en: barrancoContentEn },
+    outlines: barrancoOutlines as TourOutlines,
   },
   {
     skeleton: centroHistoricoSkeleton,
     content: { es: centroHistoricoContentEs, en: centroHistoricoContentEn },
+    outlines: centroHistoricoOutlines as TourOutlines,
   },
 ];
 
@@ -59,7 +73,7 @@ export function getTourById(id: string, locale: TourLocale = "es"): Tour | undef
   const content = entry.content[locale] ?? entry.content.es;
   if (!content) return undefined;
 
-  return mergeTourContent(entry.skeleton, content);
+  return mergeTourContent(entry.skeleton, content, entry.outlines);
 }
 
 // Idiomas con contenido real para un tour (las claves de su "content" en

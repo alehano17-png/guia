@@ -145,6 +145,10 @@ export const es = {
     openChat: "Abrir chat con GUÍA",
     nextStopLabel: "Siguiente parada",
     lastStopLabel: "Última parada",
+    // Al llegar al siguiente lugar (GPS), la tarjeta pregunta.
+    arrivalQuestion: "¿Llegaste?",
+    arrivalHint: "Toca Escuchar para empezar.",
+    arrivalListen: "Escuchar",
     routePointFallback: "Punto del recorrido",
     // Tiempo a pie aproximado, calculado cuando no viene escrito a mano.
     walkTimeApprox: "~{{minutes}} min a pie",

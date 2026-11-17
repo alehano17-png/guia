@@ -42,6 +42,11 @@ type Props = {
   actionCard?: ActionCardData;
   buttonLabel: string;
   onPress: () => void;
+  // La persona llegó al siguiente lugar (GPS): la tarjeta pregunta
+  // "¿Llegaste?", con borde de acento y el botón "Escuchar".
+  askingArrival?: boolean;
+  // Nombre del lugar al que llegó (el mismo destino de la tarjeta).
+  arrivalTitle?: string;
   onOpenPreviewRoute: () => void;
   locationPermissionGranted: boolean;
   mapLatitude: number;
@@ -55,6 +60,8 @@ type Props = {
 // del destino y el tiempo a pie; la etiqueta, el mapa y el botón no cambian.
 // En "last" la etiqueta pasa a "Última parada" y no hay tiempo a pie (el
 // destino ya es la propia parada); en "closing" solo queda el botón.
+// Al llegar al siguiente lugar (askingArrival) pregunta "¿Llegaste?": misma
+// tarjeta y mismo tamaño, con borde de acento y el botón "Escuchar".
 export default function TourNextStopCard({
   mode,
   showMap,
@@ -63,6 +70,8 @@ export default function TourNextStopCard({
   actionCard,
   buttonLabel,
   onPress,
+  askingArrival = false,
+  arrivalTitle,
   onOpenPreviewRoute,
   locationPermissionGranted,
   mapLatitude,
@@ -72,18 +81,26 @@ export default function TourNextStopCard({
 }: Props) {
   const { t } = useTranslation();
   const isLast = mode === "last";
+  // Mientras pregunta, el texto de indicaciones (actionCard) no aplica.
+  const compactCard = askingArrival ? undefined : actionCard;
 
   const button = (
     <Pressable style={styles.button} onPress={onPress}>
-      <Text style={styles.buttonText}>{buttonLabel}</Text>
-      <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+      <Text style={styles.buttonText}>
+        {askingArrival ? t.tour.arrivalListen : buttonLabel}
+      </Text>
+      <Ionicons
+        name={askingArrival ? "play" : "arrow-forward"}
+        size={18}
+        color="#FFFFFF"
+      />
     </Pressable>
   );
 
   if (mode === "closing") return button;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, askingArrival && styles.cardAsking]}>
       <View style={styles.topRow}>
         {showMap ? (
           <Pressable
@@ -126,19 +143,31 @@ export default function TourNextStopCard({
 
         <View style={styles.textColumn}>
           <Text style={styles.label}>
-            {isLast ? t.tour.lastStopLabel : t.tour.nextStopLabel}
+            {askingArrival
+              ? t.tour.arrivalQuestion
+              : isLast
+                ? t.tour.lastStopLabel
+                : t.tour.nextStopLabel}
           </Text>
 
           <Text
-            style={[styles.title, actionCard && styles.titleCompact]}
-            numberOfLines={actionCard ? 3 : 2}
+            style={[styles.title, compactCard && styles.titleCompact]}
+            numberOfLines={compactCard ? 3 : 2}
           >
-            {actionCard ? actionCard.title : previewDestination.title}
+            {compactCard
+              ? compactCard.title
+              : askingArrival
+                ? (arrivalTitle ?? previewDestination.title)
+                : previewDestination.title}
           </Text>
 
-          {actionCard ? (
+          {askingArrival ? (
             <Text style={styles.secondaryText} numberOfLines={2}>
-              {actionCard.subtitle}
+              {t.tour.arrivalHint}
+            </Text>
+          ) : compactCard ? (
+            <Text style={styles.secondaryText} numberOfLines={2}>
+              {compactCard.subtitle}
             </Text>
           ) : isLast || !walkTime ? null : (
             <View style={styles.walkRow}>
@@ -156,15 +185,24 @@ export default function TourNextStopCard({
 }
 
 const styles = StyleSheet.create({
+  // El borde de 2 px está siempre (transparente salvo al preguntar) y el
+  // padding es 12 en vez de 14: así el tamaño de la tarjeta es exactamente
+  // el mismo con y sin la pregunta.
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 26,
-    padding: 14,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: "transparent",
     shadowColor: TOUR_ACCENT_COLOR,
     shadowOpacity: 0.18,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
+  },
+
+  cardAsking: {
+    borderColor: TOUR_ACCENT_COLOR,
   },
 
   topRow: {

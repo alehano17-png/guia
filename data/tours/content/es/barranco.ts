@@ -211,11 +211,7 @@ donde nació Barranco.`,
         "Cerrada desde el terremoto de 1940",
         "Lista de sitios en riesgo (2016)",
       ],
-      actionCard: {
-        tag: "Recorrido por confirmación",
-        title: "Camina hacia la Ermita",
-        subtitle: "Cuando llegues, toca \"Siguiente\".",
-      },
+      nextStepPreview: { time: "2–3 min a pie" },
     },
 
     {
@@ -242,11 +238,7 @@ donde nació Barranco.`,
 hacia la Costa Verde
 y el océano Pacífico.`,
       highlights: [],
-      actionCard: {
-        tag: "Recorrido por confirmación",
-        title: "Camina hacia el mirador",
-        subtitle: "Cuando llegues, toca \"Siguiente\".",
-      },
+      nextStepPreview: { time: "3–5 min a pie" },
     },
 
     {

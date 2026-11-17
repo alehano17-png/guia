@@ -1,15 +1,19 @@
 import type { Tour, TourStep } from "./types";
 import type { TourSkeleton } from "./skeleton-types";
 import type { TourContent } from "./content-types";
+import type { TourOutlines } from "./outline-types";
 
 // Combina esqueleto (estructura, nunca cambia por idioma) + contenido (solo
 // texto, uno por idioma) en el mismo `Tour` que ya consume el resto de la
 // app hoy (TourNextStopCard, TourNarrationBlock, TourChatSheet, preview.ts,
 // app/tour.tsx) — ninguno de esos archivos necesita saber que ahora hay 2
-// fuentes en vez de una.
+// fuentes en vez de una. Los contornos de los lugares (generados, por paso)
+// se suman igual que las coordenadas; llegan aparte para que más adelante
+// puedan venir de otra fuente (por ejemplo, el servidor).
 export function mergeTourContent(
   skeleton: TourSkeleton,
-  content: TourContent
+  content: TourContent,
+  outlines: TourOutlines = {}
 ): Tour {
   const contentById = new Map(content.steps.map((s) => [s.id, s]));
 
@@ -62,6 +66,8 @@ export function mergeTourContent(
     if (sk.latitude !== undefined) merged.latitude = sk.latitude;
     if (sk.longitude !== undefined) merged.longitude = sk.longitude;
     if (sk.noMap !== undefined) merged.noMap = sk.noMap;
+    const outline = outlines[sk.id];
+    if (outline !== undefined) merged.outline = outline;
     if (choices !== undefined) merged.choices = choices;
     if (sk.hasActionCard) merged.actionCard = c.actionCard;
     if (sk.startRoute && c.startRoute) {

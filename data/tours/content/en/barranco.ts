@@ -210,11 +210,7 @@ where Barranco was born.`,
         "Closed since the 1940 earthquake",
         "List of sites at risk (2016)",
       ],
-      actionCard: {
-        tag: "Confirm to continue",
-        title: "Walk to the Ermita",
-        subtitle: "When you arrive, tap \"Next\".",
-      },
+      nextStepPreview: { time: "2–3 min walk" },
     },
 
     {
@@ -241,11 +237,7 @@ where Barranco was born.`,
 toward the Costa Verde
 and the Pacific Ocean.`,
       highlights: [],
-      actionCard: {
-        tag: "Confirm to continue",
-        title: "Walk to the viewpoint",
-        subtitle: "When you arrive, tap \"Next\".",
-      },
+      nextStepPreview: { time: "3–5 min walk" },
     },
 
     {
