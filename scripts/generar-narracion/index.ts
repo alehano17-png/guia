@@ -10,6 +10,11 @@
 //     --reemplazar       regenera aunque el texto no haya cambiado
 //     --prueba           solo el primer fragmento del paso de --paso; lo deja
 //                        en la copia local y no sube nada
+//     --modelo <nombre>  genera con otro modelo SOLO para comparar: no sube
+//                        nada ni toca el manifest; la copia local queda en
+//                        .cache/narration-comparar/<modelo>/. Sin esta
+//                        opción se usa REALTIME_MODEL (backend/realtimeConfig.js).
+//                        Solo modelos con precios en cost.ts.
 //
 // Llaves: lee OPENAI_API_KEY, SUPABASE_URL y SUPABASE_SECRET_KEY de
 // backend/.env. Nunca las imprime ni las copia a otro lado.
@@ -27,7 +32,14 @@ import { getTourArrivalTarget } from "../../data/tours/arrival";
 import { getAvailableTourLocales, getTourById } from "../../data/tours";
 import type { Tour } from "../../data/tours/types";
 import { concatPcm, durationSeconds, encodeMp3, silence, trimSilence } from "./audio";
-import { DEFAULT_BUDGET_USD, estimateResponseCost, formatUsd, REALTIME_PRICES, usageCost } from "./cost";
+import {
+  DEFAULT_BUDGET_USD,
+  estimateResponseCost,
+  formatUsd,
+  REALTIME_PRICES,
+  usageCost,
+  type ModelPrices,
+} from "./cost";
 import {
   arrivalInput,
   arrivalInstructions,
@@ -53,12 +65,18 @@ import {
 const ROOT = process.cwd();
 const ENV_PATH = path.join(ROOT, "backend/.env");
 const LOCAL_DIR = path.join(ROOT, ".cache/narration");
+// Copias de otros modelos, solo para escuchar y comparar.
+const COMPARE_DIR = path.join(ROOT, ".cache/narration-comparar");
 
 // Subir este número regenera todo (por ejemplo, si cambia cómo se une el
 // audio).
 const NARRATION_FORMAT_VERSION = 1;
 const MIN_WORD_MATCH = 0.97;
 const MAX_ATTEMPTS = 3; // 1 + 2 reintentos
+
+// Modelos a los que no se les manda "reasoning.effort" (si alguno no lo
+// acepta). Hoy ninguno: gpt-realtime-2.1-mini también lo aceptó.
+const MODELS_WITHOUT_REASONING_EFFORT = new Set<string>();
 
 type Options = {
   tourId: string;
@@ -67,16 +85,17 @@ type Options = {
   budget: number;
   replace: boolean;
   trial: boolean;
+  model: string;
 };
 
 function usage(message: string): never {
   console.error(message);
-  console.error("Uso: npm run generar-narracion -- <tourId> [--idioma es|en] [--paso <stepId>] [--tope <US$>] [--reemplazar] [--prueba]");
+  console.error("Uso: npm run generar-narracion -- <tourId> [--idioma es|en] [--paso <stepId>] [--tope <US$>] [--reemplazar] [--prueba] [--modelo <nombre>]");
   process.exit(1);
 }
 
 function parseOptions(argv: string[]): Options {
-  const options: Options = { tourId: "", languages: ["es", "en"], budget: DEFAULT_BUDGET_USD, replace: false, trial: false };
+  const options: Options = { tourId: "", languages: ["es", "en"], budget: DEFAULT_BUDGET_USD, replace: false, trial: false, model: REALTIME_MODEL };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = () => argv[++i] ?? usage(`Falta el valor de ${arg}`);
@@ -91,6 +110,12 @@ function parseOptions(argv: string[]): Options {
       options.budget = budget;
     } else if (arg === "--reemplazar") options.replace = true;
     else if (arg === "--prueba") options.trial = true;
+    else if (arg === "--modelo") {
+      const model = value();
+      // También es nombre de carpeta: solo letras, números, puntos y guiones.
+      if (!/^[a-z0-9][a-z0-9.-]{0,63}$/i.test(model)) usage(`Nombre de modelo inválido: ${model}`);
+      options.model = model;
+    }
     else if (arg.startsWith("--")) usage(`Opción desconocida: ${arg}`);
     else if (!options.tourId) options.tourId = arg;
     else usage(`Argumento de más: ${arg}`);
@@ -126,7 +151,7 @@ type Row = {
   status: "ok" | "revisar" | "sin cambios" | "sin generar (tope)";
 };
 
-function narrationJobs(tour: Tour, language: Language, stepId?: string): Job[] {
+function narrationJobs(tour: Tour, language: Language, model: string, stepId?: string): Job[] {
   const instructions = narrationInstructions(language);
   return tour.steps
     .filter((step) => step.voiceText?.trim() && (!stepId || step.id === stepId))
@@ -136,7 +161,7 @@ function narrationJobs(tour: Tour, language: Language, stepId?: string): Job[] {
       file: `${step.id}.mp3`,
       hash: hashOf({
         v: NARRATION_FORMAT_VERSION,
-        model: REALTIME_MODEL,
+        model,
         voice: REALTIME_VOICE,
         instructions,
         silences: [MICRO_PAUSE_SECONDS, PAUSE_SECONDS, PARAGRAPH_PAUSE_SECONDS],
@@ -149,7 +174,7 @@ function narrationJobs(tour: Tour, language: Language, stepId?: string): Job[] {
 
 // Una pregunta por cada lugar al que el GPS puede apuntar (la misma regla de
 // la app: data/tours/arrival.ts).
-function arrivalJobs(tour: Tour, language: Language, stepId?: string): Job[] {
+function arrivalJobs(tour: Tour, language: Language, model: string, stepId?: string): Job[] {
   const instructions = arrivalInstructions(language);
   const places = new Map<string, string>();
   for (const step of tour.steps) {
@@ -168,7 +193,7 @@ function arrivalJobs(tour: Tour, language: Language, stepId?: string): Job[] {
       kind: "arrival" as const,
       stepId: id,
       file: `arrival/${id}.mp3`,
-      hash: hashOf({ v: NARRATION_FORMAT_VERSION, model: REALTIME_MODEL, voice: REALTIME_VOICE, instructions, placeTitle }),
+      hash: hashOf({ v: NARRATION_FORMAT_VERSION, model, voice: REALTIME_VOICE, instructions, placeTitle }),
       placeTitle,
       instructions,
     }));
@@ -181,15 +206,16 @@ function requestsOf(job: Job, language: Language, trial: boolean): { text: strin
   return fragments.map((f) => ({ text: f.text, expected: f.text }));
 }
 
-function estimateJob(job: Job, language: Language, trial: boolean): number {
-  return requestsOf(job, language, trial).reduce(
-    (sum, r) => sum + estimateResponseCost(job.instructions.length, job.kind === "arrival" ? 90 : r.text.length),
-    0
-  );
+function estimateRequest(prices: ModelPrices, job: Job, text: string): number {
+  return estimateResponseCost(prices, job.instructions.length, job.kind === "arrival" ? 90 : text.length);
 }
 
-function writeLocal(relativePath: string, data: Buffer | string) {
-  const full = path.join(LOCAL_DIR, relativePath);
+function estimateJob(prices: ModelPrices, job: Job, language: Language, trial: boolean): number {
+  return requestsOf(job, language, trial).reduce((sum, r) => sum + estimateRequest(prices, job, r.text), 0);
+}
+
+function writeLocal(baseDir: string, relativePath: string, data: Buffer | string) {
+  const full = path.join(baseDir, relativePath);
   mkdirSync(path.dirname(full), { recursive: true });
   writeFileSync(full, data);
   return full;
@@ -199,11 +225,30 @@ class BudgetReached extends Error {}
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
-  const env = readEnv(options.trial ? ["OPENAI_API_KEY"] : ["OPENAI_API_KEY", "SUPABASE_URL", "SUPABASE_SECRET_KEY"]);
-  const storage: Storage | null = options.trial ? null : createStorage(env.SUPABASE_URL, env.SUPABASE_SECRET_KEY);
+  const model = options.model;
+  const prices = REALTIME_PRICES[model];
+  if (!prices) {
+    console.error(
+      `No hay precios conocidos para el modelo "${model}": no se genera nada. Modelos con precios: ${Object.keys(REALTIME_PRICES).join(", ")}. Para usar otro, agrega sus precios en scripts/generar-narracion/cost.ts.`
+    );
+    process.exit(1);
+  }
+  // Otro modelo que el de la app: solo para comparar (nada a Supabase).
+  const compareOnly = model !== REALTIME_MODEL;
+  const localOnly = options.trial || compareOnly;
+  const localDir = compareOnly ? path.join(COMPARE_DIR, model) : LOCAL_DIR;
+  const reasoningEffort = MODELS_WITHOUT_REASONING_EFFORT.has(model) ? undefined : REALTIME_REASONING_EFFORT;
 
-  console.log(`Tour ${options.tourId} | modelo ${REALTIME_MODEL} | voz ${REALTIME_VOICE} | tope ${formatUsd(options.budget)}`);
-  console.log(`Precios: ${REALTIME_PRICES.model}, ${REALTIME_PRICES.source} (${REALTIME_PRICES.date}).`);
+  const env = readEnv(localOnly ? ["OPENAI_API_KEY"] : ["OPENAI_API_KEY", "SUPABASE_URL", "SUPABASE_SECRET_KEY"]);
+  const storage: Storage | null = localOnly ? null : createStorage(env.SUPABASE_URL, env.SUPABASE_SECRET_KEY);
+
+  console.log(`Tour ${options.tourId} | modelo ${model} | voz ${REALTIME_VOICE} | razonamiento ${reasoningEffort ?? "(no se manda)"} | tope ${formatUsd(options.budget)}`);
+  console.log(`Precios: ${model}, ${prices.source} (${prices.date}).`);
+  if (compareOnly) {
+    console.log(
+      `Solo para comparar: ${model} no es el modelo de la app (${REALTIME_MODEL}). No se sube nada a Supabase ni se toca el manifest; la copia local queda en ${localDir}.`
+    );
+  }
   if (storage) console.log(`Bucket "narrations": ${await storage.ensurePrivateBucket()} (privado).`);
 
   // Qué hay que generar, por idioma.
@@ -216,26 +261,28 @@ async function main() {
     }
     const tour = getTourById(options.tourId, language)!;
     const jobs = [
-      ...narrationJobs(tour, language, options.stepId),
-      ...(options.trial ? [] : arrivalJobs(tour, language, options.stepId)),
+      ...narrationJobs(tour, language, model, options.stepId),
+      ...(options.trial ? [] : arrivalJobs(tour, language, model, options.stepId)),
     ];
     if (options.stepId && !jobs.length) usage(`El paso "${options.stepId}" no existe o no tiene texto en ${language}`);
 
+    // Sin Supabase (prueba o comparar) no se lee el manifest: se genera todo
+    // lo pedido.
     const manifest: Manifest = (storage && (await storage.readManifest(options.tourId, language))) || {
       tourId: options.tourId,
       language,
-      model: REALTIME_MODEL,
+      model,
       voice: REALTIME_VOICE,
       files: {},
     };
-    const isUnchanged = (job: Job) => !options.trial && !options.replace && manifest.files[job.file]?.hash === job.hash;
+    const isUnchanged = (job: Job) => !localOnly && !options.replace && manifest.files[job.file]?.hash === job.hash;
     plans.push({ language, manifest, toGenerate: jobs.filter((j) => !isUnchanged(j)), unchanged: jobs.filter(isUnchanged) });
   }
 
   // Estimado ANTES de generar.
   let estimate = 0;
   for (const plan of plans) {
-    const value = plan.toGenerate.reduce((sum, job) => sum + estimateJob(job, plan.language, options.trial), 0);
+    const value = plan.toGenerate.reduce((sum, job) => sum + estimateJob(prices, job, plan.language, options.trial), 0);
     estimate += value;
     const steps = plan.toGenerate.filter((j) => j.kind === "narration").length;
     const questions = plan.toGenerate.length - steps;
@@ -277,17 +324,17 @@ async function main() {
       let attempts = 0;
       let worstMatch = 1;
       let failed = false;
-      const speaker = await RealtimeSpeaker.open({ apiKey, model: REALTIME_MODEL, voice: REALTIME_VOICE });
+      const speaker = await RealtimeSpeaker.open({ apiKey, model, voice: REALTIME_VOICE });
       try {
         for (const [index, request] of requests.entries()) {
           let accepted: Int16Array | null = null;
           let lastProblem = "";
           for (let attempt = 1; attempt <= MAX_ATTEMPTS && !accepted; attempt++) {
-            const next = estimateResponseCost(job.instructions.length, job.kind === "arrival" ? 90 : request.text.length);
+            const next = estimateRequest(prices, job, request.text);
             if (budgetUsed + next > options.budget) throw new BudgetReached();
             attempts++;
-            const result = await speaker.speak(job.instructions, request.text, REALTIME_REASONING_EFFORT);
-            const cost = usageCost(result.usage);
+            const result = await speaker.speak(job.instructions, request.text, reasoningEffort);
+            const cost = usageCost(prices, result.usage);
             spent += cost;
             budgetUsed += Math.max(cost, next);
             row.cost += cost;
@@ -369,31 +416,37 @@ async function main() {
 
       const base = `${options.tourId}/${language}`;
       if (options.trial) {
-        const local = writeLocal(`${base}/prueba/${job.stepId}-fragmento-1.mp3`, mp3);
+        const local = writeLocal(localDir, `${base}/prueba/${job.stepId}-fragmento-1.mp3`, mp3);
         console.log(`\nCopia local: ${local}`);
         continue;
       }
 
-      writeLocal(`${base}/${job.file}`, mp3);
-      await storage!.upload(`${base}/${job.file}`, mp3, "audio/mpeg");
+      writeLocal(localDir, `${base}/${job.file}`, mp3);
+      const alignmentFile = `${job.stepId}.json`;
+      const alignment =
+        job.kind === "narration"
+          ? JSON.stringify(buildAlignment({ clean: job.split.clean, fragments: job.split.fragments }, times))
+          : null;
+      if (alignment) writeLocal(localDir, `${base}/${alignmentFile}`, alignment);
+      // Comparando con otro modelo: solo la copia local.
+      if (!storage) continue;
+
+      await storage.upload(`${base}/${job.file}`, mp3, "audio/mpeg");
       const entry: Manifest["files"][string] = {
         hash: job.hash,
         durationSeconds: Math.round(duration * 1000) / 1000,
         generatedAt: new Date().toISOString(),
       };
-      if (job.kind === "narration") {
-        const alignmentFile = `${job.stepId}.json`;
-        const alignment = JSON.stringify(buildAlignment({ clean: job.split.clean, fragments: job.split.fragments }, times));
-        writeLocal(`${base}/${alignmentFile}`, alignment);
-        await storage!.upload(`${base}/${alignmentFile}`, alignment, "application/json");
+      if (alignment) {
+        await storage.upload(`${base}/${alignmentFile}`, alignment, "application/json");
         entry.alignment = alignmentFile;
       }
-      manifest.model = REALTIME_MODEL;
+      manifest.model = model;
       manifest.voice = REALTIME_VOICE;
       manifest.files[job.file] = entry;
       // Después de cada archivo, para no perder lo hecho si algo se corta.
-      await storage!.writeManifest(manifest);
-      writeLocal(`${base}/manifest.json`, JSON.stringify(manifest, null, 2));
+      await storage.writeManifest(manifest);
+      writeLocal(localDir, `${base}/manifest.json`, JSON.stringify(manifest, null, 2));
     }
   }
 
@@ -407,7 +460,8 @@ async function main() {
     for (const note of notes) console.log(`- ${note}`);
   }
   console.log(`\nCosto real (según el uso que informó OpenAI): ${formatUsd(spent)}. Estimado era ${formatUsd(estimate)}.`);
-  if (!options.trial) console.log(`Copia local: ${path.join(LOCAL_DIR, options.tourId)}`);
+  if (!options.trial) console.log(`Copia local: ${path.join(localDir, options.tourId)}`);
+  if (!storage) console.log("No se subió nada a Supabase.");
 }
 
 main().catch((error: unknown) => {

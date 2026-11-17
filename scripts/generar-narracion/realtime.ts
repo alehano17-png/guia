@@ -110,8 +110,9 @@ export class RealtimeSpeaker {
   }
 
   // Una respuesta fuera de la conversación: el modelo dice "text" siguiendo
-  // "instructions", con la voz de la sesión.
-  async speak(instructions: string, text: string, reasoningEffort: string): Promise<SpokenResult> {
+  // "instructions", con la voz de la sesión. Sin reasoningEffort no se manda
+  // el campo "reasoning" (para un modelo que no lo acepte).
+  async speak(instructions: string, text: string, reasoningEffort?: string): Promise<SpokenResult> {
     const audio: string[] = [];
     let transcriptFromDeltas = "";
     let transcript: string | null = null;
@@ -130,7 +131,7 @@ export class RealtimeSpeaker {
           conversation: "none",
           output_modalities: ["audio"],
           instructions,
-          reasoning: { effort: reasoningEffort },
+          ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}),
           input: [{ type: "message", role: "user", content: [{ type: "input_text", text }] }],
         },
       });

@@ -2,22 +2,48 @@
 // respuesta (response.done); el estimado, antes de generar, de la cantidad
 // de texto.
 
-// Precios de gpt-realtime-2.1 en US$ por millón de tokens, según la página
-// de precios de OpenAI (https://openai.com/api/pricing/), noviembre de 2026.
-// Si cambian, actualizar solo aquí.
-export const REALTIME_PRICES = {
-  model: "gpt-realtime-2.1",
-  date: "2026-11",
-  source: "https://openai.com/api/pricing/",
+export type ModelPrices = {
+  date: string;
+  source: string;
   usdPerMillionTokens: {
-    textInput: 4,
-    textInputCached: 0.4,
-    textOutput: 24,
-    audioInput: 32,
-    audioInputCached: 0.4,
-    audioOutput: 64,
+    textInput: number;
+    textInputCached: number;
+    textOutput: number;
+    audioInput: number;
+    audioInputCached: number;
+    audioOutput: number;
+  };
+};
+
+// Precios en US$ por millón de tokens, por modelo, según la página de cada
+// modelo en OpenAI (noviembre de 2026). Si cambian, actualizar solo aquí.
+// Un modelo que no está aquí no se puede usar (la herramienta se detiene).
+export const REALTIME_PRICES: Record<string, ModelPrices> = {
+  "gpt-realtime-2.1": {
+    date: "2026-11",
+    source: "https://developers.openai.com/api/docs/models/gpt-realtime-2.1",
+    usdPerMillionTokens: {
+      textInput: 4,
+      textInputCached: 0.4,
+      textOutput: 24,
+      audioInput: 32,
+      audioInputCached: 0.4,
+      audioOutput: 64,
+    },
   },
-} as const;
+  "gpt-realtime-2.1-mini": {
+    date: "2026-11",
+    source: "https://developers.openai.com/api/docs/models/gpt-realtime-2.1-mini",
+    usdPerMillionTokens: {
+      textInput: 0.6,
+      textInputCached: 0.06,
+      textOutput: 2.4,
+      audioInput: 10,
+      audioInputCached: 0.3,
+      audioOutput: 20,
+    },
+  },
+};
 
 // Tope por corrida si no se pasa --tope.
 export const DEFAULT_BUDGET_USD = 1.5;
@@ -47,9 +73,9 @@ export type RealtimeUsage = {
 
 // Los tokens en caché son parte de los de entrada (documentación de OpenAI):
 // se cobran aparte, a su precio.
-export function usageCost(usage: RealtimeUsage | undefined): number {
+export function usageCost(prices: ModelPrices, usage: RealtimeUsage | undefined): number {
   if (!usage) return 0;
-  const p = REALTIME_PRICES.usdPerMillionTokens;
+  const p = prices.usdPerMillionTokens;
   const input = usage.input_token_details ?? {};
   const cached = input.cached_tokens_details ?? {};
   const output = usage.output_token_details ?? {};
@@ -69,8 +95,8 @@ export function usageCost(usage: RealtimeUsage | undefined): number {
 
 // Una respuesta: entra instrucciones + texto, sale el audio y su
 // transcripción.
-export function estimateResponseCost(instructionsChars: number, spokenChars: number): number {
-  const p = REALTIME_PRICES.usdPerMillionTokens;
+export function estimateResponseCost(prices: ModelPrices, instructionsChars: number, spokenChars: number): number {
+  const p = prices.usdPerMillionTokens;
   const inputTokens = (instructionsChars + spokenChars) / INPUT_CHARS_PER_TOKEN + OVERHEAD_INPUT_TOKENS;
   const audioTokens = (spokenChars / SPOKEN_CHARS_PER_SECOND) * OUTPUT_AUDIO_TOKENS_PER_SECOND;
   const textTokens = spokenChars / OUTPUT_CHARS_PER_TOKEN + REASONING_TOKENS_PER_RESPONSE;
