@@ -17,7 +17,7 @@ import {
   createConversationManager,
   createOpenAiRealtimeCalls,
 } from "./conversations.js";
-import { REALTIME_CALLS_PER_HOUR } from "./realtimeConfig.js";
+import { REALTIME_CALLS_PER_HOUR, VALID_TOUR_IDS } from "./realtimeConfig.js";
 
 dotenv.config(); // 🔥 primero cargas variables
 
@@ -173,6 +173,11 @@ const accountRateLimit = rateLimit("account", [{ windowMs: HOUR_MS, max: 5 }]);
 // reales: el tiempo lo limita la bolsa de cada tour).
 const realtimeRateLimit = rateLimit("realtime", [
   { windowMs: HOUR_MS, max: REALTIME_CALLS_PER_HOUR },
+]);
+// Narración pregrabada: el mismo límite que /voice, pero con su propio
+// contador (no le quita pedidos a /voice).
+const narrationRateLimit = rateLimit("narration", [
+  { windowMs: HOUR_MS, max: 120 },
 ]);
 
 // Límites de tamaño de lo que se recibe. El texto de narración más largo
@@ -826,6 +831,131 @@ app.post("/realtime/heartbeat", requireUser, async (req, res) => {
     sendConversationError(res, e, "/realtime/heartbeat");
   }
 });
+
+// Narración pregrabada de los tours con la voz de GUÍA. La genera
+// scripts/generar-narracion y la guarda en el bucket PRIVADO "narrations":
+//   <tourId>/<idioma>/<stepId>.mp3 y .json (alignment)
+//   <tourId>/<idioma>/arrival/<stepId>.mp3 (pregunta "¿Llegaste?")
+//   <tourId>/<idioma>/manifest.json (hash, duración y fecha de cada archivo)
+// Devuelve { url, alignment, version }: una URL firmada de 1 hora para bajar
+// el MP3, el alignment en el mismo formato que /voice con withTimestamps
+// (null en las preguntas) y la versión (hash del manifest) para que la app
+// sepa cuándo volver a bajar. 404 si ese audio no existe: la app sigue con
+// la voz anterior.
+const NARRATIONS_BUCKET = "narrations";
+const NARRATION_LANGUAGES = ["es", "en"];
+const NARRATION_URL_SECONDS = 60 * 60;
+// Ids de paso como los de data/tours: minúsculas, números y guiones.
+const NARRATION_STEP_ID = /^[a-z0-9-]{1,64}$/;
+// El manifest se relee cada minuto como máximo (una narración regenerada se
+// ve en a lo más 1 minuto). El alignment de un hash dado no cambia nunca.
+const NARRATION_MANIFEST_CACHE_MS = 60 * 1000;
+const NARRATION_ALIGNMENT_CACHE_MAX = 200;
+const narrationManifests = new Map();
+const narrationAlignments = new Map();
+
+// Texto de un archivo del bucket, o null si no existe (ni el bucket).
+async function downloadNarrationText(path) {
+  const { data, error } = await supabaseAdmin.storage
+    .from(NARRATIONS_BUCKET)
+    .download(path);
+  if (error) {
+    if (isMissingBucketError(error)) return null;
+    throw error;
+  }
+  return data ? await data.text() : null;
+}
+
+async function getNarrationManifest(tourId, language) {
+  const key = `${tourId}/${language}`;
+  const now = Date.now();
+  const cached = narrationManifests.get(key);
+  if (cached && cached.expiresAt > now) return cached;
+
+  const text = await downloadNarrationText(`${key}/manifest.json`);
+  const value = {
+    manifest: text ? JSON.parse(text) : null,
+    version: text
+      ? crypto.createHash("sha256").update(text).digest("hex").slice(0, 16)
+      : null,
+    expiresAt: now + NARRATION_MANIFEST_CACHE_MS,
+  };
+  narrationManifests.set(key, value);
+  return value;
+}
+
+async function getNarrationAlignment(path, hash) {
+  const key = `${path}@${hash}`;
+  if (narrationAlignments.has(key)) return narrationAlignments.get(key);
+
+  const text = await downloadNarrationText(path);
+  const alignment = text ? JSON.parse(text) : null;
+  if (narrationAlignments.size >= NARRATION_ALIGNMENT_CACHE_MAX) {
+    narrationAlignments.delete(narrationAlignments.keys().next().value);
+  }
+  narrationAlignments.set(key, alignment);
+  return alignment;
+}
+
+async function sendNarration(req, res, { arrival }) {
+  const { tourId, lang, stepId } = req.params;
+  if (!VALID_TOUR_IDS.includes(tourId)) {
+    return res.status(400).json({ error: "unknown_tour" });
+  }
+  if (!NARRATION_LANGUAGES.includes(lang)) {
+    return res.status(400).json({ error: "invalid_language" });
+  }
+  if (!NARRATION_STEP_ID.test(stepId)) {
+    return res.status(400).json({ error: "invalid_step" });
+  }
+
+  try {
+    const { manifest, version } = await getNarrationManifest(tourId, lang);
+    const file = arrival ? `arrival/${stepId}.mp3` : `${stepId}.mp3`;
+    const entry = manifest?.files?.[file];
+    if (!entry) {
+      return res.status(404).json({ error: "narration_not_found" });
+    }
+
+    const base = `${tourId}/${lang}`;
+    const { data, error } = await supabaseAdmin.storage
+      .from(NARRATIONS_BUCKET)
+      .createSignedUrl(`${base}/${file}`, NARRATION_URL_SECONDS);
+    if (error || !data?.signedUrl) {
+      if (!error || isMissingBucketError(error)) {
+        return res.status(404).json({ error: "narration_not_found" });
+      }
+      throw error;
+    }
+
+    const alignment =
+      !arrival && entry.alignment
+        ? await getNarrationAlignment(`${base}/${entry.alignment}`, entry.hash)
+        : null;
+
+    res.json({ url: data.signedUrl, alignment, version });
+  } catch (e) {
+    console.error(
+      "Error entregando una narración:",
+      e?.statusCode ?? e?.status ?? "",
+      e?.name ?? "Error"
+    );
+    res.status(500).json({ error: "narration_error" });
+  }
+}
+
+app.get(
+  "/narration/:tourId/:lang/arrival/:stepId",
+  requireUser,
+  narrationRateLimit,
+  (req, res) => sendNarration(req, res, { arrival: true })
+);
+app.get(
+  "/narration/:tourId/:lang/:stepId",
+  requireUser,
+  narrationRateLimit,
+  (req, res) => sendNarration(req, res, { arrival: false })
+);
 
 // Fotos de perfil: bucket de Storage con una carpeta por usuario
 // (<userId>/...).

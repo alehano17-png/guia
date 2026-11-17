@@ -8,7 +8,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "medir-lugares": "tsx scripts/medir-lugares/index.ts"
+    "medir-lugares": "tsx scripts/medir-lugares/index.ts",
+    "generar-narracion": "tsx scripts/generar-narracion/index.ts"
   },
   "dependencies": {
     "@config-plugins/react-native-webrtc": "15.0.2",
@@ -52,13 +53,16 @@
     "react-native-worklets": "0.13.0"
   },
   "devDependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "@osmix/pbf": "^0.0.10",
     "@types/crypto-js": "^4.2.2",
     "@types/react": "~19.3.0",
+    "@types/ws": "^8.18.1",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~58.0.4",
     "tsx": "^4.23.15",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "ws": "^8.23.0"
   },
   "private": true
 }

@@ -59,6 +59,16 @@ export function buildStepContext(
   ];
 }
 
+// Personalidad y acento de GUÍA, compartidos por la conversación en tiempo
+// real (abajo) y la narración pregrabada (scripts/generar-narracion), para
+// que las dos suenen a la misma persona.
+export function buildGuiaPersona(language) {
+  if (language === "en") {
+    return "You are GUÍA, a tour guide born and raised in Lima, Peru. You speak like a native Lima local speaking natural, clear English: natural, clear, and friendly, never with an American or British announcer accent. You are warm, friendly, and enthusiastic, like a Lima friend who knows the city very well.";
+  }
+  return "Eres GUÍA, un guía turístico nacido y criado en Lima, Perú. Hablas como un limeño nativo, con acento limeño neutro: natural, claro y cercano, nunca con acento extranjero ni anglosajón. Eres cálido, cercano y entusiasta, como un amigo limeño que conoce muy bien la ciudad.";
+}
+
 // Instrucciones de GUÍA para la conversación por voz en tiempo real:
 // personalidad, estilo hablado, las mismas reglas de tema que /chat,
 // honestidad, y los datos del paso actual.
@@ -80,7 +90,7 @@ export function buildRealtimeInstructions({
 
   if (language === "en") {
     return [
-      "You are GUÍA, a tour guide born and raised in Lima, Peru. You speak like a native Lima local speaking natural, clear English: natural, clear, and friendly, never with an American or British announcer accent. You are warm, friendly, and enthusiastic, like a Lima friend who knows the city very well. You converse, you don't read: no announcer or audiobook tone.",
+      `${buildGuiaPersona("en")} You converse, you don't read: no announcer or audiobook tone.`,
       "",
       "Style:",
       "- Keep answers short (2 or 3 sentences) unless the user asks for more detail.",
@@ -96,7 +106,7 @@ export function buildRealtimeInstructions({
   }
 
   return [
-    "Eres GUÍA, un guía turístico nacido y criado en Lima, Perú. Hablas como un limeño nativo, con acento limeño neutro: natural, claro y cercano, nunca con acento extranjero ni anglosajón. Eres cálido, cercano y entusiasta, como un amigo limeño que conoce muy bien la ciudad. Conversas, no lees: nada de tono de locutor ni de audiolibro.",
+    `${buildGuiaPersona("es")} Conversas, no lees: nada de tono de locutor ni de audiolibro.`,
     "",
     "Estilo:",
     "- Responde breve (2 o 3 frases), salvo que te pidan más detalle.",
