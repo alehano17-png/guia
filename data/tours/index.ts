@@ -19,7 +19,7 @@ import { centroHistoricoContentEn } from "./content/en/centro-historico";
 // herramienta aparte (desde OpenStreetMap): nadie los edita a mano. Un
 // archivo vacío ({}) significa que ningún lugar de ese tour tiene contorno
 // todavía, y la llegada se detecta solo con el círculo alrededor del punto.
-import type { TourOutlines } from "./outline-types";
+import { parseTourOutlines, type TourOutlines } from "./outline-types";
 import mirafloresOutlines from "./outlines/miraflores-completo.json";
 import barrancoOutlines from "./outlines/barranco.json";
 import centroHistoricoOutlines from "./outlines/centro-historico.json";
@@ -47,17 +47,17 @@ const TOUR_REGISTRY: TourRegistryEntry[] = [
   {
     skeleton: mirafloresSkeleton,
     content: { es: mirafloresContentEs, en: mirafloresContentEn },
-    outlines: mirafloresOutlines as TourOutlines,
+    outlines: parseTourOutlines(mirafloresOutlines),
   },
   {
     skeleton: barrancoSkeleton,
     content: { es: barrancoContentEs, en: barrancoContentEn },
-    outlines: barrancoOutlines as TourOutlines,
+    outlines: parseTourOutlines(barrancoOutlines),
   },
   {
     skeleton: centroHistoricoSkeleton,
     content: { es: centroHistoricoContentEs, en: centroHistoricoContentEn },
-    outlines: centroHistoricoOutlines as TourOutlines,
+    outlines: parseTourOutlines(centroHistoricoOutlines),
   },
 ];
 

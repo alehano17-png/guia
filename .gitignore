@@ -46,3 +46,7 @@ app-example
 
 # audio cacheado por el backend — generado, no código fuente
 backend/audio-cache/
+
+# Datos de OpenStreetMap para la herramienta de contornos (scripts/medir-lugares):
+# archivos grandes que se bajan de Geofabrik, no van al repo.
+.cache/

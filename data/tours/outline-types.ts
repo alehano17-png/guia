@@ -17,3 +17,32 @@ export type TourPlaceOutline = {
 
 // Contornos de un tour, por id de paso.
 export type TourOutlines = Record<string, TourPlaceOutline>;
+
+function isLatLngPair(value: unknown): value is [number, number] {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    typeof value[0] === "number" &&
+    typeof value[1] === "number" &&
+    Number.isFinite(value[0]) &&
+    Number.isFinite(value[1])
+  );
+}
+
+// Valida los contornos al cargarlos (desde un JSON generado, o más adelante
+// desde el servidor): solo pasan las entradas con la forma correcta y un
+// anillo de al menos 3 puntos. Una entrada inválida se descarta y ese lugar
+// usa el círculo alrededor de su punto, en vez de romper la app.
+export function parseTourOutlines(raw: unknown): TourOutlines {
+  const outlines: TourOutlines = {};
+  if (!raw || typeof raw !== "object") return outlines;
+
+  for (const [stepId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== "object") continue;
+    const { name, source, outline } = value as Record<string, unknown>;
+    if (typeof name !== "string" || typeof source !== "string") continue;
+    if (!Array.isArray(outline) || outline.length < 3 || !outline.every(isLatLngPair)) continue;
+    outlines[stepId] = { name, source, outline };
+  }
+  return outlines;
+}
