@@ -10,6 +10,8 @@
 //     --reemplazar       regenera aunque el texto no haya cambiado
 //     --prueba           solo el primer fragmento del paso de --paso; lo deja
 //                        en la copia local y no sube nada
+//     --fragmentos N     solo con --prueba: los primeros N fragmentos del paso,
+//                        unidos con sus silencios en un solo archivo
 //     --modelo <nombre>  genera con otro modelo, y
 //     --voz <nombre>     con otra voz, SOLO para comparar: no sube nada ni
 //                        toca el manifest; la copia local queda en
@@ -90,13 +92,15 @@ type Options = {
   budget: number;
   replace: boolean;
   trial: boolean;
+  // Solo con --prueba: cuántos fragmentos (sin la opción, uno).
+  trialFragments?: number;
   model: string;
   voice: string;
 };
 
 function usage(message: string): never {
   console.error(message);
-  console.error("Uso: npm run generar-narracion -- <tourId> [--idioma es|en] [--paso <stepId>] [--tope <US$>] [--reemplazar] [--prueba] [--modelo <nombre>] [--voz <nombre>]");
+  console.error("Uso: npm run generar-narracion -- <tourId> [--idioma es|en] [--paso <stepId>] [--tope <US$>] [--reemplazar] [--prueba [--fragmentos N]] [--modelo <nombre>] [--voz <nombre>]");
   process.exit(1);
 }
 
@@ -116,7 +120,11 @@ function parseOptions(argv: string[]): Options {
       options.budget = budget;
     } else if (arg === "--reemplazar") options.replace = true;
     else if (arg === "--prueba") options.trial = true;
-    else if (arg === "--modelo") {
+    else if (arg === "--fragmentos") {
+      const count = value();
+      if (!/^[1-9]\d*$/.test(count)) usage(`--fragmentos debe ser un número entero mayor que 0, no "${count}"`);
+      options.trialFragments = Number(count);
+    } else if (arg === "--modelo") {
       const model = value();
       // También es nombre de carpeta: solo letras, números, puntos y guiones.
       if (!/^[a-z0-9][a-z0-9.-]{0,63}$/i.test(model)) usage(`Nombre de modelo inválido: ${model}`);
@@ -132,6 +140,7 @@ function parseOptions(argv: string[]): Options {
   if (!options.tourId) usage("Falta el tourId");
   if (!(VALID_TOUR_IDS as string[]).includes(options.tourId)) usage(`Tour desconocido: ${options.tourId}`);
   if (options.trial && !options.stepId) usage("--prueba necesita --paso");
+  if (options.trialFragments !== undefined && !options.trial) usage("--fragmentos solo se usa con --prueba");
   return options;
 }
 
@@ -208,19 +217,19 @@ function arrivalJobs(tour: Tour, language: Language, model: string, voice: strin
     }));
 }
 
-// Lo que se le pide decir al modelo, una respuesta por elemento.
-function requestsOf(job: Job, language: Language, trial: boolean): { text: string; expected?: string }[] {
+// Lo que se le pide decir al modelo, una respuesta por elemento. Sin límite
+// (generación normal) van todos los fragmentos.
+function requestsOf(job: Job, language: Language, limit: number | undefined): { text: string; expected?: string }[] {
   if (job.kind === "arrival") return [{ text: arrivalInput(language, job.placeTitle) }];
-  const fragments = trial ? job.split.fragments.slice(0, 1) : job.split.fragments;
-  return fragments.map((f) => ({ text: f.text, expected: f.text }));
+  return job.split.fragments.slice(0, limit).map((f) => ({ text: f.text, expected: f.text }));
 }
 
 function estimateRequest(prices: ModelPrices, job: Job, text: string): number {
   return estimateResponseCost(prices, job.instructions.length, job.kind === "arrival" ? 90 : text.length);
 }
 
-function estimateJob(prices: ModelPrices, job: Job, language: Language, trial: boolean): number {
-  return requestsOf(job, language, trial).reduce((sum, r) => sum + estimateRequest(prices, job, r.text), 0);
+function estimateJob(prices: ModelPrices, job: Job, language: Language, limit: number | undefined): number {
+  return requestsOf(job, language, limit).reduce((sum, r) => sum + estimateRequest(prices, job, r.text), 0);
 }
 
 function writeLocal(baseDir: string, relativePath: string, data: Buffer | string) {
@@ -247,6 +256,8 @@ async function main() {
   // Supabase). La carpeta lleva los dos, para que ninguna copia pise a otra.
   const compareOnly = model !== REALTIME_MODEL || voice !== REALTIME_VOICE;
   const localOnly = options.trial || compareOnly;
+  // Solo en la prueba: cuántos fragmentos del paso (por defecto, el primero).
+  const fragmentLimit = options.trial ? (options.trialFragments ?? 1) : undefined;
   const localDir = compareOnly ? path.join(COMPARE_DIR, `${model}-${voice}`) : LOCAL_DIR;
   const reasoningEffort = MODELS_WITHOUT_REASONING_EFFORT.has(model) ? undefined : REALTIME_REASONING_EFFORT;
 
@@ -276,6 +287,13 @@ async function main() {
       ...(options.trial ? [] : arrivalJobs(tour, language, model, voice, options.stepId)),
     ];
     if (options.stepId && !jobs.length) usage(`El paso "${options.stepId}" no existe o no tiene texto en ${language}`);
+    if (fragmentLimit !== undefined) {
+      for (const job of jobs) {
+        if (job.kind === "narration" && fragmentLimit > job.split.fragments.length) {
+          usage(`El paso "${job.stepId}" tiene ${job.split.fragments.length} fragmentos en ${language}: no se puede pedir ${fragmentLimit}`);
+        }
+      }
+    }
 
     // Sin Supabase (prueba o comparar) no se lee el manifest: se genera todo
     // lo pedido.
@@ -293,7 +311,7 @@ async function main() {
   // Estimado ANTES de generar.
   let estimate = 0;
   for (const plan of plans) {
-    const value = plan.toGenerate.reduce((sum, job) => sum + estimateJob(prices, job, plan.language, options.trial), 0);
+    const value = plan.toGenerate.reduce((sum, job) => sum + estimateJob(prices, job, plan.language, fragmentLimit), 0);
     estimate += value;
     const steps = plan.toGenerate.filter((j) => j.kind === "narration").length;
     const questions = plan.toGenerate.length - steps;
@@ -330,7 +348,7 @@ async function main() {
       rows.push(row);
       if (stopped) continue;
 
-      const requests = requestsOf(job, language, options.trial);
+      const requests = requestsOf(job, language, fragmentLimit);
       const pieces: Int16Array[] = [];
       let attempts = 0;
       let worstMatch = 1;
@@ -427,7 +445,11 @@ async function main() {
 
       const base = `${options.tourId}/${language}`;
       if (options.trial) {
-        const local = writeLocal(localDir, `${base}/prueba/${job.stepId}-fragmento-1.mp3`, mp3);
+        const name =
+          options.trialFragments === undefined
+            ? `${job.stepId}-fragmento-1.mp3`
+            : `${job.stepId}-fragmentos-1-a-${options.trialFragments}.mp3`;
+        const local = writeLocal(localDir, `${base}/prueba/${name}`, mp3);
         console.log(`\nCopia local: ${local}`);
         continue;
       }
