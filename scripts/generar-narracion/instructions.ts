@@ -9,6 +9,14 @@ export type Language = "es" | "en";
 // pregunta "¿Llegaste?").
 export const LISTEN_BUTTON_WORD: Record<Language, string> = { es: "Escuchar", en: "Listen" };
 
+// Acento y ritmo de la narración en español, en prueba: solo aquí, no en la
+// conversación (la personalidad compartida no cambia). El inglés todavía no
+// lleva indicaciones de este tipo.
+const SPANISH_NARRATION_ACCENT =
+  "Acento: pronuncia como un hablante nativo de Lima: vocales cortas y claras, sin alargarlas ni convertirlas en diptongos como en inglés; la r simple suave entre vocales y la rr vibrante; la t y la d suaves, con la lengua en los dientes, nunca como en inglés; la s clara al final de las palabras. Entonación y melodía peruanas, como en una conversación en Lima. Nunca suenes extranjero, gringo ni anglosajón.";
+const SPANISH_NARRATION_PACE =
+  "Ritmo: natural de conversación, fluido, ni lento ni apurado, sin pausas largas entre frases. Como si se lo contaras a un amigo mientras caminan, no como si lo leyeras.";
+
 export function narrationInstructions(language: Language): string {
   if (language === "en") {
     return [
@@ -21,6 +29,10 @@ export function narrationInstructions(language: Language): string {
   }
   return [
     buildGuiaPersona("es"),
+    "",
+    SPANISH_NARRATION_ACCENT,
+    "",
+    SPANISH_NARRATION_PACE,
     "",
     "Cuentas la historia en persona, como un guía caminando con la persona; nada de tono de locutor ni de audiolibro. Lee EXACTAMENTE el texto, palabra por palabra, sin agregar, quitar ni cambiar nada.",
     "",

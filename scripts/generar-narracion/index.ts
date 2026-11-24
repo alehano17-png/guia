@@ -10,11 +10,13 @@
 //     --reemplazar       regenera aunque el texto no haya cambiado
 //     --prueba           solo el primer fragmento del paso de --paso; lo deja
 //                        en la copia local y no sube nada
-//     --modelo <nombre>  genera con otro modelo SOLO para comparar: no sube
-//                        nada ni toca el manifest; la copia local queda en
-//                        .cache/narration-comparar/<modelo>/. Sin esta
-//                        opción se usa REALTIME_MODEL (backend/realtimeConfig.js).
-//                        Solo modelos con precios en cost.ts.
+//     --modelo <nombre>  genera con otro modelo, y
+//     --voz <nombre>     con otra voz, SOLO para comparar: no sube nada ni
+//                        toca el manifest; la copia local queda en
+//                        .cache/narration-comparar/<modelo>-<voz>/. Sin estas
+//                        opciones se usan REALTIME_MODEL y REALTIME_VOICE
+//                        (backend/realtimeConfig.js). Solo modelos con
+//                        precios en cost.ts.
 //
 // Llaves: lee OPENAI_API_KEY, SUPABASE_URL y SUPABASE_SECRET_KEY de
 // backend/.env. Nunca las imprime ni las copia a otro lado.
@@ -65,8 +67,11 @@ import {
 const ROOT = process.cwd();
 const ENV_PATH = path.join(ROOT, "backend/.env");
 const LOCAL_DIR = path.join(ROOT, ".cache/narration");
-// Copias de otros modelos, solo para escuchar y comparar.
+// Copias con otro modelo u otra voz, solo para escuchar y comparar.
 const COMPARE_DIR = path.join(ROOT, ".cache/narration-comparar");
+// Voces de OpenAI Realtime (guía de conversaciones en tiempo real, noviembre
+// de 2026: https://developers.openai.com/api/docs/guides/realtime-conversations).
+const REALTIME_VOICES = ["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar"];
 
 // Subir este número regenera todo (por ejemplo, si cambia cómo se une el
 // audio).
@@ -86,16 +91,17 @@ type Options = {
   replace: boolean;
   trial: boolean;
   model: string;
+  voice: string;
 };
 
 function usage(message: string): never {
   console.error(message);
-  console.error("Uso: npm run generar-narracion -- <tourId> [--idioma es|en] [--paso <stepId>] [--tope <US$>] [--reemplazar] [--prueba] [--modelo <nombre>]");
+  console.error("Uso: npm run generar-narracion -- <tourId> [--idioma es|en] [--paso <stepId>] [--tope <US$>] [--reemplazar] [--prueba] [--modelo <nombre>] [--voz <nombre>]");
   process.exit(1);
 }
 
 function parseOptions(argv: string[]): Options {
-  const options: Options = { tourId: "", languages: ["es", "en"], budget: DEFAULT_BUDGET_USD, replace: false, trial: false, model: REALTIME_MODEL };
+  const options: Options = { tourId: "", languages: ["es", "en"], budget: DEFAULT_BUDGET_USD, replace: false, trial: false, model: REALTIME_MODEL, voice: REALTIME_VOICE };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = () => argv[++i] ?? usage(`Falta el valor de ${arg}`);
@@ -115,8 +121,11 @@ function parseOptions(argv: string[]): Options {
       // También es nombre de carpeta: solo letras, números, puntos y guiones.
       if (!/^[a-z0-9][a-z0-9.-]{0,63}$/i.test(model)) usage(`Nombre de modelo inválido: ${model}`);
       options.model = model;
-    }
-    else if (arg.startsWith("--")) usage(`Opción desconocida: ${arg}`);
+    } else if (arg === "--voz") {
+      const voice = value();
+      if (!REALTIME_VOICES.includes(voice)) usage(`Voz desconocida: ${voice}. Voces: ${REALTIME_VOICES.join(", ")}`);
+      options.voice = voice;
+    } else if (arg.startsWith("--")) usage(`Opción desconocida: ${arg}`);
     else if (!options.tourId) options.tourId = arg;
     else usage(`Argumento de más: ${arg}`);
   }
@@ -151,7 +160,7 @@ type Row = {
   status: "ok" | "revisar" | "sin cambios" | "sin generar (tope)";
 };
 
-function narrationJobs(tour: Tour, language: Language, model: string, stepId?: string): Job[] {
+function narrationJobs(tour: Tour, language: Language, model: string, voice: string, stepId?: string): Job[] {
   const instructions = narrationInstructions(language);
   return tour.steps
     .filter((step) => step.voiceText?.trim() && (!stepId || step.id === stepId))
@@ -162,7 +171,7 @@ function narrationJobs(tour: Tour, language: Language, model: string, stepId?: s
       hash: hashOf({
         v: NARRATION_FORMAT_VERSION,
         model,
-        voice: REALTIME_VOICE,
+        voice,
         instructions,
         silences: [MICRO_PAUSE_SECONDS, PAUSE_SECONDS, PARAGRAPH_PAUSE_SECONDS],
         text: step.voiceText,
@@ -174,7 +183,7 @@ function narrationJobs(tour: Tour, language: Language, model: string, stepId?: s
 
 // Una pregunta por cada lugar al que el GPS puede apuntar (la misma regla de
 // la app: data/tours/arrival.ts).
-function arrivalJobs(tour: Tour, language: Language, model: string, stepId?: string): Job[] {
+function arrivalJobs(tour: Tour, language: Language, model: string, voice: string, stepId?: string): Job[] {
   const instructions = arrivalInstructions(language);
   const places = new Map<string, string>();
   for (const step of tour.steps) {
@@ -193,7 +202,7 @@ function arrivalJobs(tour: Tour, language: Language, model: string, stepId?: str
       kind: "arrival" as const,
       stepId: id,
       file: `arrival/${id}.mp3`,
-      hash: hashOf({ v: NARRATION_FORMAT_VERSION, model, voice: REALTIME_VOICE, instructions, placeTitle }),
+      hash: hashOf({ v: NARRATION_FORMAT_VERSION, model, voice, instructions, placeTitle }),
       placeTitle,
       instructions,
     }));
@@ -233,20 +242,22 @@ async function main() {
     );
     process.exit(1);
   }
-  // Otro modelo que el de la app: solo para comparar (nada a Supabase).
-  const compareOnly = model !== REALTIME_MODEL;
+  const voice = options.voice;
+  // Otro modelo u otra voz que los de la app: solo para comparar (nada a
+  // Supabase). La carpeta lleva los dos, para que ninguna copia pise a otra.
+  const compareOnly = model !== REALTIME_MODEL || voice !== REALTIME_VOICE;
   const localOnly = options.trial || compareOnly;
-  const localDir = compareOnly ? path.join(COMPARE_DIR, model) : LOCAL_DIR;
+  const localDir = compareOnly ? path.join(COMPARE_DIR, `${model}-${voice}`) : LOCAL_DIR;
   const reasoningEffort = MODELS_WITHOUT_REASONING_EFFORT.has(model) ? undefined : REALTIME_REASONING_EFFORT;
 
   const env = readEnv(localOnly ? ["OPENAI_API_KEY"] : ["OPENAI_API_KEY", "SUPABASE_URL", "SUPABASE_SECRET_KEY"]);
   const storage: Storage | null = localOnly ? null : createStorage(env.SUPABASE_URL, env.SUPABASE_SECRET_KEY);
 
-  console.log(`Tour ${options.tourId} | modelo ${model} | voz ${REALTIME_VOICE} | razonamiento ${reasoningEffort ?? "(no se manda)"} | tope ${formatUsd(options.budget)}`);
+  console.log(`Tour ${options.tourId} | modelo ${model} | voz ${voice} | razonamiento ${reasoningEffort ?? "(no se manda)"} | tope ${formatUsd(options.budget)}`);
   console.log(`Precios: ${model}, ${prices.source} (${prices.date}).`);
   if (compareOnly) {
     console.log(
-      `Solo para comparar: ${model} no es el modelo de la app (${REALTIME_MODEL}). No se sube nada a Supabase ni se toca el manifest; la copia local queda en ${localDir}.`
+      `Solo para comparar: la app usa ${REALTIME_MODEL} con voz ${REALTIME_VOICE}. No se sube nada a Supabase ni se toca el manifest; la copia local queda en ${localDir}.`
     );
   }
   if (storage) console.log(`Bucket "narrations": ${await storage.ensurePrivateBucket()} (privado).`);
@@ -261,8 +272,8 @@ async function main() {
     }
     const tour = getTourById(options.tourId, language)!;
     const jobs = [
-      ...narrationJobs(tour, language, model, options.stepId),
-      ...(options.trial ? [] : arrivalJobs(tour, language, model, options.stepId)),
+      ...narrationJobs(tour, language, model, voice, options.stepId),
+      ...(options.trial ? [] : arrivalJobs(tour, language, model, voice, options.stepId)),
     ];
     if (options.stepId && !jobs.length) usage(`El paso "${options.stepId}" no existe o no tiene texto en ${language}`);
 
@@ -272,7 +283,7 @@ async function main() {
       tourId: options.tourId,
       language,
       model,
-      voice: REALTIME_VOICE,
+      voice,
       files: {},
     };
     const isUnchanged = (job: Job) => !localOnly && !options.replace && manifest.files[job.file]?.hash === job.hash;
@@ -324,7 +335,7 @@ async function main() {
       let attempts = 0;
       let worstMatch = 1;
       let failed = false;
-      const speaker = await RealtimeSpeaker.open({ apiKey, model, voice: REALTIME_VOICE });
+      const speaker = await RealtimeSpeaker.open({ apiKey, model, voice });
       try {
         for (const [index, request] of requests.entries()) {
           let accepted: Int16Array | null = null;
@@ -442,7 +453,7 @@ async function main() {
         entry.alignment = alignmentFile;
       }
       manifest.model = model;
-      manifest.voice = REALTIME_VOICE;
+      manifest.voice = voice;
       manifest.files[job.file] = entry;
       // Después de cada archivo, para no perder lo hecho si algo se corta.
       await storage.writeManifest(manifest);
